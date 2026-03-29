@@ -1069,9 +1069,12 @@
         const textEl = document.getElementById('installText');
         const btnEl = document.getElementById('installBtn');
         textEl.textContent = t('installBannerText');
-        btnEl.textContent = t('installBtn');
         if (isIos) {
+            btnEl.textContent = t('installBtn');
             btnEl.setAttribute('onclick', 'showIosInstruction()');
+        } else {
+            btnEl.textContent = 'Install';
+            btnEl.setAttribute('onclick', 'installApp()');
         }
         banner.style.display = 'block';
     }
@@ -1108,14 +1111,15 @@
         localStorage.setItem('installDismissed', '1');
     }
 
-    // Show install banner now (translations and t() are defined above)
-    (function() {
+    // Show install banner after short delay (gives Android beforeinstallprompt time to fire)
+    setTimeout(function() {
         const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
         const dismissed = localStorage.getItem('installDismissed');
-        if (!isStandalone && !dismissed && !deferredPrompt) {
-            showInstallBanner(true);
-        }
-    })();
+        const banner = document.getElementById('installBanner');
+        // Skip if Android already showed native prompt, or already visible, or dismissed
+        if (deferredPrompt || (banner && banner.style.display === 'block') || isStandalone || dismissed) return;
+        showInstallBanner(true);
+    }, 2000);
 
     function getColumnHeader(colName) {
         const map = { 'Date':'colDate','Type':'colType','Original file name':'colOriginalFileName','Country':'colCountry','Lang.':'colLang','Links':'colLinks','Dwnld.':'colDwnld','Length':'colLength' };
