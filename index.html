@@ -766,12 +766,12 @@
 
     <!-- ===== SEARCH SECTION ===== -->
     <div class="search-section">
+        <div id="recommendationsList" style="display: none; position: absolute; right: calc(100% + 8px); top: 0; z-index: 1000; width: 420px;"></div>
         <div class="search-card">
             <div class="search-quick-buttons">
                 <button class="latest-files-btn" onclick="showLatestFiles()" data-i18n="latest20Files">20 latest files</button>
                 <button class="recommendations-btn" onclick="showRecommendations()" data-i18n="recommendations">Recommendations</button>
             </div>
-            <div id="recommendationsList" style="display: none; z-index: 1000;"></div>
             <div class="search-row">
                 <button class="help-search-btn" onclick="openHelpModal()" data-i18n="helpButton">How to use search?</button>
                 <div class="search-bar" style="flex:1;">
