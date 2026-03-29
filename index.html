@@ -180,6 +180,7 @@
             border-radius: var(--radius);
             padding: 18px 20px 14px;
             border-top: 3px solid var(--primary);
+            position: relative;
             box-shadow: 0 6px 28px rgba(0,0,0,0.13), 0 2px 6px rgba(0,0,0,0.08);
         }
         .search-quick-buttons {
@@ -771,6 +772,7 @@
                 <button class="latest-files-btn" onclick="showLatestFiles()" data-i18n="latest20Files">20 latest files</button>
                 <button class="recommendations-btn" onclick="showRecommendations()" data-i18n="recommendations">Recommendations</button>
             </div>
+            <div id="recommendationsList" style="display: none; position: absolute; left: 0; top: 100%; z-index: 1000; margin-top: 4px;"></div>
             <div class="search-row">
                 <button class="help-search-btn" onclick="openHelpModal()" data-i18n="helpButton">How to use search?</button>
                 <div class="search-bar" style="flex:1;">
@@ -790,7 +792,6 @@
     <div class="results-container">
         <div style="position: relative;">
             <div id="topicsList" style="display: none; position: absolute; right: 0; top: 40px; z-index: 1000;"></div>
-            <div id="recommendationsList" style="display: none; position: absolute; left: 0; top: 40px; z-index: 1000;"></div>
             <table id="resultsTable">
                 <tbody>
                     <tr>
