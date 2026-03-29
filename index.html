@@ -916,67 +916,7 @@
        GitHub Pages version: original UI, client-side search via Google Sheets CSV
        =========================================================================== */
 
-    /* ===== PWA INSTALL LOGIC ===== */
     let deferredPrompt = null;
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        showInstallBanner();
-    });
-
-    function showInstallBanner(isIos) {
-        const banner = document.getElementById('installBanner');
-        const textEl = document.getElementById('installText');
-        const btnEl = document.getElementById('installBtn');
-        textEl.textContent = t('installBannerText');
-        btnEl.textContent = t('installBtn');
-        if (isIos) {
-            btnEl.setAttribute('onclick', 'showIosInstruction()');
-        }
-        banner.style.display = 'block';
-    }
-
-    function installApp() {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((result) => {
-                deferredPrompt = null;
-                document.getElementById('installBanner').style.display = 'none';
-            });
-        }
-    }
-
-    function showIosInstruction() {
-        const overlay = document.createElement('div');
-        overlay.className = 'ios-install-overlay';
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-        overlay.innerHTML = `
-            <div class="ios-install-card">
-                <div class="share-icon">⬆️</div>
-                <p><b>1.</b> ${t('iosStep1')}</p>
-                <p><b>2.</b> ${t('iosStep2')}</p>
-                <p><b>3.</b> ${t('iosStep3')}</p>
-                <p><b>4.</b> ${t('iosStep4')}</p>
-                <button onclick="this.closest('.ios-install-overlay').remove()">${t('iosGotIt')}</button>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-    }
-
-    function dismissInstall() {
-        document.getElementById('installBanner').style.display = 'none';
-        localStorage.setItem('installDismissed', '1');
-    }
-
-    // Show install banner now (DOM is already parsed, functions defined above)
-    (function() {
-        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-        const dismissed = localStorage.getItem('installDismissed');
-        if (!isStandalone && !dismissed && !deferredPrompt) {
-            showInstallBanner(true);
-        }
-    })();
 
     const SPREADSHEET_ID = '1O66GTEB2AfBWYEq0sDLusVkJk9gg1XpmZNJmmQkvtls';
     const SHEET_NAME = 'Base';
@@ -1113,6 +1053,67 @@
     };
 
     function t(key) { return (translations[currentLanguage] || translations.en)[key] || key; }
+
+    /* ===== PWA INSTALL LOGIC ===== */
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        showInstallBanner();
+    });
+
+    function showInstallBanner(isIos) {
+        const banner = document.getElementById('installBanner');
+        const textEl = document.getElementById('installText');
+        const btnEl = document.getElementById('installBtn');
+        textEl.textContent = t('installBannerText');
+        btnEl.textContent = t('installBtn');
+        if (isIos) {
+            btnEl.setAttribute('onclick', 'showIosInstruction()');
+        }
+        banner.style.display = 'block';
+    }
+
+    function installApp() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((result) => {
+                deferredPrompt = null;
+                document.getElementById('installBanner').style.display = 'none';
+            });
+        }
+    }
+
+    function showIosInstruction() {
+        const overlay = document.createElement('div');
+        overlay.className = 'ios-install-overlay';
+        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+        overlay.innerHTML = `
+            <div class="ios-install-card">
+                <div class="share-icon">⬆️</div>
+                <p><b>1.</b> ${t('iosStep1')}</p>
+                <p><b>2.</b> ${t('iosStep2')}</p>
+                <p><b>3.</b> ${t('iosStep3')}</p>
+                <p><b>4.</b> ${t('iosStep4')}</p>
+                <button onclick="this.closest('.ios-install-overlay').remove()">${t('iosGotIt')}</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    function dismissInstall() {
+        document.getElementById('installBanner').style.display = 'none';
+        localStorage.setItem('installDismissed', '1');
+    }
+
+    // Show install banner now (translations and t() are defined above)
+    (function() {
+        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+        const dismissed = localStorage.getItem('installDismissed');
+        if (!isStandalone && !dismissed && !deferredPrompt) {
+            showInstallBanner(true);
+        }
+    })();
+
     function getColumnHeader(colName) {
         const map = { 'Date':'colDate','Type':'colType','Original file name':'colOriginalFileName','Country':'colCountry','Lang.':'colLang','Links':'colLinks','Dwnld.':'colDwnld','Length':'colLength' };
         return map[colName] ? t(map[colName]) : colName;
