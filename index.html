@@ -705,11 +705,6 @@
 
         /* ===== INSTALL BANNER ===== */
         #installBanner {
-            max-width: 720px;
-            margin: 8px auto 0;
-            padding: 0 16px;
-            position: relative;
-            z-index: 10;
         }
         .install-banner-content {
             background: linear-gradient(135deg, #f0c75e 0%, #e8b84a 100%);
@@ -863,17 +858,16 @@
         <div id="connectionStatus"></div>
     </div>
 
-    <!-- ===== INSTALL BANNER ===== -->
-    <div id="installBanner" style="display: none;">
-        <div class="install-banner-content">
-            <span class="install-text" id="installText">Install this app on your device</span>
-            <button class="install-btn" id="installBtn" onclick="installApp()">Install</button>
-            <button class="install-dismiss" onclick="dismissInstall()">&times;</button>
-        </div>
-    </div>
-
     <!-- ===== SEARCH SECTION ===== -->
     <div class="search-section">
+        <!-- Install Banner (inside search-section so it's above the card) -->
+        <div id="installBanner" style="display: none; margin-bottom: 10px;">
+            <div class="install-banner-content">
+                <span class="install-text" id="installText">Install this app on your device</span>
+                <button class="install-btn" id="installBtn" onclick="installApp()">Install</button>
+                <button class="install-dismiss" onclick="dismissInstall()">&times;</button>
+            </div>
+        </div>
         <div id="recommendationsList" style="display: none; position: absolute; right: calc(100% + 8px); top: 0; z-index: 1000; width: 420px;"></div>
         <div class="search-card">
             <div class="search-quick-buttons">
