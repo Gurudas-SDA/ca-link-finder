@@ -927,8 +927,9 @@
 
     // Also show for iOS (no beforeinstallprompt event)
     window.addEventListener('DOMContentLoaded', () => {
-        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-        const isStandalone = window.navigator.standalone === true;
+        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
         const dismissed = localStorage.getItem('installDismissed');
         if (isIos && !isStandalone && !dismissed) {
             showInstallBanner(true);
