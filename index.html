@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Chaitanya Academy Video & Audio Link Finder</title>
 
     <!-- PWA & Icons -->
@@ -1772,13 +1775,13 @@
             document.getElementById('helpModalOverlay').classList.remove('active');
     }
 
-    // ===== INIT =====
-    window.onload = function() {
+    // ===== INIT (runs immediately — all blocking scripts already loaded) =====
+    (function init() {
         const savedLang = localStorage.getItem('preferredLanguage') || 'en';
         setLanguage(savedLang);
         document.getElementById('searchTerm').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
         loadData();
-    };
+    })();
     </script>
 
     <!-- ===== HELP MODAL ===== -->
