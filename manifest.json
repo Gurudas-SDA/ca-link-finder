@@ -1,6 +1,6 @@
 {
   "name": "Chaitanya Academy — Link Finder",
-  "short_name": "CA Finder",
+  "short_name": "CA Files",
   "description": "Video & Audio Link Finder for Chaitanya Academy lectures",
   "start_url": ".",
   "display": "standalone",
