@@ -925,22 +925,14 @@
         showInstallBanner();
     });
 
-    // Show install banner for all non-installed users after a short delay
+    // Show install banner for everyone (dismiss remembered in localStorage)
     window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-            const dismissed = localStorage.getItem('installDismissed');
-            const banner = document.getElementById('installBanner');
-            // If beforeinstallprompt already showed it (Android), skip
-            if (banner.style.display === 'block') return;
-            if (isStandalone || dismissed) return;
-            // Detect iOS/iPadOS (userAgent says Mac on iPad since iPadOS 13)
-            const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-                          (/macintosh/i.test(navigator.userAgent) && 'ontouchend' in document);
-            if (isIos) {
-                showInstallBanner(true);
-            }
-        }, 1500);
+        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+        const dismissed = localStorage.getItem('installDismissed');
+        if (!isStandalone && !dismissed) {
+            // If no Android prompt captured, treat as iOS-style
+            if (!deferredPrompt) showInstallBanner(true);
+        }
     });
 
     function showInstallBanner(isIos) {
