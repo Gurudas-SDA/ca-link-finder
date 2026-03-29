@@ -807,8 +807,23 @@
             .search-bar input { font-size: 13px; padding: 9px 12px; }
             .top-left-buttons { position: static; flex-direction: row; flex-wrap: wrap; justify-content: center; padding: 10px; gap: 4px; }
             .top-left-buttons button { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.15); }
-            .results-container { padding: 0 8px 30px; }
-            #resultsTable { font-size: 11px; }
+            .results-container { padding: 0 4px 30px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            #resultsTable { font-size: 11px; min-width: 800px; }
+            #resultsTable thead th { padding: 6px 6px; font-size: 10px; }
+            #resultsTable tbody td { padding: 6px 6px; font-size: 11px; }
+            .search-section { padding: 0 8px; margin-top: -30px; }
+            .search-card { padding: 12px 12px 10px; }
+            .search-row { flex-wrap: wrap; gap: 6px; }
+            .help-search-btn { font-size: 10px; padding: 7px 10px; order: 2; }
+            .search-bar { min-width: 100%; order: 1; }
+            .search-quick-buttons { gap: 4px; }
+            .search-quick-buttons button { font-size: 10px; padding: 5px 10px; }
+            .install-banner-content { padding: 8px 12px; gap: 8px; }
+            .install-text { font-size: 12px; }
+            .install-btn { padding: 6px 14px; font-size: 12px; }
+            .language-switcher { gap: 4px; }
+            .lang-btn { padding: 5px 10px; font-size: 11px; }
+            #pagination { flex-wrap: wrap; justify-content: center; }
         }
     </style>
 </head>
