@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaitanya Academy Video & Audio Link Finder</title>
+
+    <!-- Google Fonts: Cormorant Garamond (scholarly serif) + Inter (clean body) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            /* Gaura Gold — Chaitanya Mahaprabhu's golden complexion */
+            --primary: #b8860b;
+            --primary-light: #d4a843;
+            --primary-dark: #8b6914;
+            /* Krishna Shyam Blue — fresh rain cloud */
+            --accent: #1a3a6b;
+            --accent-dark: #0f2847;
+            /* Saffron — sannyasa, devotion */
+            --saffron: #e8842c;
+            --saffron-light: #f4a54b;
+            /* Vermillion — Radharani */
+            --vermillion: #c62828;
+            /* Warm backgrounds — aged parchment, temple walls */
+            --bg: #fdf6e8;
+            --bg-warm: #f5ecd7;
+            --surface: #fffcf5;
+            --text: #3e2723;
+            --text-muted: #7a6552;
+            --border: #e0d5c0;
+            --border-light: #efe8d8;
+            --shadow-sm: 0 1px 3px rgba(62,39,35,0.06), 0 1px 2px rgba(62,39,35,0.04);
+            --shadow-md: 0 4px 12px rgba(62,39,35,0.08), 0 2px 4px rgba(62,39,35,0.04);
+            --shadow-lg: 0 10px 30px rgba(62,39,35,0.12), 0 4px 8px rgba(62,39,35,0.06);
+            --radius: 10px;
+            --radius-sm: 6px;
+            /* Tulasi green */
+            --tulasi: #2e7d32;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        button, input, select, textarea, table {
+            font-family: inherit;
+        }
+
+        /* ===== HERO / TOP SECTION — Deep Krishna Blue ===== */
+        .hero {
+            background: linear-gradient(160deg, #0f2847 0%, #1a3a6b 40%, #2a4f8a 100%);
+            padding: 28px 20px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 40% 30%, rgba(212,168,67,0.08) 0%, transparent 55%),
+                        radial-gradient(ellipse at 70% 70%, rgba(232,132,44,0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        /* Curved bottom edge of hero */
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: -5%;
+            right: -5%;
+            height: 40px;
+            background: var(--bg);
+            border-radius: 50% 50% 0 0;
+        }
+
+        /* ===== LOGO ===== */
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            margin: -8px auto 18px;
+            position: relative;
+            z-index: 1;
+            filter: drop-shadow(0 2px 12px rgba(0,0,0,0.25));
+        }
+        .logo-mandala { width: 86px; height: 86px; flex-shrink: 0; margin-top: -10px; }
+        .logo-text-block { text-align: left; }
+        .logo-title {
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+            font-weight: 800;
+            font-size: 28px;
+            line-height: 1.05;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+        .logo-title .accent { color: #f0c75e; }
+        .logo-subtitle {
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+            font-weight: 400;
+            font-size: 9.5px;
+            color: rgba(255,255,255,0.75);
+            letter-spacing: 3.5px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Language Switcher */
+        .language-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin: 12px 0 16px;
+        }
+        .lang-btn {
+            background: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.75);
+            border: 1.5px solid rgba(255,255,255,0.2);
+            padding: 5px 14px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            border-radius: 20px;
+        }
+        .lang-btn:hover {
+            background: rgba(255,255,255,0.22);
+            color: #fff;
+            border-color: rgba(255,255,255,0.4);
+        }
+        .lang-btn.active {
+            background: linear-gradient(135deg, #d4a843, #f0c75e);
+            color: #3e2723;
+            border-color: #d4a843;
+            box-shadow: 0 2px 8px rgba(212,168,67,0.4);
+        }
+
+        h1 {
+            font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+            font-weight: 700;
+            font-size: 26px;
+            letter-spacing: 0.01em;
+            color: #f0c75e;
+            margin-bottom: 4px;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+
+        #connectionStatus {
+            color: rgba(255,255,255,0.85);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* ===== SEARCH BAR ===== */
+        .search-section {
+            max-width: 720px;
+            margin: -44px auto 0;
+            padding: 0 16px;
+            position: relative;
+            z-index: 10;
+        }
+        .search-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px 20px 14px;
+            border-top: 3px solid var(--primary);
+            box-shadow: 0 6px 28px rgba(0,0,0,0.13), 0 2px 6px rgba(0,0,0,0.08);
+        }
+        .search-quick-buttons {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .search-quick-buttons button {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.2px;
+        }
+        .latest-files-btn {
+            background: linear-gradient(135deg, var(--saffron), var(--saffron-light));
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(232,132,44,0.3);
+        }
+        .latest-files-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(232,132,44,0.4);
+        }
+        .recommendations-btn {
+            background: linear-gradient(135deg, var(--accent), #2a4f8a);
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(26,58,107,0.3);
+        }
+        .recommendations-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(26,58,107,0.35);
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            border: 2px solid var(--border);
+            border-radius: 50px;
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .search-bar:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(184,134,11,0.15);
+        }
+        .search-bar input {
+            flex: 1;
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 400;
+            outline: none;
+            background: transparent;
+            color: var(--text);
+            min-width: 0;
+        }
+        .search-bar input::placeholder {
+            color: #9ca3af;
+        }
+        .search-bar button.search-button {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+            border: none;
+            padding: 10px 22px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .search-bar button.search-button:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+
+        /* ===== HELP BUTTON (left of search bar) ===== */
+        .search-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .help-search-btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+            border: none;
+            padding: 7px 14px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 50px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            letter-spacing: 0.3px;
+        }
+        .help-search-btn:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+
+        /* ===== HELP MODAL ===== */
+        .help-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .help-modal-overlay.active {
+            display: flex;
+        }
+        .help-modal {
+            background: var(--surface);
+            border-radius: var(--radius);
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            border-top: 3px solid var(--primary);
+            position: relative;
+        }
+        .help-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border-light);
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            z-index: 1;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .help-modal-header h2 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin: 0;
+        }
+        .help-modal-close {
+            background: none;
+            border: none;
+            font-size: 22px;
+            cursor: pointer;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.15s;
+            line-height: 1;
+        }
+        .help-modal-close:hover {
+            color: var(--text);
+            background: rgba(0,0,0,0.05);
+        }
+        .help-modal-body {
+            padding: 16px 20px 20px;
+            font-size: 13px;
+            line-height: 1.65;
+            color: var(--text);
+        }
+        .help-modal-body strong {
+            color: var(--primary-dark);
+        }
+        .help-modal-body code {
+            background: var(--bg-warm);
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            color: var(--accent);
+        }
+        .help-section-title {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--saffron);
+            margin: 14px 0 4px;
+        }
+        .help-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .search-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            text-align: center;
+        }
+        .timer {
+            font-size: 11px;
+            color: var(--saffron);
+            font-weight: 600;
+        }
+        #resultsInfo {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--primary-dark);
+            text-align: center;
+        }
+
+        /* ===== UTILITY BUTTONS (top-left) ===== */
+        .top-left-buttons {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            z-index: 100;
+        }
+        .top-left-buttons button {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(8px);
+            color: rgba(255,255,255,0.9);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border-radius: var(--radius-sm);
+            letter-spacing: 0.3px;
+        }
+        .top-left-buttons button:hover {
+            background: rgba(255,255,255,0.25);
+            color: #fff;
+        }
+        #sourcesList {
+            display: none;
+            margin-top: 6px;
+            border: 1px solid var(--border);
+            padding: 12px;
+            text-align: left;
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            max-width: 220px;
+            max-height: 350px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: var(--text);
+        }
+        #sourcesList h3 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+        #sourcesList ul {
+            list-style: none;
+            padding: 0;
+        }
+        #sourcesList li {
+            padding: 3px 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 11px;
+            cursor: pointer;
+        }
+        #sourcesList li:last-child { border-bottom: none; }
+        #sourcesList li:hover { color: var(--primary); }
+
+        /* ===== TOPICS / RECOMMENDATIONS DROPDOWNS ===== */
+        #topicsList, #recommendationsList {
+            display: none;
+            border: 1px solid var(--border);
+            text-align: left;
+            background: var(--surface);
+            max-width: 260px;
+            max-height: 420px;
+            overflow-y: auto;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+        }
+
+        #topicsListTitle, #recommendationsListTitle {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            color: var(--primary-dark);
+            font-size: 14px;
+            font-weight: 700;
+            padding: 10px 14px;
+            margin: 0;
+            background: var(--surface);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            white-space: nowrap;
+            border-bottom: 2px solid var(--border);
+        }
+        #topicsListContent, #recommendationsListContent {
+            padding: 6px 14px 14px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .topic-item, .recommendation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-light);
+            gap: 8px;
+        }
+        .topic-item:last-child, .recommendation-item:last-child {
+            border-bottom: none;
+        }
+        .topic-name, .recommendation-name {
+            flex: 1;
+            font-size: 12px;
+            min-width: 0;
+            word-wrap: break-word;
+            color: var(--text);
+        }
+        .topic-search-btn, .recommendation-search-btn {
+            background: linear-gradient(135deg, var(--saffron), var(--saffron-light)) !important;
+            color: #fff !important;
+            border: none !important;
+            padding: 4px 8px !important;
+            cursor: pointer !important;
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            border-radius: 12px !important;
+            transition: all 0.2s !important;
+            flex-shrink: 0 !important;
+            width: 40px !important;
+            max-width: 40px !important;
+            min-width: 40px !important;
+            text-align: center !important;
+        }
+        .topic-search-btn:hover, .recommendation-search-btn:hover {
+            background: linear-gradient(135deg, #cf7020, var(--saffron)) !important;
+        }
+
+        /* ===== RESULTS TABLE ===== */
+        .results-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 16px 40px;
+        }
+
+        #resultsTable {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            margin-bottom: 18px;
+        }
+        #resultsTable thead th {
+            background: linear-gradient(180deg, #f8f2e4, #f3ebda);
+            color: var(--text);
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 10px;
+            border-bottom: 2px solid var(--primary-light);
+            text-align: left;
+            white-space: nowrap;
+        }
+        #resultsTable tbody td {
+            padding: 9px 10px;
+            font-size: 12.5px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text);
+            vertical-align: middle;
+        }
+        #resultsTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+        #resultsTable tbody tr:hover td {
+            background: #fdf3de;
+        }
+        #resultsTable a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.15s;
+        }
+        #resultsTable a:hover {
+            color: var(--accent-dark);
+            text-decoration: underline;
+        }
+
+        .empty-result-message {
+            font-size: 13px;
+            color: var(--text-muted);
+            padding: 32px 14px !important;
+            text-align: center;
+        }
+
+        /* Transcript block header */
+        th.transcripts-block {
+            text-align: center;
+            padding: 6px 10px;
+            vertical-align: middle;
+        }
+        .transcripts-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+            margin: 0;
+        }
+        .transcripts-hintline {
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--text-muted);
+            line-height: 1.2;
+            margin-top: 2px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .transcripts-hintline .click-word {
+            color: var(--saffron);
+            font-weight: 700;
+        }
+        #resultsTable thead th.transcript-lang {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--saffron);
+            cursor: pointer;
+            user-select: none;
+            padding: 4px 10px;
+            transition: color 0.15s;
+        }
+        #resultsTable thead th.transcript-lang:hover {
+            text-decoration: underline;
+            color: #cf7020;
+        }
+
+        /* Match hint for hidden column matches */
+        .match-hint {
+            display: block;
+            font-size: 10px;
+            color: var(--saffron);
+            font-style: italic;
+            margin-top: 3px;
+            line-height: 1.3;
+        }
+
+        /* ===== PAGINATION ===== */
+        #pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        #pagination button {
+            padding: 8px 14px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-weight: 600;
+            line-height: 1;
+        }
+        .total-pages-button {
+            background: var(--bg);
+            color: var(--text-muted);
+            font-weight: 600 !important;
+            cursor: default !important;
+            border: 1px solid var(--border) !important;
+            font-size: 11px !important;
+        }
+        .nav-button {
+            background: linear-gradient(135deg, var(--accent), #2a4f8a);
+            color: #fff;
+            box-shadow: 0 2px 4px rgba(26,58,107,0.2);
+        }
+        .nav-button:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(26,58,107,0.3);
+        }
+        .nav-button:disabled {
+            background: #d1d5db;
+            color: #9ca3af;
+            cursor: not-allowed !important;
+            box-shadow: none;
+            transform: none;
+        }
+        .current-page {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+            color: #fff !important;
+            font-weight: 700 !important;
+            cursor: default !important;
+            box-shadow: 0 2px 6px rgba(184,134,11,0.35);
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c4c4c4; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #999; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 640px) {
+            h1 { font-size: 17px; }
+            .logo-wrap { gap: 10px; }
+            .logo-mandala { width: 52px; height: 52px; }
+            .logo-title { font-size: 20px; }
+            .logo-subtitle { font-size: 8px; letter-spacing: 2.5px; }
+            .search-bar input { font-size: 13px; padding: 9px 12px; }
+            .top-left-buttons { position: static; flex-direction: row; flex-wrap: wrap; justify-content: center; padding: 10px; gap: 4px; }
+            .top-left-buttons button { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.15); }
+            .results-container { padding: 0 8px 30px; }
+            #resultsTable { font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HERO SECTION ===== -->
+    <div class="hero">
+        <div class="top-left-buttons">
+            <button onclick="showSources()" data-i18n="listOfSources">List Of Sources</button>
+            <div id="sourcesList"></div>
+        </div>
+        <!-- Chaitanya Academy Logo (SVG mandala + text) -->
+        <div class="logo-wrap">
+            <svg class="logo-mandala" viewBox="44 50 96 95" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="79.7" cy="86.4" r="7.0" fill="#d0342c"/>
+                <circle cx="103.3" cy="86.4" r="7.0" fill="#d0342c"/>
+                <circle cx="79.7" cy="109.7" r="7.0" fill="#d0342c"/>
+                <circle cx="103.3" cy="109.7" r="7.0" fill="#d0342c"/>
+                <circle cx="91.4" cy="74.9" r="5.7" fill="#d1352d"/>
+                <circle cx="68.0" cy="98.1" r="5.6" fill="#d0322b"/>
+                <circle cx="115.0" cy="98.1" r="5.6" fill="#d0322b"/>
+                <circle cx="91.4" cy="121.5" r="5.6" fill="#d0332b"/>
+                <circle cx="77.3" cy="72.3" r="5.1" fill="#d1342d"/>
+                <circle cx="105.5" cy="123.7" r="5.1" fill="#d1342c"/>
+                <circle cx="117.5" cy="84.0" r="5.1" fill="#d1342c"/>
+                <circle cx="65.5" cy="112.1" r="5.1" fill="#d1342d"/>
+                <circle cx="71.8" cy="124.5" r="4.7" fill="#d13730"/>
+                <circle cx="64.9" cy="78.7" r="4.7" fill="#d1362f"/>
+                <circle cx="111.1" cy="71.7" r="4.7" fill="#d1352d"/>
+                <circle cx="118.0" cy="117.8" r="4.7" fill="#d1352d"/>
+                <circle cx="80.6" cy="132.3" r="2.9" fill="#d33e37"/>
+                <circle cx="102.4" cy="64.0" r="2.8" fill="#d13730"/>
+                <circle cx="57.0" cy="87.3" r="2.8" fill="#d1362e"/>
+                <circle cx="125.8" cy="109.0" r="2.7" fill="#d0332b"/>
+                <circle cx="52.5" cy="97.0" r="2.3" fill="#d34039"/>
+                <circle cx="92.5" cy="59.3" r="2.1" fill="#d13830"/>
+                <circle cx="130.5" cy="99.3" r="2.1" fill="#d23932"/>
+                <circle cx="90.5" cy="136.7" r="2.1" fill="#d13931"/>
+            </svg>
+            <div class="logo-text-block">
+                <div class="logo-title">CHAIT<span class="accent">Á</span>NYA<br>ACADEMY</div>
+                <div class="logo-subtitle">for the study of consciousness</div>
+            </div>
+        </div>
+
+        <div class="language-switcher">
+            <button class="lang-btn active" onclick="setLanguage('en')" data-lang="en">EN</button>
+            <button class="lang-btn" onclick="setLanguage('ru')" data-lang="ru">RU</button>
+            <button class="lang-btn" onclick="setLanguage('lv')" data-lang="lv">LV</button>
+            <button class="lang-btn" onclick="setLanguage('it')" data-lang="it">IT</button>
+            <button class="lang-btn" onclick="setLanguage('fr')" data-lang="fr">FR</button>
+            <button class="lang-btn" onclick="setLanguage('es')" data-lang="es">ES</button>
+        </div>
+
+        <h1 data-i18n="pageTitle">Video & Audio Link Finder</h1>
+        <div id="connectionStatus"></div>
+    </div>
+
+    <!-- ===== SEARCH SECTION ===== -->
+    <div class="search-section">
+        <div class="search-card">
+            <div class="search-quick-buttons">
+                <button class="latest-files-btn" onclick="showLatestFiles()" data-i18n="latest20Files">20 latest files</button>
+                <button class="recommendations-btn" onclick="showRecommendations()" data-i18n="recommendations">Recommendations</button>
+            </div>
+            <div class="search-row">
+                <button class="help-search-btn" onclick="openHelpModal()" data-i18n="helpButton">How to use search?</button>
+                <div class="search-bar" style="flex:1;">
+                    <input type="text" id="searchTerm" placeholder="Loading..." disabled>
+                    <button class="search-button" onclick="search()" data-i18n="searchButton">Search</button>
+                </div>
+            </div>
+            <div class="search-time">
+                <span data-i18n="searchTime">Client-side search — instant results.</span>
+                <span id="timer" class="timer"></span>
+            </div>
+            <div id="resultsInfo"></div>
+        </div>
+    </div>
+
+    <!-- ===== RESULTS ===== -->
+    <div class="results-container">
+        <div style="position: relative;">
+            <div id="topicsList" style="display: none; position: absolute; right: 0; top: 0; z-index: 1000;"></div>
+            <div id="recommendationsList" style="display: none; position: absolute; left: 0; top: 0; z-index: 1000;"></div>
+            <table id="resultsTable">
+                <tbody>
+                    <tr>
+                        <td colspan="11" class="empty-result-message" data-i18n="enterSearchTerms">Enter search terms to see results</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div id="pagination"></div>
+        </div>
+    </div>
+
+    <script>
+    /* ===========================================================================
+       Chaitanya Academy — Video & Audio Link Finder
+       GitHub Pages version: original UI, client-side search via Google Sheets CSV
+       =========================================================================== */
+
+    const SPREADSHEET_ID = '1O66GTEB2AfBWYEq0sDLusVkJk9gg1XpmZNJmmQkvtls';
+    const SHEET_NAME = 'Base';
+
+    // ===== STATE =====
+    let DB = [];
+    let currentPage = 1;
+    const pageSize = 10;
+    let totalResults = 0;
+    let lastSearchTerm = '';
+    let allResults = [];
+    let currentLanguage = 'en';
+    let dataLoaded = false;
+
+    const columnHeaders = ['Date', 'Type', 'Original file name', 'Country', 'Lang.', 'Links', 'Dwnld.', 'Length', 'Script_EN', 'Script_LV', 'Script_RU'];
+
+    // Columns excluded from free-text search (only via special filters)
+    const SEARCH_EXCLUDE = new Set(['Source', 'Added', 'Scripts added', 'Nr.']);
+    // GS searchData() only searches these 11 columns for free-text (line 1152-1166 of MainCopyCA.gs)
+    const SEARCH_COLS = ['Date', 'Type', 'Original file name', 'Country', 'Lang.', 'Links', 'Dwnld.', 'Length', 'Script_EN', 'Script_LV', 'Script_RU'];
+
+    // Hidden searchable columns (for match hints)
+    const HIDDEN_COLS = ['Subject', 'Subtype', 'Books', 'Author', 'Bhajans', 'Personality'];
+
+    // ===== TRANSLATIONS (all 6 languages from original) =====
+    const translations = {
+        en: {
+            pageTitle: 'Video & Audio Link Finder',
+            listOfSources: 'List Of Sources',
+            lectureTopics: 'Playlists',
+            recommendations: 'Recommendations',
+            recommendationsTitle: 'Recommended lectures:',
+            latest20Files: '20 latest files',
+            latest20Transcripts: '20 latest transcripts',
+            searchPlaceholder: 'Search for wisdom among {count} links',
+            searchButton: 'Search',
+            searchTime: 'Client-side search — instant results.',
+            enterSearchTerms: 'Enter search terms to see results',
+            filesFound: 'files found',
+            showingResults: 'Showing results',
+            noResultsFound: 'No results found',
+            elapsedTime: 'Elapsed time:',
+            seconds: 'seconds',
+            searching: 'Searching...',
+            page: 'page', pages: 'pages',
+            previous: 'Previous', next: 'Next',
+            sources: 'Sources:',
+            topics: 'Topics with transcripts:',
+            transcriptsTitle: 'Transcripts / Translations',
+            transcriptsHint: '. All transcripts',
+            clickWord: 'Click',
+            colDate: 'Date', colType: 'Type', colOriginalFileName: 'Original file name',
+            colCountry: 'Country', colLang: 'Lang.', colLinks: 'Links',
+            colDwnld: 'Dwnld.', colLength: 'Length',
+            helpButton: 'How to use search?',
+            helpModalTitle: 'How to use the search field?',
+            helpContent: '<div class="help-section-title">Basic search</div>Type letters/numbers and click <strong>Search</strong>. The Finder scans every table cell and shows rows where at least one field contains your symbols. Matches are highlighted (usually yellow).<div class="help-section-title">Diacritics</div>The Finder handles diacritics: searching <code>babaji</code> also finds <strong>Bābājī</strong> (diacritic matches may appear bluish).<div class="help-section-title">Different spellings ("or")</div>Use <code>//</code> to mean OR: <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principles for effective search</div>Use semicolon <code>;</code> = AND (filter down): <code>guru; tattva; youtube; 2020</code><br><strong>Important:</strong> don\'t leave <code>;</code> after the last word.<br>Shorten words (you don\'t need the full word): <code>bhaktis; avir</code><br>Combine AND + OR: <code>rupa; goswami//gosvami; disap</code>'
+        },
+        ru: {
+            pageTitle: 'Поиск видео и аудио ссылок',
+            listOfSources: 'Список источников',
+            lectureTopics: 'Плейлисты',
+            recommendations: 'Рекомендации',
+            recommendationsTitle: 'Рекомендуемые лекции:',
+            latest20Files: 'Последние 20 файлов',
+            latest20Transcripts: 'Последние 20 транскриптов',
+            searchPlaceholder: 'Искать мудрость среди {count} ссылок',
+            searchButton: 'Поиск',
+            searchTime: 'Поиск на стороне клиента — мгновенные результаты.',
+            enterSearchTerms: 'Введите поисковые слова для просмотра результатов',
+            filesFound: 'файлов найдено',
+            showingResults: 'Показаны результаты',
+            noResultsFound: 'Результаты не найдены',
+            elapsedTime: 'Прошло времени:', seconds: 'секунд',
+            searching: 'Поиск...', page: 'страница', pages: 'страниц',
+            previous: 'Назад', next: 'Вперёд',
+            sources: 'Источники:', topics: 'Темы с транскриптами:',
+            transcriptsTitle: 'Транскрипты / Переводы', transcriptsHint: '. Все транскрипты', clickWord: 'Нажмите',
+            colDate: 'Дата', colType: 'Тип', colOriginalFileName: 'Название файла',
+            colCountry: 'Страна', colLang: 'Язык', colLinks: 'Ссылки',
+            colDwnld: 'Скачать', colLength: 'Длина',
+            helpButton: 'Как искать?', helpModalTitle: 'Как пользоваться полем поиска?',
+            helpContent: '<div class="help-section-title">Основной поиск</div>Введите буквы/цифры и нажмите <strong>Search</strong>. Finder проверяет все ячейки таблицы и показывает строки, где хотя бы в одном поле есть совпадение. Совпадения подсвечиваются (обычно жёлтым).<div class="help-section-title">Диакритика и кириллица</div>Finder \"понимает\" диакритику: запрос <code>babaji</code> найдёт и <strong>Bābājī</strong> (совпадения с диакритикой могут быть с голубоватой подсветкой). Также он распознаёт кириллический вариант слова (например, babaji → Бабаджи, подсветка оранжевым).<div class="help-section-title">Разные написания ("или")</div>Используйте <code>//</code> как ИЛИ: <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 правила эффективного поиска</div>Точка с запятой <code>;</code> = И (сужает поиск): <code>guru; tattva; youtube; 2020</code><br><strong>Важно:</strong> не ставьте <code>;</code> после последнего слова.<br>Сокращайте слова: <code>bhaktis; avir</code><br>Комбинируйте И + ИЛИ: <code>rupa; goswami//gosvami; disap</code>'
+        },
+        lv: {
+            pageTitle: 'Video & Audio saišu meklētājs',
+            listOfSources: 'Avotu saraksts',
+            lectureTopics: 'Atskaņošanas saraksti',
+            recommendations: 'Ieteikumi',
+            recommendationsTitle: 'Ieteiktās lekcijas:',
+            latest20Files: 'Jaunākie 20 faili',
+            latest20Transcripts: 'Jaunākie 20 transkripti',
+            searchPlaceholder: 'Meklēt gudrību starp {count} saitēm',
+            searchButton: 'Meklēt',
+            searchTime: 'Meklēšana klienta pusē — tūlītēji rezultāti.',
+            enterSearchTerms: 'Ievadiet meklēšanas vārdus, lai redzētu rezultātus',
+            filesFound: 'faili atrasti', showingResults: 'Rāda rezultātus',
+            noResultsFound: 'Rezultāti nav atrasti',
+            elapsedTime: 'Pagājušais laiks:', seconds: 'sekundes',
+            searching: 'Meklē...', page: 'lapa', pages: 'lapas',
+            previous: 'Iepriekšējā', next: 'Nākamā',
+            sources: 'Avoti:', topics: 'Tēmas ar transkriptiem:',
+            transcriptsTitle: 'Transkripti / Tulkojumi', transcriptsHint: '. Visi transkripti', clickWord: 'Noklikšķiniet',
+            colDate: 'Datums', colType: 'Tips', colOriginalFileName: 'Faila nosaukums',
+            colCountry: 'Valsts', colLang: 'Valoda', colLinks: 'Saites',
+            colDwnld: 'Lejup.', colLength: 'Garums',
+            helpButton: 'Kā meklēt?', helpModalTitle: 'Kā izmantot meklēšanas lauku?',
+            helpContent: '<div class="help-section-title">Pamata meklēšana</div>Ieraksti burtus/ciparus un spied <strong>Search</strong>. Finder pārbauda katru tabulas šūnu un parāda rindas, kur vismaz vienā laukā ir ievadītās zīmes. Atbilstības tiek izceltas (parasti dzeltenā).<div class="help-section-title">Diakritiskās zīmes</div>Finder ņem vērā diakritiku: meklējot <code>babaji</code>, tiks atrasts arī <strong>Bābājī</strong> (diakritikas atbilstības var būt ar zilganu fonu).<div class="help-section-title">Dažādi rakstības varianti ("vai")</div>Lieto <code>//</code> kā VAI: <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principi efektīvai meklēšanai</div>Lieto semikolu <code>;</code> = UN (sašaurina rezultātus): <code>guru; tattva; youtube; 2020</code><br><strong>Svarīgi:</strong> neatstāj <code>;</code> pēc pēdējā vārda.<br>Saīsini vārdus (nav jāievada pilns vārds): <code>bhaktis; avir</code><br>Kombinē UN + VAI: <code>rupa; goswami//gosvami; disap</code>'
+        },
+        it: { pageTitle: 'Cercatore di link video e audio', listOfSources: 'Elenco fonti', lectureTopics: 'Playlists', recommendations: 'Raccomandazioni', recommendationsTitle: 'Lezioni consigliate:', latest20Files: 'Ultimi 20 file', latest20Transcripts: 'Ultime 20 trascrizioni', searchPlaceholder: 'Cercare saggezza tra {count} link', searchButton: 'Cerca', searchTime: 'Ricerca lato client — risultati istantanei.', enterSearchTerms: 'Inserisci parole di ricerca per vedere i risultati', filesFound: 'file trovati', showingResults: 'Mostra risultati', noResultsFound: 'Nessun risultato trovato', elapsedTime: 'Tempo trascorso:', seconds: 'secondi', searching: 'Ricerca...', page: 'pagina', pages: 'pagine', previous: 'Precedente', next: 'Successiva', sources: 'Fonti:', topics: 'Argomenti con trascrizioni:', transcriptsTitle: 'Trascrizioni / Traduzioni', transcriptsHint: '. Tutte le trascrizioni', clickWord: 'Clicca', colDate: 'Data', colType: 'Tipo', colOriginalFileName: 'Nome file', colCountry: 'Paese', colLang: 'Lingua', colLinks: 'Link', colDwnld: 'Scarica', colLength: 'Durata', helpButton: 'Come cercare?', helpModalTitle: 'Come usare il campo di ricerca?', helpContent: '<div class="help-section-title">Ricerca di base</div>Inserisci lettere/numeri e fai clic su <strong>Search</strong>. Il Finder analizza ogni cella della tabella e mostra le righe in cui almeno un campo contiene i simboli inseriti. Le corrispondenze vengono evidenziate (di solito in giallo).<div class="help-section-title">Diacritici</div>Il Finder gestisce i diacritici: cercando <code>babaji</code> vengono trovati anche risultati con <strong>Bābājī</strong> (le corrispondenze con diacritici possono apparire con uno sfondo azzurrato).<div class="help-section-title">Ortografie diverse ("oppure")</div>Usa <code>//</code> per indicare OR ("oppure"): <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principi per una ricerca efficace</div>Usa il punto e virgola <code>;</code> = AND ("e", filtra/raffina): <code>guru; tattva; youtube; 2020</code><br><strong>Importante:</strong> non lasciare <code>;</code> dopo l\'ultima parola.<br>Accorcia le parole (non serve scrivere la parola intera): <code>bhaktis; avir</code><br>Combina AND + OR: <code>rupa; goswami//gosvami; disap</code>' },
+        fr: { pageTitle: 'Recherche de liens vidéo et audio', listOfSources: 'Liste des sources', lectureTopics: 'Playlists', recommendations: 'Recommandations', recommendationsTitle: 'Conférences recommandées :', latest20Files: 'Derniers 20 fichiers', latest20Transcripts: 'Dernières 20 transcriptions', searchPlaceholder: 'Chercher la sagesse parmi {count} liens', searchButton: 'Rechercher', searchTime: 'Recherche côté client — résultats instantanés.', enterSearchTerms: 'Saisissez des mots de recherche pour voir les résultats', filesFound: 'fichiers trouvés', showingResults: 'Affiche les résultats', noResultsFound: 'Aucun résultat trouvé', elapsedTime: 'Temps écoulé :', seconds: 'secondes', searching: 'Recherche...', page: 'page', pages: 'pages', previous: 'Précédente', next: 'Suivante', sources: 'Sources :', topics: 'Sujets avec transcriptions :', transcriptsTitle: 'Transcriptions / Traductions', transcriptsHint: '. Toutes les transcriptions', clickWord: 'Cliquez', colDate: 'Date', colType: 'Type', colOriginalFileName: 'Nom du fichier', colCountry: 'Pays', colLang: 'Langue', colLinks: 'Liens', colDwnld: 'Téléch.', colLength: 'Durée', helpButton: 'Comment chercher ?', helpModalTitle: 'Comment utiliser le champ de recherche ?', helpContent: '<div class="help-section-title">Recherche de base</div>Saisissez des lettres/chiffres puis cliquez sur <strong>Search</strong>. Le Finder parcourt chaque cellule du tableau et affiche les lignes où au moins un champ contient les symboles saisis. Les correspondances sont surlignées (généralement en jaune).<div class="help-section-title">Diacritiques</div>Le Finder gère les diacritiques : en recherchant <code>babaji</code>, il trouve aussi <strong>Bābājī</strong> (les correspondances avec diacritiques peuvent apparaître sur un fond bleuté).<div class="help-section-title">Orthographes différentes (« ou »)</div>Utilisez <code>//</code> pour indiquer OR (« ou ») : <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principes pour une recherche efficace</div>Utilisez le point-virgule <code>;</code> = AND (« et », filtre) : <code>guru; tattva; youtube; 2020</code><br><strong>Important :</strong> ne laissez pas <code>;</code> après le dernier mot.<br>Raccourcissez les mots (inutile d\'écrire le mot en entier) : <code>bhaktis; avir</code><br>Combinez AND + OR : <code>rupa; goswami//gosvami; disap</code>' },
+        es: { pageTitle: 'Buscador de enlaces de vídeo y audio', listOfSources: 'Lista de fuentes', lectureTopics: 'Playlists', recommendations: 'Recomendaciones', recommendationsTitle: 'Conferencias recomendadas:', latest20Files: 'Últimos 20 archivos', latest20Transcripts: 'Últimas 20 transcripciones', searchPlaceholder: 'Buscar sabiduría entre {count} enlaces', searchButton: 'Buscar', searchTime: 'Búsqueda del lado del cliente — resultados instantáneos.', enterSearchTerms: 'Introduce palabras de búsqueda para ver resultados', filesFound: 'archivos encontrados', showingResults: 'Mostrando resultados', noResultsFound: 'No se encontraron resultados', elapsedTime: 'Tiempo transcurrido:', seconds: 'segundos', searching: 'Buscando...', page: 'página', pages: 'páginas', previous: 'Anterior', next: 'Siguiente', sources: 'Fuentes:', topics: 'Temas con transcripciones:', transcriptsTitle: 'Transcripciones / Traducciones', transcriptsHint: '. Todas las transcripciones', clickWord: 'Haz clic', colDate: 'Fecha', colType: 'Tipo', colOriginalFileName: 'Nombre del archivo', colCountry: 'País', colLang: 'Idioma', colLinks: 'Enlaces', colDwnld: 'Desc.', colLength: 'Duración', helpButton: '¿Cómo buscar?', helpModalTitle: '¿Cómo usar el campo de búsqueda?', helpContent: '<div class="help-section-title">Búsqueda básica</div>Escribe letras/números y haz clic en <strong>Search</strong>. El Finder revisa cada celda de la tabla y muestra las filas donde al menos un campo contiene los símbolos introducidos. Las coincidencias se resaltan (normalmente en amarillo).<div class="help-section-title">Diacríticos</div>El Finder maneja diacríticos: al buscar <code>babaji</code> también encuentra <strong>Bābājī</strong> (las coincidencias con diacríticos pueden aparecer con un fondo azulado).<div class="help-section-title">Distintas grafías ("o")</div>Usa <code>//</code> para indicar OR ("o"): <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principios para una búsqueda eficaz</div>Usa punto y coma <code>;</code> = AND ("y", filtra): <code>guru; tattva; youtube; 2020</code><br><strong>Importante:</strong> no dejes <code>;</code> después de la última palabra.<br>Acorta las palabras (no hace falta escribir la palabra completa): <code>bhaktis; avir</code><br>Combina AND + OR: <code>rupa; goswami//gosvami; disap</code>' }
+    };
+
+    function t(key) { return (translations[currentLanguage] || translations.en)[key] || key; }
+    function getColumnHeader(colName) {
+        const map = { 'Date':'colDate','Type':'colType','Original file name':'colOriginalFileName','Country':'colCountry','Lang.':'colLang','Links':'colLinks','Dwnld.':'colDwnld','Length':'colLength' };
+        return map[colName] ? t(map[colName]) : colName;
+    }
+
+    // ===== DATA LOADING (XLSX with hyperlinks) =====
+    // XLSX eksports saglabā HYPERLINK formulas ar pilniem URL.
+    // Kolonnas ar formulām: Dwnld., Links, Script_EN/LV/RU.
+    // SheetJS izvelk cell.f (formulu) un cell.l (saiti).
+    const LINK_COLS = new Set(['Dwnld.', 'Links', 'Script_EN', 'Script_LV', 'Script_RU']);
+
+    function parseXlsxData(wb) {
+        const ws = wb.Sheets[SHEET_NAME] || wb.Sheets[wb.SheetNames[0]];
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        // Read headers
+        const headers = [];
+        for (let c = range.s.c; c <= range.e.c; c++) {
+            const cell = ws[XLSX.utils.encode_cell({r: 0, c})];
+            headers.push(cell ? cell.v.toString() : '');
+        }
+        // Read rows
+        const rows = [];
+        for (let r = 1; r <= range.e.r; r++) {
+            const row = {};
+            let hasData = false;
+            for (let c = 0; c < headers.length; c++) {
+                const h = headers[c];
+                const cell = ws[XLSX.utils.encode_cell({r, c})];
+                if (!cell) { row[h] = ''; continue; }
+                hasData = true;
+                row[h] = (cell.v != null) ? cell.v.toString() : '';
+                // Extract URL from HYPERLINK formula or cell.l link
+                if (LINK_COLS.has(h) || h === 'Direct URL') {
+                    let url = null;
+                    if (cell.f) {
+                        const m = cell.f.match(/HYPERLINK\("([^"]+)"/i);
+                        if (m) url = m[1];
+                    }
+                    if (!url && cell.l && cell.l.Target) url = cell.l.Target;
+                    if (url) row[h + '_url'] = url;
+                }
+            }
+            if (hasData) rows.push(row);
+        }
+        return rows;
+    }
+
+    async function loadData() {
+        const xlsxUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=xlsx&gid=0`;
+        try {
+            // Try IndexedDB cache first
+            const cached = await getCachedData();
+            if (cached && (Date.now() - cached.timestamp < 5 * 60 * 1000)) {
+                DB = cached.rows;
+                onDataLoaded();
+                return;
+            }
+            // Fetch XLSX (preserves hyperlink URLs)
+            const response = await fetch(xlsxUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            const wb = XLSX.read(arrayBuffer, {type: 'array'});
+            const rows = parseXlsxData(wb);
+            DB = rows;
+            cacheData(rows);
+            onDataLoaded();
+        } catch (e) {
+            console.error('XLSX load failed, trying CSV fallback:', e);
+            try {
+                // Fallback to CSV (without hyperlinks)
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+                const rows = await new Promise((resolve, reject) => {
+                    Papa.parse(csvUrl, { download: true, header: true, skipEmptyLines: true, complete: r => resolve(r.data), error: reject });
+                });
+                DB = rows;
+                cacheData(rows);
+                onDataLoaded();
+            } catch (e2) {
+                console.error('CSV fallback also failed:', e2);
+                const cached = await getCachedData();
+                if (cached) { DB = cached.rows; onDataLoaded(); }
+            }
+        }
+    }
+
+    function onDataLoaded() {
+        dataLoaded = true;
+        const input = document.getElementById('searchTerm');
+        input.disabled = false;
+        input.placeholder = t('searchPlaceholder').replace('{count}', DB.length.toLocaleString());
+        displayEmptyTable();
+    }
+
+    // IndexedDB cache
+    function openCacheDB() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open('CA_LinkFinder', 1);
+            req.onupgradeneeded = e => e.target.result.createObjectStore('cache');
+            req.onsuccess = e => resolve(e.target.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async function getCachedData() { try { const db = await openCacheDB(); return new Promise(r => { const tx = db.transaction('cache','readonly'); const req = tx.objectStore('cache').get('sheets'); req.onsuccess = () => r(req.result||null); req.onerror = () => r(null); }); } catch { return null; } }
+    async function cacheData(rows) { try { const db = await openCacheDB(); const tx = db.transaction('cache','readwrite'); tx.objectStore('cache').put({timestamp:Date.now(),rows},'sheets'); } catch(e) { console.warn('Cache fail:',e); } }
+
+    // ===== SEARCH ENGINE =====
+    function removeDiacritics(str) { return str.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+
+    function transliterate(word) {
+        const a = {"a":"а","b":"б","v":"в","g":"г","d":"д","e":"е","yo":"ё","zh":"ж","z":"з","i":"и","y":"й","k":"к","l":"л","m":"м","n":"н","o":"о","p":"п","r":"р","s":"с","t":"т","u":"у","f":"ф","h":"х","ts":"ц","ch":"ч","sh":"ш","sch":"щ","yu":"ю","ya":"я","j":"дж"};
+        return word.toLowerCase().split('').map(char => a[char] || char).join('');
+    }
+
+    function getSearchableText(row) {
+        return SEARCH_COLS.map(k => row[k] || '').join(' ');
+    }
+
+    // GS: RichTextValue.getLinkUrl() pārbauda vai šūnā ir hipersaite.
+    // XLSX: cellHasLink saņem kolonnas nosaukumu + rindu, un pārbauda _url lauku vai šūnas saturu.
+    function cellHasLink(val, colName, row) {
+        // Ja ir _url lauks (XLSX HYPERLINK formula) — noteikti ir saite
+        if (row && colName && row[colName + '_url']) return true;
+        // Fallback: pārbauda vai šūna nav tukša/N/A
+        if (!val) return false;
+        var s = val.toString().trim();
+        return s !== '' && s !== 'N/A' && s !== '0';
+    }
+    function extractUrl(val) {
+        if (!val) return null;
+        var s = val.toString().trim();
+        if (s.startsWith('http')) return s;
+        var m = s.match(/=HYPERLINK\("([^"]+)"/i);
+        return m ? m[1] : null;
+    }
+    function extractLabel(val, def) {
+        if (!val) return null;
+        var s = val.toString().trim();
+        var m = s.match(/=HYPERLINK\("[^"]+"\s*,\s*"([^"]+)"/i);
+        if (m) return m[1];
+        if (s.startsWith('http')) return def;
+        // CSV displeja teksts: "Mp3", "YouTube", "Script_EN", "EN", etc.
+        if (s && s !== 'N/A' && s !== '0') return s;
+        return null;
+    }
+
+    function findMatchingHiddenCols(row, searchTerm) {
+        const matched = [];
+        const termLower = searchTerm.toLowerCase();
+        const termNoDia = removeDiacritics(termLower);
+        for (const col of HIDDEN_COLS) {
+            const val = (row[col] || '').toLowerCase();
+            if (!val) continue;
+            if (val.includes(termLower) || removeDiacritics(val).includes(termNoDia)) {
+                matched.push({ col, val: row[col] });
+            }
+        }
+        return matched;
+    }
+
+    // ===== SEARCH =====
+    function search() {
+        const searchTerm = document.getElementById('searchTerm').value.trim();
+        if (!searchTerm || !dataLoaded) return;
+        lastSearchTerm = searchTerm;
+        currentPage = 1;
+        performSearch();
+    }
+
+    let matchHints = new Map();
+
+    // GS normalizeHasColumn — maps user input to exact header names
+    function normalizeHasColumn(raw) {
+        var t = (raw || '').toString().trim();
+        var low = t.toLowerCase();
+        if (low === 'script_lv') return 'Script_LV';
+        if (low === 'script_en') return 'Script_EN';
+        if (low === 'script_ru') return 'Script_RU';
+        if (low === 'dwnld.' || low === 'dwnld') return 'Dwnld.';
+        if (low === 'links' || low === 'link') return 'Links';
+        return t;
+    }
+
+    // GS compareDates — exact port from MainCopyCA.gs lines 1379-1414
+    function compareDates(a, b) {
+        const dateA = a['Date'] || '';
+        const dateB = b['Date'] || '';
+        const fileNameA = a['Original file name'] || '';
+        const fileNameB = b['Original file name'] || '';
+
+        if (dateA === 'unknown' && dateB === 'unknown') {
+            return fileNameB.localeCompare(fileNameA, undefined, {numeric: true, sensitivity: 'base'});
+        }
+        if (dateA === 'unknown') return 1;
+        if (dateB === 'unknown') return -1;
+
+        const partsA = dateA.split('.');
+        const partsB = dateB.split('.');
+
+        // Year descending
+        if (partsA[0] !== partsB[0]) return partsB[0] - partsA[0];
+
+        // Month: 'xx' goes to end
+        if (partsA[1] !== 'xx' && partsB[1] !== 'xx') {
+            if (partsA[1] !== partsB[1]) return partsB[1] - partsA[1];
+        } else if (partsA[1] === 'xx' && partsB[1] !== 'xx') {
+            return 1;
+        } else if (partsA[1] !== 'xx' && partsB[1] === 'xx') {
+            return -1;
+        }
+
+        // Day: 'xx' goes to end
+        if (partsA[2] !== 'xx' && partsB[2] !== 'xx') {
+            const dayComp = partsB[2] - partsA[2];
+            if (dayComp !== 0) return dayComp;
+        } else if (partsA[2] === 'xx' && partsB[2] !== 'xx') {
+            return 1;
+        } else if (partsA[2] !== 'xx' && partsB[2] === 'xx') {
+            return -1;
+        }
+
+        // Filename tiebreaker (descending, matching GS)
+        return fileNameB.localeCompare(fileNameA, undefined, {numeric: true, sensitivity: 'base'});
+    }
+
+    function performSearch() {
+        const startTime = performance.now();
+        const searchTerms = lastSearchTerm.split(';').map(s => s.trim()).filter(Boolean);
+
+        // GS pattern: categorize all terms first, then apply as group filters
+        const sourceTerms = searchTerms.filter(t => t.startsWith('@'));
+        const hasTerms = searchTerms.filter(t => t.toLowerCase().startsWith('has:'));
+        const subjectTerms = searchTerms.filter(t => t.toLowerCase().startsWith('subject:'));
+        const langTerms = searchTerms.filter(t => t.toLowerCase().startsWith('lang:'));
+        const latestTranscriptsTerms = searchTerms.filter(t => t.toLowerCase().startsWith('latest_transcripts:'));
+        const latestFilesTerms = searchTerms.filter(t => t.toLowerCase().startsWith('latest_files:'));
+        const otherTerms = searchTerms.filter(t => {
+            var tl = t.toLowerCase();
+            return !tl.startsWith('@') && !tl.startsWith('has:') && !tl.startsWith('subject:') && !tl.startsWith('lang:') && !tl.startsWith('latest_transcripts:') && !tl.startsWith('latest_files:');
+        }).map(t => t.toLowerCase());
+
+        let results = DB.filter(row => {
+            // @source: OR (any source term matches) — GS line 1202-1207
+            if (sourceTerms.length > 0) {
+                var rowSource = (row['Source']||'').toLowerCase();
+                if (!sourceTerms.some(t => rowSource.includes(t.slice(1).toLowerCase()))) return false;
+            }
+
+            // subject: case-SENSITIVE exact match, OR — GS line 1209-1218
+            if (subjectTerms.length > 0) {
+                var rowSubject = (row['Subject']||'').trim();
+                if (!subjectTerms.some(t => rowSubject === t.slice(8).trim())) return false;
+            }
+
+            // lang: exact or starts-with + ";", OR — GS line 1221-1231
+            if (langTerms.length > 0) {
+                var rowLang = (row['Lang.']||'').toLowerCase();
+                if (!langTerms.some(t => {
+                    var l = t.slice(5).toLowerCase();
+                    return rowLang === l || rowLang.startsWith(l + ';');
+                })) return false;
+            }
+
+            // latest_transcripts: match Nr. — GS line 1233-1245
+            if (latestTranscriptsTerms.length > 0) {
+                var rowNr = (row['Nr.']||'').toString().trim();
+                if (!latestTranscriptsTerms.some(t => {
+                    var nrs = t.slice(19).split(',');
+                    return nrs.indexOf(rowNr) !== -1;
+                })) return false;
+            }
+
+            // latest_files: match Nr. — GS line 1247-1259
+            if (latestFilesTerms.length > 0) {
+                var rowNr = (row['Nr.']||'').toString().trim();
+                if (!latestFilesTerms.some(t => {
+                    var nrs = t.slice(13).split(',');
+                    return nrs.indexOf(rowNr) !== -1;
+                })) return false;
+            }
+
+            // has: ALL must match, with column name normalization — GS line 1261-1278
+            if (hasTerms.length > 0) {
+                if (!hasTerms.every(t => {
+                    var colName = normalizeHasColumn(t.slice(4));
+                    return cellHasLink(row[colName], colName, row);
+                })) return false;
+            }
+
+            // Free-text: ALL terms must match (AND), with // as OR within each — GS line 1280-1292
+            if (otherTerms.length > 0) {
+                if (!otherTerms.every(term => {
+                    var orTerms = term.split('//').map(t => t.trim());
+                    return orTerms.some(orTerm => {
+                        var normalizedTerm = removeDiacritics(orTerm.toLowerCase());
+                        var transliteratedTerm = transliterate(normalizedTerm);
+                        return SEARCH_COLS.some(col => {
+                            var cellValue = removeDiacritics((row[col]||'').toString().toLowerCase());
+                            return cellValue.includes(normalizedTerm) || cellValue.includes(transliteratedTerm);
+                        });
+                    });
+                })) return false;
+            }
+
+            return true;
+        });
+
+        // Build match hints for hidden columns
+        matchHints = new Map();
+        if (otherTerms.length > 0) {
+            results.forEach(row => {
+                const hints = [];
+                for (const term of otherTerms) {
+                    for (const ot of term.split('//').map(s=>s.trim()).filter(Boolean)) {
+                        findMatchingHiddenCols(row, ot).forEach(c => hints.push(`${c.col}: ${c.val}`));
+                    }
+                }
+                if (hints.length > 0) matchHints.set(row, [...new Set(hints)]);
+            });
+        }
+
+        // Sort — exact port of GS compareDates
+        results.sort(compareDates);
+
+        allResults = results;
+        totalResults = results.length;
+        currentPage = 1;
+
+        const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+        document.getElementById('timer').textContent = `${t('elapsedTime')} ${elapsed} ${t('seconds')}`;
+
+        displayResults();
+        updatePagination();
+    }
+
+    // ===== DISPLAY (original table structure with buildHeader) =====
+    function buildHeader(thead) {
+        var row0 = thead.insertRow();
+        for (let i = 0; i < 5; i++) {
+            var c = document.createElement('th');
+            c.style.border = 'none'; c.style.backgroundColor = 'transparent';
+            row0.appendChild(c);
+        }
+
+        var ltCell = document.createElement('th');
+        ltCell.colSpan = 3; ltCell.style.textAlign = 'center'; ltCell.style.border = 'none'; ltCell.style.backgroundColor = 'transparent'; ltCell.style.paddingBottom = '5px';
+        var ltBtn = document.createElement('button');
+        ltBtn.onclick = showLatestTranscripts;
+        ltBtn.setAttribute('data-i18n', 'latest20Transcripts');
+        ltBtn.textContent = t('latest20Transcripts');
+        ltBtn.style.cssText = 'background:linear-gradient(135deg,#e8842c,#f4a54b);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
+        ltCell.appendChild(ltBtn);
+        row0.appendChild(ltCell);
+
+        var tCell = document.createElement('th');
+        tCell.colSpan = 3; tCell.style.textAlign = 'center'; tCell.style.border = 'none'; tCell.style.backgroundColor = 'transparent'; tCell.style.paddingBottom = '5px'; tCell.style.position = 'relative';
+        var tBtn = document.createElement('button');
+        tBtn.onclick = showTopics;
+        tBtn.setAttribute('data-i18n', 'lectureTopics');
+        tBtn.textContent = t('lectureTopics');
+        tBtn.style.cssText = 'background:linear-gradient(135deg,#1a3a6b,#2a4f8a);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
+        tCell.appendChild(tBtn);
+        row0.appendChild(tCell);
+
+        var row1 = thead.insertRow();
+        var row2 = thead.insertRow();
+        var row3 = thead.insertRow();
+
+        for (let i = 0; i < columnHeaders.length; i++) {
+            const h = columnHeaders[i];
+            if (h === 'Length') {
+                var th = document.createElement('th'); th.textContent = getColumnHeader(h); th.rowSpan = 3; row1.appendChild(th); continue;
+            }
+            if (h === 'Script_EN') {
+                var thBlock = document.createElement('th'); thBlock.colSpan = 3; thBlock.rowSpan = 2; thBlock.className = 'transcripts-block';
+                thBlock.innerHTML = `<div class="transcripts-title">${t('transcriptsTitle')}</div><div class="transcripts-hintline"><span class="click-word">${t('clickWord')}</span> ${t('transcriptsHint')}</div>`;
+                row1.appendChild(thBlock);
+                ['EN','LV','RU'].forEach((lang, idx) => {
+                    var thL = document.createElement('th'); thL.textContent = lang; thL.className = 'transcript-lang';
+                    thL.onclick = () => applyHasFilter('Script_' + lang);
+                    row3.appendChild(thL);
+                });
+                i += 2; continue;
+            }
+            if (h === 'Script_LV' || h === 'Script_RU') continue;
+            var th = document.createElement('th'); th.textContent = getColumnHeader(h); th.rowSpan = 3; row1.appendChild(th);
+        }
+    }
+
+    function displayResults() {
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = Math.min(currentPage * pageSize, totalResults);
+        document.getElementById('resultsInfo').innerHTML = `<strong>${totalResults} ${t('filesFound')}</strong>&nbsp;&nbsp;&nbsp;${t('showingResults')} ${totalResults === 0 ? 0 : (startIndex + 1)}-${endIndex}`;
+
+        var table = document.getElementById('resultsTable');
+        table.innerHTML = '';
+        var thead = table.createTHead();
+        buildHeader(thead);
+        var tbody = table.createTBody();
+
+        if (allResults.length === 0) {
+            var r = tbody.insertRow(); var c = r.insertCell(); c.colSpan = columnHeaders.length; c.className = 'empty-result-message'; c.textContent = t('noResultsFound');
+        } else {
+            for (var i = startIndex; i < endIndex; i++) {
+                var row = allResults[i];
+                var tr = tbody.insertRow();
+                columnHeaders.forEach((col, idx) => {
+                    var td = tr.insertCell();
+                    var val = row[col] || '';
+
+                    if (col === 'Links' || col === 'Dwnld.' || col === 'Script_EN' || col === 'Script_LV' || col === 'Script_RU') {
+                        // XLSX parseXlsxData() saglabā URL laukā col + '_url'
+                        var url = row[col + '_url'] || extractUrl(val);
+                        // Links kolonnai — fallback uz Direct URL
+                        if (!url && col === 'Links') url = row['Direct URL_url'] || (row['Direct URL']||'').toString().trim() || null;
+                        if (url && !url.startsWith('http')) url = null;
+                        // GS labels: Script_EN→"EN", Script_LV→"LV", Script_RU→"RU", Dwnld.→"Mp3", Links→"Link"
+                        var label = col.startsWith('Script_') ? col.split('_')[1] : (col === 'Dwnld.' ? 'Mp3' : (val || 'Link'));
+                        if (url) {
+                            var a = document.createElement('a');
+                            a.href = url; a.textContent = label;
+                            a.target = '_blank'; a.rel = 'noopener';
+                            td.appendChild(a);
+                        } else if (val && val !== 'N/A' && val !== '0' && val !== '') {
+                            td.textContent = label;
+                        }
+                    } else if (col === 'Length') {
+                        td.textContent = formatLength(val);
+                    } else {
+                        td.innerHTML = highlightSearchTerms(val, lastSearchTerm.split(';'));
+                        // Add hidden column match hint under the name
+                        if (col === 'Original file name') {
+                            const hints = matchHints.get(row);
+                            if (hints && hints.length > 0) {
+                                var span = document.createElement('span');
+                                span.className = 'match-hint';
+                                span.textContent = hints.join('; ');
+                                td.appendChild(span);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        updatePagination();
+    }
+
+    // GS formatLength — exact port from MainCopyCA.gs lines 1416-1439
+    function formatLength(val) {
+        if (!val) return '';
+        if (/\d+\s*h\s*\d+\s*min/.test(val)) return val;
+        function padZero(num) { return num < 10 ? '0' + num : num; }
+        var num = parseFloat(val);
+        if (!isNaN(num) && num >= 0 && num < 1) {
+            var totalMinutes = Math.round(num * 24 * 60);
+            var hours = Math.floor(totalMinutes / 60);
+            var minutes = totalMinutes % 60;
+            return hours + ' h ' + padZero(minutes) + ' min';
+        }
+        var parts = val.toString().split(':');
+        if (parts.length >= 2) {
+            var hours = parseInt(parts[0]);
+            var minutes = parseInt(parts[1]);
+            if (!isNaN(hours) && !isNaN(minutes)) return hours + ' h ' + padZero(minutes) + ' min';
+        }
+        return val.toString();
+    }
+
+    function highlightSearchTerms(text, searchTerms) {
+        if (!text || !Array.isArray(searchTerms)) return text || '';
+        searchTerms.forEach(term => {
+            if (!term || term.startsWith('subject:') || term.startsWith('lang:') || term.startsWith('latest_') || term.startsWith('has:')) return;
+            if (term.startsWith('@')) {
+                const re = new RegExp(`(${escapeRegex(term.slice(1))})`, 'gi');
+                text = text.replace(re, '<span style="background-color: #d4edda; border-radius: 2px; padding: 0 2px;">$1</span>');
+                return;
+            }
+            term.split('//').forEach(sub => {
+                const subTrimmed = sub.trim();
+                if (!subTrimmed) return;
+                const nTerm = removeDiacritics(subTrimmed.toLowerCase());
+                // Exact highlight
+                const exactRe = new RegExp(`(${escapeRegex(subTrimmed)})`, 'gi');
+                text = text.replace(exactRe, '<span style="background-color: #fce9b8; border-radius: 2px; padding: 0 2px;">$1</span>');
+                // Diacritic highlight
+                const diaRe = new RegExp(`(\\p{L}+)`, 'gu');
+                text = text.replace(diaRe, m => {
+                    if (removeDiacritics(m.toLowerCase()) === nTerm && m.toLowerCase() !== nTerm) return `<span style="background-color: #c8ddf0; border-radius: 2px; padding: 0 2px;">${m}</span>`;
+                    return m;
+                });
+                // Cyrillic highlight
+                const cyrTerm = transliterate(nTerm);
+                if (cyrTerm !== nTerm) {
+                    const cyrRe = new RegExp(`(${escapeRegex(cyrTerm)})`, 'gi');
+                    text = text.replace(cyrRe, m => !/[a-zA-Z0-9]/.test(m) ? `<span style="background-color: #f5d0b0; border-radius: 2px; padding: 0 2px;">${m}</span>` : m);
+                }
+            });
+        });
+        return text;
+    }
+    function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+    // ===== PAGINATION (original style) =====
+    function updatePagination() {
+        const div = document.getElementById('pagination');
+        div.innerHTML = '';
+        const totalPages = Math.ceil(totalResults / pageSize);
+        if (totalPages <= 0) return;
+
+        var tp = document.createElement('button'); tp.textContent = totalPages === 1 ? `1 ${t('page')}` : `${totalPages} ${t('pages')}`; tp.className = 'total-pages-button'; div.appendChild(tp);
+        var prev = document.createElement('button'); prev.innerHTML = '&lt; ' + t('previous'); prev.onclick = () => changePage(currentPage-1); prev.disabled = currentPage === 1; prev.className = 'nav-button'; div.appendChild(prev);
+        const maxV = 5; let sP = Math.max(1, currentPage - Math.floor(maxV/2)); let eP = Math.min(totalPages, sP + maxV - 1);
+        if (eP - sP + 1 < maxV) sP = Math.max(1, eP - maxV + 1);
+        for (let i = sP; i <= eP; i++) { var b = document.createElement('button'); b.textContent = i; b.onclick = (() => { const p=i; return ()=>changePage(p); })(); b.className = i === currentPage ? 'current-page' : 'nav-button'; div.appendChild(b); }
+        var next = document.createElement('button'); next.innerHTML = t('next') + ' &gt;'; next.onclick = () => changePage(currentPage+1); next.disabled = currentPage === totalPages || totalPages === 0; next.className = 'nav-button'; div.appendChild(next);
+    }
+    function changePage(p) { if (p >= 1 && p <= Math.ceil(totalResults/pageSize)) { currentPage = p; displayResults(); } }
+
+    // ===== QUICK ACTIONS =====
+    // GS: getRecommendationsListInternal — sorts by Added date descending, takes top 20 with Nr.
+    function showLatestFiles() {
+        if (!dataLoaded) return;
+        var withAdded = DB.filter(r => {
+            var added = (r['Added']||'').toString().trim();
+            var nr = (r['Nr.']||'').toString().trim();
+            return added !== '' && nr !== '';
+        });
+        withAdded.sort((a,b) => (b['Added']||'').toString().localeCompare((a['Added']||'').toString()));
+        var top20 = withAdded.slice(0, 20);
+        var nrSet = new Set(top20.map(r => (r['Nr.']||'').toString().trim()));
+
+        lastSearchTerm = 'latest_files:' + [...nrSet].join(',');
+        allResults = DB.filter(r => nrSet.has((r['Nr.']||'').toString().trim()));
+        allResults.sort(compareDates);
+        totalResults = allResults.length; currentPage = 1; matchHints = new Map();
+        document.getElementById('searchTerm').value = t('latest20Files');
+        document.getElementById('timer').textContent = '';
+        displayResults();
+    }
+    // GS: getTopicsListInternal — sorts by Scripts added date descending, takes top 20 with Nr.
+    function showLatestTranscripts() {
+        if (!dataLoaded) return;
+        var withScripts = DB.filter(r => {
+            var sa = (r['Scripts added']||'').toString().trim();
+            var nr = (r['Nr.']||'').toString().trim();
+            return sa !== '' && nr !== '';
+        });
+        withScripts.sort((a,b) => (b['Scripts added']||'').toString().localeCompare((a['Scripts added']||'').toString()));
+        var top20 = withScripts.slice(0, 20);
+        var nrSet = new Set(top20.map(r => (r['Nr.']||'').toString().trim()));
+
+        lastSearchTerm = 'latest_transcripts:' + [...nrSet].join(',');
+        allResults = DB.filter(r => nrSet.has((r['Nr.']||'').toString().trim()));
+        allResults.sort(compareDates);
+        totalResults = allResults.length; currentPage = 1; matchHints = new Map();
+        document.getElementById('searchTerm').value = t('latest20Transcripts');
+        document.getElementById('timer').textContent = '';
+        displayResults();
+    }
+
+    function showRecommendations() {
+        var div = document.getElementById('recommendationsList');
+        if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
+        document.getElementById('topicsList').style.display = 'none';
+        if (!dataLoaded) return;
+
+        // GS logic: langs starting with "eng;", "eng only", "rus only" + subjects starting with "."
+        const langCounts = {}, subjCounts = {};
+        DB.forEach(r => {
+            const l = (r['Lang.']||'').trim();
+            if (l && (l.toLowerCase().startsWith('eng;') || l.toLowerCase() === 'eng only' || l.toLowerCase() === 'rus only'))
+                langCounts[l]=(langCounts[l]||0)+1;
+            const s = (r['Subject']||'').trim();
+            if (s && s.startsWith('.')) subjCounts[s]=(subjCounts[s]||0)+1;
+        });
+
+        let html = '<div id="recommendationsListTitle">' + t('recommendationsTitle') + '</div><div id="recommendationsListContent">';
+        // GS displayRecommendations skips latest_files — Lang recommendations sorted: type (lang before subject), then name
+        Object.entries(langCounts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count]) => {
+            html += `<div class="recommendation-item"><span class="recommendation-name">${name} <span style="color:var(--primary-dark);font-weight:700;">(${count})</span></span><button class="recommendation-search-btn" onclick="applyLangFilter('${name.replace(/'/g,"\\'")}')">Yes</button></div>`;
+        });
+        // Subject recommendations (starting with ".")
+        Object.entries(subjCounts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count]) => {
+            html += `<div class="recommendation-item"><span class="recommendation-name">${name} <span style="color:var(--primary-dark);font-weight:700;">(${count})</span></span><button class="recommendation-search-btn" onclick="applySubjectFilter('${name.replace(/'/g,"\\'")}')">Yes</button></div>`;
+        });
+        html += '</div>';
+        div.innerHTML = html; div.style.display = 'block';
+    }
+
+    function showTopics() {
+        var div = document.getElementById('topicsList');
+        if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
+        document.getElementById('recommendationsList').style.display = 'none';
+        if (!dataLoaded) return;
+
+        // GS: count rows with Script_EN non-empty AND Subject match, sort alphabetically
+        const counts = {};
+        DB.forEach(r => { if (!cellHasLink(r['Script_EN'], 'Script_EN', r)) return; const s = (r['Subject']||'').trim(); if (s) counts[s]=(counts[s]||0)+1; });
+
+        let html = '<div id="topicsListTitle">' + t('topics') + '</div><div id="topicsListContent">';
+        // GS displayTopics skips latest_transcripts — subjects sorted alphabetically
+        Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([name,count]) => {
+            html += `<div class="topic-item"><span class="topic-name">${name} <span style="color:var(--primary-dark);font-weight:700;">(${count})</span></span><button class="topic-search-btn" onclick="applySubjectFilter('${name.replace(/'/g,"\\'")}')">Yes</button></div>`;
+        });
+        html += '</div>';
+        div.innerHTML = html; div.style.display = 'block';
+    }
+
+    function showSources() {
+        var div = document.getElementById('sourcesList');
+        if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
+        if (!dataLoaded) return;
+        const sources = {};
+        DB.forEach(r => { const s = (r['Source']||'').trim(); if (s) sources[s]=(sources[s]||0)+1; });
+        let html = '<h3>' + t('sources') + '</h3><ul>';
+        Object.keys(sources).sort().forEach(name => {
+            html += `<li onclick="applySourceFilter('${name.replace(/'/g,"\\'")}')">${name}</li>`;
+        });
+        html += '</ul>';
+        div.innerHTML = html; div.style.display = 'block';
+    }
+
+    // ===== FILTER HELPERS =====
+    function applyHasFilter(col) { document.getElementById('searchTerm').value = `has:${col}`; lastSearchTerm = `has:${col}`; currentPage = 1; performSearch(); }
+    function applySubjectFilter(subj) { document.getElementById('searchTerm').value = `subject:${subj}`; lastSearchTerm = `subject:${subj}`; currentPage = 1; document.getElementById('topicsList').style.display='none'; document.getElementById('recommendationsList').style.display='none'; performSearch(); }
+    function applyLangFilter(lang) { document.getElementById('searchTerm').value = `lang:${lang}`; lastSearchTerm = `lang:${lang}`; currentPage = 1; document.getElementById('recommendationsList').style.display='none'; performSearch(); }
+    function applySourceFilter(src) { document.getElementById('searchTerm').value = `@${src}`; lastSearchTerm = `@${src}`; currentPage = 1; document.getElementById('sourcesList').style.display='none'; performSearch(); }
+
+    // ===== LANGUAGE =====
+    function setLanguage(lang) {
+        currentLanguage = lang;
+        document.querySelectorAll('.lang-btn').forEach(btn => { btn.classList.toggle('active', btn.getAttribute('data-lang') === lang); });
+        document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (translations[lang] && translations[lang][key]) el.textContent = translations[lang][key]; });
+        document.querySelector('h1').textContent = t('pageTitle');
+        if (dataLoaded) document.getElementById('searchTerm').placeholder = t('searchPlaceholder').replace('{count}', DB.length.toLocaleString());
+        localStorage.setItem('preferredLanguage', lang);
+        if (allResults.length > 0) displayResults();
+        else displayEmptyTable();
+    }
+
+    function displayEmptyTable() {
+        var table = document.getElementById('resultsTable');
+        table.innerHTML = '';
+        var thead = table.createTHead();
+        buildHeader(thead);
+        var tbody = table.createTBody();
+        var r = tbody.insertRow(); var c = r.insertCell(); c.colSpan = columnHeaders.length; c.className = 'empty-result-message'; c.textContent = t('enterSearchTerms');
+    }
+
+    // ===== HELP MODAL =====
+    function openHelpModal() {
+        document.getElementById('helpModalTitle').textContent = t('helpModalTitle');
+        document.getElementById('helpModalBody').innerHTML = t('helpContent');
+        document.getElementById('helpModalOverlay').classList.add('active');
+    }
+    function closeHelpModal(event) {
+        if (!event || event.target === document.getElementById('helpModalOverlay'))
+            document.getElementById('helpModalOverlay').classList.remove('active');
+    }
+
+    // ===== INIT =====
+    window.onload = function() {
+        const savedLang = localStorage.getItem('preferredLanguage') || 'en';
+        setLanguage(savedLang);
+        document.getElementById('searchTerm').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+        loadData();
+    };
+    </script>
+
+    <!-- ===== HELP MODAL ===== -->
+    <div class="help-modal-overlay" id="helpModalOverlay" onclick="closeHelpModal(event)">
+        <div class="help-modal" onclick="event.stopPropagation()">
+            <div class="help-modal-header">
+                <h2 id="helpModalTitle">How to use the search field?</h2>
+                <button class="help-modal-close" onclick="closeHelpModal()">&times;</button>
+            </div>
+            <div class="help-modal-body" id="helpModalBody"></div>
+        </div>
+    </div>
+
+</body>
+</html>
