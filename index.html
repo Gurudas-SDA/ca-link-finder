@@ -705,6 +705,11 @@
 
         /* ===== INSTALL BANNER ===== */
         #installBanner {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 16px;
+            position: relative;
+            z-index: 20;
         }
         .install-banner-content {
             background: linear-gradient(135deg, #f0c75e 0%, #e8b84a 100%);
@@ -810,14 +815,6 @@
         <div class="top-left-buttons">
             <button onclick="showSources()" data-i18n="listOfSources">List Of Sources</button>
             <div id="sourcesList"></div>
-            <!-- Install Banner -->
-            <div id="installBanner" style="display: none; margin-top: 8px;">
-                <div class="install-banner-content">
-                    <span class="install-text" id="installText">Install this app on your device</span>
-                    <button class="install-btn" id="installBtn" onclick="installApp()">Install</button>
-                    <button class="install-dismiss" onclick="dismissInstall()">&times;</button>
-                </div>
-            </div>
         </div>
         <!-- Chaitanya Academy Logo (SVG mandala + text) -->
         <div class="logo-wrap">
@@ -864,6 +861,15 @@
 
         <h1 data-i18n="pageTitle">Video & Audio Link Finder</h1>
         <div id="connectionStatus"></div>
+    </div>
+
+    <!-- ===== INSTALL BANNER ===== -->
+    <div id="installBanner" style="display: none;">
+        <div class="install-banner-content">
+            <span class="install-text" id="installText">Install this app on your device</span>
+            <button class="install-btn" id="installBtn" onclick="installApp()">Install</button>
+            <button class="install-dismiss" onclick="dismissInstall()">&times;</button>
+        </div>
     </div>
 
     <!-- ===== SEARCH SECTION ===== -->
@@ -949,8 +955,9 @@
             <div class="ios-install-card">
                 <div class="share-icon">⬆️</div>
                 <p><b>1.</b> Tap the <b>Share</b> button <span style="font-size:20px">⎋</span> at the bottom of Safari</p>
-                <p><b>2.</b> Scroll down and tap <b>"Add to Home Screen"</b></p>
-                <p><b>3.</b> Tap <b>"Add"</b> in the top right</p>
+                <p><b>2.</b> Scroll down. If you don't see <b>"Add to Home Screen"</b>, tap <b>"View More"</b> first</p>
+                <p><b>3.</b> Tap <b>"Add to Home Screen"</b></p>
+                <p><b>4.</b> Tap <b>"Add"</b> in the top right</p>
                 <button onclick="this.closest('.ios-install-overlay').remove()">Got it!</button>
             </div>
         `;
