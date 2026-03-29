@@ -925,16 +925,6 @@
         showInstallBanner();
     });
 
-    // Show install banner for everyone (dismiss remembered in localStorage)
-    window.addEventListener('DOMContentLoaded', () => {
-        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-        const dismissed = localStorage.getItem('installDismissed');
-        if (!isStandalone && !dismissed) {
-            // If no Android prompt captured, treat as iOS-style
-            if (!deferredPrompt) showInstallBanner(true);
-        }
-    });
-
     function showInstallBanner(isIos) {
         const banner = document.getElementById('installBanner');
         const textEl = document.getElementById('installText');
@@ -977,6 +967,15 @@
         document.getElementById('installBanner').style.display = 'none';
         localStorage.setItem('installDismissed', '1');
     }
+
+    // Show install banner now (DOM is already parsed, functions defined above)
+    (function() {
+        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+        const dismissed = localStorage.getItem('installDismissed');
+        if (!isStandalone && !dismissed && !deferredPrompt) {
+            showInstallBanner(true);
+        }
+    })();
 
     const SPREADSHEET_ID = '1O66GTEB2AfBWYEq0sDLusVkJk9gg1XpmZNJmmQkvtls';
     const SHEET_NAME = 'Base';
