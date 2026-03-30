@@ -132,28 +132,18 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(placeholder).toMatch(/[а-яА-Я]/);  // Contains Cyrillic
   });
 
-  test('8. Transcript modal opens (EN)', async ({ page }) => {
+  test('8. Transcript viewer opens', async ({ page }) => {
     await page.goto('./');
     await waitForAppReady(page);
 
-    // Search for something with transcripts
-    await page.fill('#searchTerm', 'has:Script_EN');
-    await page.keyboard.press('Enter');
-    await page.waitForSelector('#resultsInfo strong', { timeout: 10000 });
+    // Directly invoke the transcript viewer (metadata search links open new tabs,
+    // only verse citation results use the in-page viewer)
+    await page.evaluate(() => PPP.app.openHtmlTranscriptViewer('455', 'en'));
 
-    // Click the EN transcript link in first result row
-    const enLink = page.locator('#resultsTable tbody tr:first-child a').filter({ hasText: 'EN' }).first();
-    if (await enLink.count() > 0) {
-      await enLink.click();
-
-      // Verify modal overlay appears (transcript DB download starts in background)
-      // The ~18MB HTML DB takes >90s from CI, so we only check the modal opens
-      await page.waitForSelector('#transcriptModalOverlay.active', { timeout: 15000 });
-
-      // Modal body should exist (may show spinner while DB loads)
-      const body = page.locator('#transcriptModalBody');
-      await expect(body).toBeVisible({ timeout: 5000 });
-    }
+    // Modal overlay should appear immediately with loading spinner
+    await page.waitForSelector('#transcriptModalOverlay.active', { timeout: 10000 });
+    const body = page.locator('#transcriptModalBody');
+    await expect(body).toBeVisible({ timeout: 5000 });
   });
 
   test('9. Search with operators: AND (;)', async ({ page }) => {
