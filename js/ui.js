@@ -311,9 +311,10 @@ PPP.ui = (function () {
         var html = '<div id="topicsListTitle">' + t('topics') + '</div><div id="topicsListContent">';
         Object.entries(counts).sort(function (a, b) { return a[0].localeCompare(b[0]); }).forEach(function (entry) {
             var name = entry[0], count = entry[1];
-            html += '<div class="topic-item"><span class="topic-name">' + name +
+            var nameSafe = utils.encodeForAttr(name);
+            html += '<div class="topic-item"><span class="topic-name">' + utils.escapeHtml(name) +
                 ' <span style="color:var(--primary-dark);font-weight:700;">(' + count + ')</span></span>' +
-                '<button class="topic-search-btn" onclick="PPP.app.applySubjectFilter(\'' + name.replace(/'/g, "\\'") + '\')">Yes</button></div>';
+                '<button class="topic-search-btn" onclick="PPP.app.applySubjectFilter(decodeURIComponent(\'' + nameSafe + '\'))">Yes</button></div>';
         });
         html += '</div>';
         container.innerHTML = html;
@@ -333,8 +334,8 @@ PPP.ui = (function () {
      * Highlight search terms in text (exact port from original).
      */
     function highlightSearchTerms(text, searchTerms) {
-        if (!text || !Array.isArray(searchTerms)) return text || '';
-        var result = text;
+        if (!text || !Array.isArray(searchTerms)) return utils.escapeHtml(text) || '';
+        var result = utils.escapeHtml(text);
         searchTerms.forEach(function (term) {
             if (!term) return;
             term = term.trim();
@@ -454,10 +455,10 @@ PPP.ui = (function () {
         } else {
             rows.forEach(function (row) {
                 var ref = highlightSearchTerms(row.reference || '', searchTerms);
-                var source = row.source_canonical || '';
-                var cv = row.chapter_verse || '';
+                var source = utils.escapeHtml(row.source_canonical || '');
+                var cv = utils.escapeHtml(row.chapter_verse || '');
                 var lecture = highlightSearchTerms(row.original_file_name || ('Nr.' + row.lecture_nr), searchTerms);
-                var date = row.date || '';
+                var date = utils.escapeHtml(row.date || '');
                 var ctx = row.context || '';
                 if (ctx.length > 150) ctx = ctx.substring(0, 150) + '...';
                 ctx = highlightSearchTerms(ctx, searchTerms);
@@ -492,11 +493,12 @@ PPP.ui = (function () {
             html += '<tr><td colspan="4" class="empty-result-message">No citation data available</td></tr>';
         } else {
             rows.forEach(function (row) {
-                html += '<tr style="cursor:pointer;" onclick="PPP.app.searchCitationSource(\'' + (row.source_canonical || '').replace(/'/g, "\\'") + '\')">' +
-                    '<td><strong>' + (row.source_canonical || '') + '</strong></td>' +
-                    '<td>' + (row.total_citations || 0) + '</td>' +
-                    '<td>' + (row.unique_verses || 0) + '</td>' +
-                    '<td>' + (row.lecture_count || 0) + '</td>' +
+                var srcSafe = utils.encodeForAttr(row.source_canonical || '');
+                html += '<tr style="cursor:pointer;" onclick="PPP.app.searchCitationSource(decodeURIComponent(\'' + srcSafe + '\'))">' +
+                    '<td><strong>' + utils.escapeHtml(row.source_canonical || '') + '</strong></td>' +
+                    '<td>' + (parseInt(row.total_citations, 10) || 0) + '</td>' +
+                    '<td>' + (parseInt(row.unique_verses, 10) || 0) + '</td>' +
+                    '<td>' + (parseInt(row.lecture_count, 10) || 0) + '</td>' +
                     '</tr>';
             });
         }
