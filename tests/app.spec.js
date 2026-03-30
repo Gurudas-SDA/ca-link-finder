@@ -132,7 +132,8 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(placeholder).toMatch(/[а-яА-Я]/);  // Contains Cyrillic
   });
 
-  test('8. Transcript opens (EN)', { timeout: 120000 }, async ({ page }) => {
+  test('8. Transcript opens (EN)', async ({ page }) => {
+    test.slow();  // Transcript DB download can be slow from CI — triples timeout
     await page.goto('./');
     await waitForAppReady(page);
 
