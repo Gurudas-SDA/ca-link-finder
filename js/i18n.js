@@ -1,0 +1,223 @@
+/* ===========================================================================
+   PPP Link Finder — Internationalization (6 languages)
+   Extracted from original index.html + new transcript search keys
+   =========================================================================== */
+window.PPP = window.PPP || {};
+
+PPP.i18n = (function () {
+    'use strict';
+
+    var currentLanguage = 'en';
+
+    var translations = {
+        en: {
+            pageTitle: 'Video & Audio Link Finder',
+            listOfSources: 'List Of Sources',
+            lectureTopics: 'Playlists',
+            recommendations: 'Recommendations',
+            recommendationsTitle: 'Recommended lectures:',
+            latest20Files: '20 latest files',
+            latest20Transcripts: '20 latest transcripts',
+            searchPlaceholder: 'Search for wisdom among {count} links',
+            searchButton: 'Search',
+            searchTime: 'Client-side search — instant results.',
+            enterSearchTerms: 'Enter search terms to see results',
+            filesFound: 'files found',
+            showingResults: 'Showing results',
+            noResultsFound: 'No results found',
+            elapsedTime: 'Elapsed time:',
+            seconds: 'seconds',
+            searching: 'Searching...',
+            page: 'page', pages: 'pages',
+            previous: 'Previous', next: 'Next',
+            sources: 'Sources:',
+            topics: 'Topics with transcripts:',
+            transcriptsTitle: 'Transcripts / Translations',
+            transcriptsHint: '. All transcripts',
+            clickWord: 'Click',
+            colDate: 'Date', colType: 'Type', colOriginalFileName: 'Original file name',
+            colCountry: 'Country', colLang: 'Lang.', colLinks: 'Links',
+            colDwnld: 'Dwnld.', colLength: 'Length',
+            helpButton: 'How to use search?',
+            helpModalTitle: 'How to use the search field?',
+            helpContent: '<div class="help-section-title">Basic search</div>Type letters/numbers and click <strong>Search</strong>. The Finder scans every table cell and shows rows where at least one field contains your symbols. Matches are highlighted (usually yellow).<div class="help-section-title">Diacritics</div>The Finder handles diacritics: searching <code>babaji</code> also finds <strong>B\u0101b\u0101j\u012b</strong> (diacritic matches may appear bluish).<div class="help-section-title">Different spellings ("or")</div>Use <code>//</code> to mean OR: <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principles for effective search</div>Use semicolon <code>;</code> = AND (filter down): <code>guru; tattva; youtube; 2020</code><br><strong>Important:</strong> don\'t leave <code>;</code> after the last word.<br>Shorten words (you don\'t need the full word): <code>bhaktis; avir</code><br>Combine AND + OR: <code>rupa; goswami//gosvami; disap</code>',
+            installBannerText: 'Install this app on your device',
+            installBtn: 'Show me how',
+            iosStep1: 'Tap the <b>Share</b> button <span style="font-size:20px">\u23CE</span>',
+            iosStep2: 'Scroll down. If you don\'t see <b>"Add to Home Screen"</b>, tap <b>"View More"</b> first',
+            iosStep3: 'Tap <b>"Add to Home Screen"</b>',
+            iosStep4: 'Tap <b>"Add"</b> in the top right',
+            iosGotIt: 'Got it!',
+            androidStep1: 'Open the link in <b>Chrome</b> (if it opened inside another app, tap <b>\u22ee</b> \u2192 <b>"Open in Browser"</b>)',
+            androidStep2: 'In Chrome, tap <b>\u22ee</b> menu in the top right',
+            androidStep3: 'Tap <b>"Add to Home screen"</b>',
+            androidStep4: 'Tap <b>"Add"</b>',
+            // New transcript search keys
+            searchTranscripts: 'Search in transcripts',
+            loadingTranscripts: 'Loading transcripts...',
+            transcriptResults: 'Transcript results',
+            noTranscriptResults: 'No results in transcripts',
+            searchModeMetadata: 'Mp3 files',
+            searchModeCitations: 'Quotes (all)',
+            searchModeCitationsTop: 'Quotes (Top 108)',
+            quotesSearchHint: 'To search manually press \'Mp3 files\'',
+            citationResults: 'verse citations found',
+            noCitationResults: 'No verse citations found',
+            loadingDB: 'Loading database...',
+            dbLoaded: 'Database loaded',
+            verseCopiedToast: '"{ref}" copied to clipboard — press Ctrl+F and paste to find the verse'
+        },
+        ru: {
+            pageTitle: '\u041f\u043e\u0438\u0441\u043a \u0432\u0438\u0434\u0435\u043e \u0438 \u0430\u0443\u0434\u0438\u043e \u0441\u0441\u044b\u043b\u043e\u043a',
+            listOfSources: '\u0421\u043f\u0438\u0441\u043e\u043a \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u043e\u0432',
+            lectureTopics: '\u041f\u043b\u0435\u0439\u043b\u0438\u0441\u0442\u044b',
+            recommendations: '\u0420\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0430\u0446\u0438\u0438',
+            recommendationsTitle: '\u0420\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u043c\u044b\u0435 \u043b\u0435\u043a\u0446\u0438\u0438:',
+            latest20Files: '\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 20 \u0444\u0430\u0439\u043b\u043e\u0432',
+            latest20Transcripts: '\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 20 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u043e\u0432',
+            searchPlaceholder: '\u0418\u0441\u043a\u0430\u0442\u044c \u043c\u0443\u0434\u0440\u043e\u0441\u0442\u044c \u0441\u0440\u0435\u0434\u0438 {count} \u0441\u0441\u044b\u043b\u043e\u043a',
+            searchButton: '\u041f\u043e\u0438\u0441\u043a',
+            searchTime: '\u041f\u043e\u0438\u0441\u043a \u043d\u0430 \u0441\u0442\u043e\u0440\u043e\u043d\u0435 \u043a\u043b\u0438\u0435\u043d\u0442\u0430 \u2014 \u043c\u0433\u043d\u043e\u0432\u0435\u043d\u043d\u044b\u0435 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b.',
+            enterSearchTerms: '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043f\u043e\u0438\u0441\u043a\u043e\u0432\u044b\u0435 \u0441\u043b\u043e\u0432\u0430 \u0434\u043b\u044f \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u043e\u0432',
+            filesFound: '\u0444\u0430\u0439\u043b\u043e\u0432 \u043d\u0430\u0439\u0434\u0435\u043d\u043e',
+            showingResults: '\u041f\u043e\u043a\u0430\u0437\u0430\u043d\u044b \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b',
+            noResultsFound: '\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u044b',
+            elapsedTime: '\u041f\u0440\u043e\u0448\u043b\u043e \u0432\u0440\u0435\u043c\u0435\u043d\u0438:', seconds: '\u0441\u0435\u043a\u0443\u043d\u0434',
+            searching: '\u041f\u043e\u0438\u0441\u043a...', page: '\u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430', pages: '\u0441\u0442\u0440\u0430\u043d\u0438\u0446',
+            previous: '\u041d\u0430\u0437\u0430\u0434', next: '\u0412\u043f\u0435\u0440\u0451\u0434',
+            sources: '\u0418\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438:', topics: '\u0422\u0435\u043c\u044b \u0441 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u0430\u043c\u0438:',
+            transcriptsTitle: '\u0422\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u044b / \u041f\u0435\u0440\u0435\u0432\u043e\u0434\u044b', transcriptsHint: '. \u0412\u0441\u0435 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u044b', clickWord: '\u041d\u0430\u0436\u043c\u0438\u0442\u0435',
+            colDate: '\u0414\u0430\u0442\u0430', colType: '\u0422\u0438\u043f', colOriginalFileName: '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u0444\u0430\u0439\u043b\u0430',
+            colCountry: '\u0421\u0442\u0440\u0430\u043d\u0430', colLang: '\u042f\u0437\u044b\u043a', colLinks: '\u0421\u0441\u044b\u043b\u043a\u0438',
+            colDwnld: '\u0421\u043a\u0430\u0447\u0430\u0442\u044c', colLength: '\u0414\u043b\u0438\u043d\u0430',
+            helpButton: '\u041a\u0430\u043a \u0438\u0441\u043a\u0430\u0442\u044c?', helpModalTitle: '\u041a\u0430\u043a \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c\u0441\u044f \u043f\u043e\u043b\u0435\u043c \u043f\u043e\u0438\u0441\u043a\u0430?',
+            helpContent: '<div class="help-section-title">\u041e\u0441\u043d\u043e\u0432\u043d\u043e\u0439 \u043f\u043e\u0438\u0441\u043a</div>\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0431\u0443\u043a\u0432\u044b/\u0446\u0438\u0444\u0440\u044b \u0438 \u043d\u0430\u0436\u043c\u0438\u0442\u0435 <strong>Search</strong>. Finder \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u0442 \u0432\u0441\u0435 \u044f\u0447\u0435\u0439\u043a\u0438 \u0442\u0430\u0431\u043b\u0438\u0446\u044b \u0438 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u0441\u0442\u0440\u043e\u043a\u0438, \u0433\u0434\u0435 \u0445\u043e\u0442\u044f \u0431\u044b \u0432 \u043e\u0434\u043d\u043e\u043c \u043f\u043e\u043b\u0435 \u0435\u0441\u0442\u044c \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435. \u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u044f \u043f\u043e\u0434\u0441\u0432\u0435\u0447\u0438\u0432\u0430\u044e\u0442\u0441\u044f (\u043e\u0431\u044b\u0447\u043d\u043e \u0436\u0451\u043b\u0442\u044b\u043c).<div class="help-section-title">\u0414\u0438\u0430\u043a\u0440\u0438\u0442\u0438\u043a\u0430 \u0438 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0446\u0430</div>Finder "\u043f\u043e\u043d\u0438\u043c\u0430\u0435\u0442" \u0434\u0438\u0430\u043a\u0440\u0438\u0442\u0438\u043a\u0443: \u0437\u0430\u043f\u0440\u043e\u0441 <code>babaji</code> \u043d\u0430\u0439\u0434\u0451\u0442 \u0438 <strong>B\u0101b\u0101j\u012b</strong> (\u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u044f \u0441 \u0434\u0438\u0430\u043a\u0440\u0438\u0442\u0438\u043a\u043e\u0439 \u043c\u043e\u0433\u0443\u0442 \u0431\u044b\u0442\u044c \u0441 \u0433\u043e\u043b\u0443\u0431\u043e\u0432\u0430\u0442\u043e\u0439 \u043f\u043e\u0434\u0441\u0432\u0435\u0442\u043a\u043e\u0439). \u0422\u0430\u043a\u0436\u0435 \u043e\u043d \u0440\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u0451\u0442 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u0432\u0430\u0440\u0438\u0430\u043d\u0442 \u0441\u043b\u043e\u0432\u0430 (\u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440, babaji \u2192 \u0411\u0430\u0431\u0430\u0434\u0436\u0438, \u043f\u043e\u0434\u0441\u0432\u0435\u0442\u043a\u0430 \u043e\u0440\u0430\u043d\u0436\u0435\u0432\u044b\u043c).<div class="help-section-title">\u0420\u0430\u0437\u043d\u044b\u0435 \u043d\u0430\u043f\u0438\u0441\u0430\u043d\u0438\u044f ("\u0438\u043b\u0438")</div>\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 <code>//</code> \u043a\u0430\u043a \u0418\u041b\u0418: <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 \u043f\u0440\u0430\u0432\u0438\u043b\u0430 \u044d\u0444\u0444\u0435\u043a\u0442\u0438\u0432\u043d\u043e\u0433\u043e \u043f\u043e\u0438\u0441\u043a\u0430</div>\u0422\u043e\u0447\u043a\u0430 \u0441 \u0437\u0430\u043f\u044f\u0442\u043e\u0439 <code>;</code> = \u0418 (\u0441\u0443\u0436\u0430\u0435\u0442 \u043f\u043e\u0438\u0441\u043a): <code>guru; tattva; youtube; 2020</code><br><strong>\u0412\u0430\u0436\u043d\u043e:</strong> \u043d\u0435 \u0441\u0442\u0430\u0432\u044c\u0442\u0435 <code>;</code> \u043f\u043e\u0441\u043b\u0435 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0433\u043e \u0441\u043b\u043e\u0432\u0430.<br>\u0421\u043e\u043a\u0440\u0430\u0449\u0430\u0439\u0442\u0435 \u0441\u043b\u043e\u0432\u0430: <code>bhaktis; avir</code><br>\u041a\u043e\u043c\u0431\u0438\u043d\u0438\u0440\u0443\u0439\u0442\u0435 \u0418 + \u0418\u041b\u0418: <code>rupa; goswami//gosvami; disap</code>',
+            installBannerText: '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435 \u043d\u0430 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e',
+            installBtn: '\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u043a\u0430\u043a',
+            iosStep1: '\u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u043a\u043d\u043e\u043f\u043a\u0443 <b>\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f</b> <span style="font-size:20px">\u23CE</span>',
+            iosStep2: '\u041f\u0440\u043e\u043a\u0440\u0443\u0442\u0438\u0442\u0435 \u0432\u043d\u0438\u0437. \u0415\u0441\u043b\u0438 \u043d\u0435 \u0432\u0438\u0434\u0438\u0442\u0435 <b>\u00ab\u041d\u0430 \u044d\u043a\u0440\u0430\u043d \u0414\u043e\u043c\u043e\u0439\u00bb</b>, \u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u043d\u0430\u0436\u043c\u0438\u0442\u0435 <b>\u00ab\u0415\u0449\u0451\u00bb</b>',
+            iosStep3: '\u041d\u0430\u0436\u043c\u0438\u0442\u0435 <b>\u00ab\u041d\u0430 \u044d\u043a\u0440\u0430\u043d \u0414\u043e\u043c\u043e\u0439\u00bb</b>',
+            iosStep4: '\u041d\u0430\u0436\u043c\u0438\u0442\u0435 <b>\u00ab\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c\u00bb</b> \u0441\u043f\u0440\u0430\u0432\u0430 \u0432\u0432\u0435\u0440\u0445\u0443',
+            iosGotIt: '\u041f\u043e\u043d\u044f\u0442\u043d\u043e!',
+            androidStep1: '\u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u0441\u0441\u044b\u043b\u043a\u0443 \u0432 <b>Chrome</b> (\u0435\u0441\u043b\u0438 \u043e\u0442\u043a\u0440\u044b\u043b\u043e\u0441\u044c \u0432\u043d\u0443\u0442\u0440\u0438 \u0434\u0440\u0443\u0433\u043e\u0433\u043e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u044f, \u043d\u0430\u0436\u043c\u0438\u0442\u0435 <b>\u22ee</b> \u2192 <b>\u00ab\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0432 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0435\u00bb</b>)',
+            androidStep2: '\u0412 Chrome \u043d\u0430\u0436\u043c\u0438\u0442\u0435 <b>\u22ee</b> \u043c\u0435\u043d\u044e \u0432 \u043f\u0440\u0430\u0432\u043e\u043c \u0432\u0435\u0440\u0445\u043d\u0435\u043c \u0443\u0433\u043b\u0443',
+            androidStep3: '\u041d\u0430\u0436\u043c\u0438\u0442\u0435 <b>\u00ab\u041d\u0430 \u0433\u043b\u0430\u0432\u043d\u044b\u0439 \u044d\u043a\u0440\u0430\u043d\u00bb</b>',
+            androidStep4: '\u041d\u0430\u0436\u043c\u0438\u0442\u0435 <b>\u00ab\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c\u00bb</b>',
+            searchTranscripts: '\u041f\u043e\u0438\u0441\u043a \u0432 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u0430\u0445',
+            loadingTranscripts: '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u043e\u0432...',
+            transcriptResults: '\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b \u0432 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u0430\u0445',
+            noTranscriptResults: '\u041d\u0435\u0442 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u043e\u0432 \u0432 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u0430\u0445',
+            searchModeMetadata: 'Mp3 \u0444\u0430\u0439\u043b\u044b',
+            searchModeCitations: '\u0426\u0438\u0442\u0430\u0442\u044b (\u0432\u0441\u0435)',
+            searchModeCitationsTop: '\u0426\u0438\u0442\u0430\u0442\u044b (Top 108)',
+            quotesSearchHint: '\u0414\u043b\u044f \u0440\u0443\u0447\u043d\u043e\u0433\u043e \u043f\u043e\u0438\u0441\u043a\u0430 \u043d\u0430\u0436\u043c\u0438\u0442\u0435 \u00abMp3 \u0444\u0430\u0439\u043b\u044b\u00bb',
+            citationResults: '\u0441\u0441\u044b\u043b\u043e\u043a \u043d\u0430 \u0441\u0442\u0438\u0445\u0438 \u043d\u0430\u0439\u0434\u0435\u043d\u043e',
+            noCitationResults: '\u0421\u0441\u044b\u043b\u043e\u043a \u043d\u0430 \u0441\u0442\u0438\u0445\u0438 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e',
+            loadingDB: '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0431\u0430\u0437\u044b \u0434\u0430\u043d\u043d\u044b\u0445...',
+            dbLoaded: '\u0411\u0430\u0437\u0430 \u0434\u0430\u043d\u043d\u044b\u0445 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u0430',
+            verseCopiedToast: '"{ref}" \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440 \u2014 \u043d\u0430\u0436\u043c\u0438\u0442\u0435 Ctrl+F \u0438 \u0432\u0441\u0442\u0430\u0432\u044c\u0442\u0435'
+        },
+        lv: {
+            pageTitle: 'Video & Audio sai\u0161u mekl\u0113t\u0101js',
+            listOfSources: 'Avotu saraksts',
+            lectureTopics: 'Atska\u0146o\u0161anas saraksti',
+            recommendations: 'Ieteikumi',
+            recommendationsTitle: 'Ieteikt\u0101s lekcijas:',
+            latest20Files: 'Jaun\u0101kie 20 faili',
+            latest20Transcripts: 'Jaun\u0101kie 20 transkripti',
+            searchPlaceholder: 'Mekl\u0113t gudr\u012bbu starp {count} sait\u0113m',
+            searchButton: 'Mekl\u0113t',
+            searchTime: 'Mekl\u0113\u0161ana klienta pus\u0113 \u2014 t\u016bl\u012bt\u0113ji rezult\u0101ti.',
+            enterSearchTerms: 'Ievadiet mekl\u0113\u0161anas v\u0101rdus, lai redz\u0113tu rezult\u0101tus',
+            filesFound: 'faili atrasti', showingResults: 'R\u0101da rezult\u0101tus',
+            noResultsFound: 'Rezult\u0101ti nav atrasti',
+            elapsedTime: 'Pag\u0101ju\u0161ais laiks:', seconds: 'sekundes',
+            searching: 'Mekl\u0113...', page: 'lapa', pages: 'lapas',
+            previous: 'Iepriek\u0161\u0113j\u0101', next: 'N\u0101kam\u0101',
+            sources: 'Avoti:', topics: 'T\u0113mas ar transkriptiem:',
+            transcriptsTitle: 'Transkripti / Tulkojumi', transcriptsHint: '. Visi transkripti', clickWord: 'Noklik\u0161\u0137iniet',
+            colDate: 'Datums', colType: 'Tips', colOriginalFileName: 'Faila nosaukums',
+            colCountry: 'Valsts', colLang: 'Valoda', colLinks: 'Saites',
+            colDwnld: 'Lejup.', colLength: 'Garums',
+            helpButton: 'K\u0101 mekl\u0113t?', helpModalTitle: 'K\u0101 izmantot mekl\u0113\u0161anas lauku?',
+            helpContent: '<div class="help-section-title">Pamata mekl\u0113\u0161ana</div>Ieraksti burtus/ciparus un spied <strong>Search</strong>. Finder p\u0101rbauda katru tabulas \u0161\u016bnu un par\u0101da rindas, kur vismaz vien\u0101 lauk\u0101 ir ievad\u012bt\u0101s z\u012bmes. Atbilst\u012bbas tiek izceltas (parasti dzelt\u0113n\u0101).<div class="help-section-title">Diakritiskie z\u012bmes</div>Finder \u0146em v\u0113r\u0101 diakritiku: mekl\u0113jot <code>babaji</code>, tiks atrasts ar\u012b <strong>B\u0101b\u0101j\u012b</strong> (diakritikas atbilst\u012bbas var b\u016bt ar zilganu fonu).<div class="help-section-title">Da\u017e\u0101di rakst\u012bbas varianti ("vai")</div>Lieto <code>//</code> k\u0101 VAI: <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principi efekt\u012bvai mekl\u0113\u0161anai</div>Lieto semikolu <code>;</code> = UN (sa\u0161aurina rezult\u0101tus): <code>guru; tattva; youtube; 2020</code><br><strong>Svar\u012bgi:</strong> neatst\u0101j <code>;</code> p\u0113c p\u0113d\u0113j\u0101 v\u0101rda.<br>Sa\u012bsini v\u0101rdus (nav j\u0101ievada pilns v\u0101rds): <code>bhaktis; avir</code><br>Kombin\u0113 UN + VAI: <code>rupa; goswami//gosvami; disap</code>',
+            installBannerText: 'Instal\u0113jiet \u0161o lietotni sav\u0101 ier\u012bc\u0113',
+            installBtn: 'Par\u0101d\u012bt k\u0101',
+            iosStep1: 'Nospiediet <b>Share</b> pogu <span style="font-size:20px">\u23CE</span>',
+            iosStep2: 'Ritiniet uz leju. Ja neredzat <b>"Add to Home Screen"</b>, vispirms nospiediet <b>"View More"</b>',
+            iosStep3: 'Nospiediet <b>"Add to Home Screen"</b>',
+            iosStep4: 'Nospiediet <b>"Add"</b> aug\u0161\u0113j\u0101 labaj\u0101 st\u016br\u012b',
+            iosGotIt: 'Sapratu!',
+            androidStep1: 'Atveriet saiti <b>Chrome</b> p\u0101rl\u016bk\u0101 (ja atv\u0113r\u0101s cit\u0101 lietotn\u0113, spiediet <b>\u22ee</b> \u2192 <b>"Open in Browser"</b>)',
+            androidStep2: 'Chrome p\u0101rl\u016bk\u0101 spiediet <b>\u22ee</b> izv\u0113lni aug\u0161\u0113j\u0101 labaj\u0101 st\u016br\u012b',
+            androidStep3: 'Spiediet <b>"Pievienot s\u0101kuma ekr\u0101nam"</b>',
+            androidStep4: 'Spiediet <b>"Pievienot"</b>',
+            searchTranscripts: 'Mekl\u0113t transkriptos',
+            loadingTranscripts: 'Iel\u0101d\u0113 transkriptus...',
+            transcriptResults: 'Transkriptu rezult\u0101ti',
+            noTranscriptResults: 'Nav rezult\u0101tu transkriptos',
+            searchModeMetadata: 'Mp3 faili',
+            searchModeCitations: 'Cit\u0101ti (visi)',
+            searchModeCitationsTop: 'Cit\u0101ti (Top 108)',
+            quotesSearchHint: 'Lai mekl\u0113tu manu\u0101li nospied \u00abMp3 faili\u00bb',
+            citationResults: 'pantu atsauces atrastas',
+            noCitationResults: 'Pantu atsauces nav atrastas',
+            loadingDB: 'Iel\u0101d\u0113 datub\u0101zi...',
+            dbLoaded: 'Datub\u0101ze iel\u0101d\u0113ta',
+            verseCopiedToast: '"{ref}" nokop\u0113ts starpliktuve \u2014 spied Ctrl+F un ielim\u0113'
+        },
+        it: {
+            pageTitle: 'Cercatore di link video e audio', listOfSources: 'Elenco fonti', lectureTopics: 'Playlists', recommendations: 'Raccomandazioni', recommendationsTitle: 'Lezioni consigliate:', latest20Files: 'Ultimi 20 file', latest20Transcripts: 'Ultime 20 trascrizioni', searchPlaceholder: 'Cercare saggezza tra {count} link', searchButton: 'Cerca', searchTime: 'Ricerca lato client \u2014 risultati istantanei.', enterSearchTerms: 'Inserisci parole di ricerca per vedere i risultati', filesFound: 'file trovati', showingResults: 'Mostra risultati', noResultsFound: 'Nessun risultato trovato', elapsedTime: 'Tempo trascorso:', seconds: 'secondi', searching: 'Ricerca...', page: 'pagina', pages: 'pagine', previous: 'Precedente', next: 'Successiva', sources: 'Fonti:', topics: 'Argomenti con trascrizioni:', transcriptsTitle: 'Trascrizioni / Traduzioni', transcriptsHint: '. Tutte le trascrizioni', clickWord: 'Clicca', colDate: 'Data', colType: 'Tipo', colOriginalFileName: 'Nome file', colCountry: 'Paese', colLang: 'Lingua', colLinks: 'Link', colDwnld: 'Scarica', colLength: 'Durata', helpButton: 'Come cercare?', helpModalTitle: 'Come usare il campo di ricerca?',
+            helpContent: '<div class="help-section-title">Ricerca di base</div>Inserisci lettere/numeri e fai clic su <strong>Search</strong>. Il Finder analizza ogni cella della tabella e mostra le righe in cui almeno un campo contiene i simboli inseriti. Le corrispondenze vengono evidenziate (di solito in giallo).<div class="help-section-title">Diacritici</div>Il Finder gestisce i diacritici: cercando <code>babaji</code> vengono trovati anche risultati con <strong>B\u0101b\u0101j\u012b</strong> (le corrispondenze con diacritici possono apparire con uno sfondo azzurrato).<div class="help-section-title">Ortografie diverse ("oppure")</div>Usa <code>//</code> per indicare OR ("oppure"): <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principi per una ricerca efficace</div>Usa il punto e virgola <code>;</code> = AND ("e", filtra/raffina): <code>guru; tattva; youtube; 2020</code><br><strong>Importante:</strong> non lasciare <code>;</code> dopo l\'ultima parola.<br>Accorcia le parole (non serve scrivere la parola intera): <code>bhaktis; avir</code><br>Combina AND + OR: <code>rupa; goswami//gosvami; disap</code>',
+            installBannerText: 'Installa questa app sul tuo dispositivo', installBtn: 'Mostrami come',
+            iosStep1: 'Tocca il pulsante <b>Condividi</b> <span style="font-size:20px">\u23CE</span>', iosStep2: 'Scorri verso il basso. Se non vedi <b>"Aggiungi alla schermata Home"</b>, tocca prima <b>"Altro"</b>', iosStep3: 'Tocca <b>"Aggiungi alla schermata Home"</b>', iosStep4: 'Tocca <b>"Aggiungi"</b> in alto a destra', iosGotIt: 'Capito!',
+            androidStep1: 'Apri il link in <b>Chrome</b> (se si \u00e8 aperto in un\'altra app, tocca <b>\u22ee</b> \u2192 <b>"Apri nel browser"</b>)', androidStep2: 'In Chrome, tocca il menu <b>\u22ee</b> in alto a destra', androidStep3: 'Tocca <b>"Aggiungi alla schermata Home"</b>', androidStep4: 'Tocca <b>"Aggiungi"</b>',
+            searchTranscripts: 'Cerca nelle trascrizioni', loadingTranscripts: 'Caricamento trascrizioni...', transcriptResults: 'Risultati nelle trascrizioni', noTranscriptResults: 'Nessun risultato nelle trascrizioni',
+            searchModeMetadata: 'File Mp3', searchModeCitations: 'Citazioni (tutte)', searchModeCitationsTop: 'Citazioni (Top 108)', quotesSearchHint: 'Per cercare manualmente premi \'File Mp3\'', citationResults: 'citazioni di versetti trovate', noCitationResults: 'Nessuna citazione di versetti trovata', loadingDB: 'Caricamento database...', dbLoaded: 'Database caricato',
+            verseCopiedToast: '"{ref}" copiato negli appunti \u2014 premi Ctrl+F e incolla per trovare il versetto'
+        },
+        fr: {
+            pageTitle: 'Recherche de liens vid\u00e9o et audio', listOfSources: 'Liste des sources', lectureTopics: 'Playlists', recommendations: 'Recommandations', recommendationsTitle: 'Conf\u00e9rences recommand\u00e9es :', latest20Files: 'Derniers 20 fichiers', latest20Transcripts: 'Derni\u00e8res 20 transcriptions', searchPlaceholder: 'Chercher la sagesse parmi {count} liens', searchButton: 'Rechercher', searchTime: 'Recherche c\u00f4t\u00e9 client \u2014 r\u00e9sultats instantan\u00e9s.', enterSearchTerms: 'Saisissez des mots de recherche pour voir les r\u00e9sultats', filesFound: 'fichiers trouv\u00e9s', showingResults: 'Affiche les r\u00e9sultats', noResultsFound: 'Aucun r\u00e9sultat trouv\u00e9', elapsedTime: 'Temps \u00e9coul\u00e9 :', seconds: 'secondes', searching: 'Recherche...', page: 'page', pages: 'pages', previous: 'Pr\u00e9c\u00e9dente', next: 'Suivante', sources: 'Sources :', topics: 'Sujets avec transcriptions :', transcriptsTitle: 'Transcriptions / Traductions', transcriptsHint: '. Toutes les transcriptions', clickWord: 'Cliquez', colDate: 'Date', colType: 'Type', colOriginalFileName: 'Nom du fichier', colCountry: 'Pays', colLang: 'Langue', colLinks: 'Liens', colDwnld: 'T\u00e9l\u00e9ch.', colLength: 'Dur\u00e9e', helpButton: 'Comment chercher ?', helpModalTitle: 'Comment utiliser le champ de recherche ?',
+            helpContent: '<div class="help-section-title">Recherche de base</div>Saisissez des lettres/chiffres puis cliquez sur <strong>Search</strong>. Le Finder parcourt chaque cellule du tableau et affiche les lignes o\u00f9 au moins un champ contient les symboles saisis. Les correspondances sont surlighn\u00e9es (g\u00e9n\u00e9ralement en jaune).<div class="help-section-title">Diacritiques</div>Le Finder g\u00e8re les diacritiques : en recherchant <code>babaji</code>, il trouve aussi <strong>B\u0101b\u0101j\u012b</strong> (les correspondances avec diacritiques peuvent appara\u00eetre sur un fond bleut\u00e9).<div class="help-section-title">Orthographes diff\u00e9rentes (\u00ab ou \u00bb)</div>Utilisez <code>//</code> pour indiquer OR (\u00ab ou \u00bb) : <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principes pour une recherche efficace</div>Utilisez le point-virgule <code>;</code> = AND (\u00ab et \u00bb, filtre) : <code>guru; tattva; youtube; 2020</code><br><strong>Important :</strong> ne laissez pas <code>;</code> apr\u00e8s le dernier mot.<br>Raccourcissez les mots (inutile d\'\u00e9crire le mot en entier) : <code>bhaktis; avir</code><br>Combinez AND + OR : <code>rupa; goswami//gosvami; disap</code>',
+            installBannerText: 'Installez cette application sur votre appareil', installBtn: 'Me montrer comment',
+            iosStep1: 'Appuyez sur le bouton <b>Partager</b> <span style="font-size:20px">\u23CE</span>', iosStep2: 'Faites d\u00e9filer vers le bas. Si vous ne voyez pas <b>\u00ab Sur l\'\u00e9cran d\'accueil \u00bb</b>, appuyez d\'abord sur <b>\u00ab Plus \u00bb</b>', iosStep3: 'Appuyez sur <b>\u00ab Sur l\'\u00e9cran d\'accueil \u00bb</b>', iosStep4: 'Appuyez sur <b>\u00ab Ajouter \u00bb</b> en haut \u00e0 droite', iosGotIt: 'Compris !',
+            androidStep1: 'Ouvrez le lien dans <b>Chrome</b> (s\'il s\'est ouvert dans une autre app, appuyez sur <b>\u22ee</b> \u2192 <b>\u00abOuvrir dans le navigateur\u00bb</b>)', androidStep2: 'Dans Chrome, appuyez sur le menu <b>\u22ee</b> en haut \u00e0 droite', androidStep3: 'Appuyez sur <b>\u00abAjouter \u00e0 l\'\u00e9cran d\'accueil\u00bb</b>', androidStep4: 'Appuyez sur <b>\u00abAjouter\u00bb</b>',
+            searchTranscripts: 'Rechercher dans les transcriptions', loadingTranscripts: 'Chargement des transcriptions...', transcriptResults: 'R\u00e9sultats dans les transcriptions', noTranscriptResults: 'Aucun r\u00e9sultat dans les transcriptions',
+            searchModeMetadata: 'Fichiers Mp3', searchModeCitations: 'Citations (toutes)', searchModeCitationsTop: 'Citations (Top 108)', quotesSearchHint: 'Pour rechercher manuellement appuyez sur \u00abFichiers Mp3\u00bb', citationResults: 'citations de versets trouv\u00e9es', noCitationResults: 'Aucune citation de verset trouv\u00e9e', loadingDB: 'Chargement de la base de donn\u00e9es...', dbLoaded: 'Base de donn\u00e9es charg\u00e9e',
+            verseCopiedToast: '"{ref}" copi\u00e9 dans le presse-papiers \u2014 appuyez sur Ctrl+F et collez'
+        },
+        es: {
+            pageTitle: 'Buscador de enlaces de v\u00eddeo y audio', listOfSources: 'Lista de fuentes', lectureTopics: 'Playlists', recommendations: 'Recomendaciones', recommendationsTitle: 'Conferencias recomendadas:', latest20Files: '\u00daltimos 20 archivos', latest20Transcripts: '\u00daltimas 20 transcripciones', searchPlaceholder: 'Buscar sabidur\u00eda entre {count} enlaces', searchButton: 'Buscar', searchTime: 'B\u00fasqueda del lado del cliente \u2014 resultados instant\u00e1neos.', enterSearchTerms: 'Introduce palabras de b\u00fasqueda para ver resultados', filesFound: 'archivos encontrados', showingResults: 'Mostrando resultados', noResultsFound: 'No se encontraron resultados', elapsedTime: 'Tiempo transcurrido:', seconds: 'segundos', searching: 'Buscando...', page: 'p\u00e1gina', pages: 'p\u00e1ginas', previous: 'Anterior', next: 'Siguiente', sources: 'Fuentes:', topics: 'Temas con transcripciones:', transcriptsTitle: 'Transcripciones / Traducciones', transcriptsHint: '. Todas las transcripciones', clickWord: 'Haz clic', colDate: 'Fecha', colType: 'Tipo', colOriginalFileName: 'Nombre del archivo', colCountry: 'Pa\u00eds', colLang: 'Idioma', colLinks: 'Enlaces', colDwnld: 'Desc.', colLength: 'Duraci\u00f3n', helpButton: '\u00bfC\u00f3mo buscar?', helpModalTitle: '\u00bfC\u00f3mo usar el campo de b\u00fasqueda?',
+            helpContent: '<div class="help-section-title">B\u00fasqueda b\u00e1sica</div>Escribe letras/n\u00fameros y haz clic en <strong>Search</strong>. El Finder revisa cada celda de la tabla y muestra las filas donde al menos un campo contiene los s\u00edmbolos introducidos. Las coincidencias se resaltan (normalmente en amarillo).<div class="help-section-title">Diacr\u00edticos</div>El Finder maneja diacr\u00edticos: al buscar <code>babaji</code> tambi\u00e9n encuentra <strong>B\u0101b\u0101j\u012b</strong> (las coincidencias con diacr\u00edticos pueden aparecer con un fondo azulado).<div class="help-section-title">Distintas graf\u00edas ("o")</div>Usa <code>//</code> para indicar OR ("o"): <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principios para una b\u00fasqueda eficaz</div>Usa punto y coma <code>;</code> = AND ("y", filtra): <code>guru; tattva; youtube; 2020</code><br><strong>Importante:</strong> no dejes <code>;</code> despu\u00e9s de la \u00faltima palabra.<br>Acorta las palabras (no hace falta escribir la palabra completa): <code>bhaktis; avir</code><br>Combina AND + OR: <code>rupa; goswami//gosvami; disap</code>',
+            installBannerText: 'Instala esta aplicaci\u00f3n en tu dispositivo', installBtn: 'Mu\u00e9strame c\u00f3mo',
+            iosStep1: 'Toca el bot\u00f3n <b>Compartir</b> <span style="font-size:20px">\u23CE</span>', iosStep2: 'Despl\u00e1zate hacia abajo. Si no ves <b>"A\u00f1adir a la pantalla de inicio"</b>, toca primero <b>"M\u00e1s"</b>', iosStep3: 'Toca <b>"A\u00f1adir a la pantalla de inicio"</b>', iosStep4: 'Toca <b>"A\u00f1adir"</b> en la esquina superior derecha', iosGotIt: '\u00a1Entendido!',
+            androidStep1: 'Abre el enlace en <b>Chrome</b> (si se abri\u00f3 en otra app, toca <b>\u22ee</b> \u2192 <b>"Abrir en el navegador"</b>)', androidStep2: 'En Chrome, toca el men\u00fa <b>\u22ee</b> en la esquina superior derecha', androidStep3: 'Toca <b>"A\u00f1adir a la pantalla de inicio"</b>', androidStep4: 'Toca <b>"A\u00f1adir"</b>',
+            searchTranscripts: 'Buscar en transcripciones', loadingTranscripts: 'Cargando transcripciones...', transcriptResults: 'Resultados en transcripciones', noTranscriptResults: 'Sin resultados en transcripciones',
+            searchModeMetadata: 'Archivos Mp3', searchModeCitations: 'Citas (todas)', searchModeCitationsTop: 'Citas (Top 108)', quotesSearchHint: 'Para buscar manualmente pulsa \u00abArchivos Mp3\u00bb', citationResults: 'citas de versos encontradas', noCitationResults: 'No se encontraron citas de versos', loadingDB: 'Cargando base de datos...', dbLoaded: 'Base de datos cargada',
+            verseCopiedToast: '"{ref}" copiado al portapapeles \u2014 pulsa Ctrl+F y pega para encontrar el verso'
+        }
+    };
+
+    function t(key) {
+        return (translations[currentLanguage] || translations.en)[key] || key;
+    }
+
+    function setLanguage(lang) {
+        currentLanguage = lang;
+    }
+
+    function getLanguage() {
+        return currentLanguage;
+    }
+
+    function getTranslations() {
+        return translations;
+    }
+
+    return {
+        t: t,
+        setLanguage: setLanguage,
+        getLanguage: getLanguage,
+        getTranslations: getTranslations
+    };
+})();

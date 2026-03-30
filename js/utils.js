@@ -1,0 +1,187 @@
+/* ===========================================================================
+   PPP Link Finder — Utility functions
+   Extracted from original index.html
+   =========================================================================== */
+window.PPP = window.PPP || {};
+
+PPP.utils = (function () {
+    'use strict';
+
+    /**
+     * Remove diacritical marks: NFD + strip combining marks.
+     * "Bābājī" → "Babaji"
+     */
+    function removeDiacritics(str) {
+        if (!str) return '';
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    /**
+     * Transliterate Latin to basic Cyrillic (for Russian search).
+     * "babaji" → "бабаджи"
+     */
+    function transliterate(word) {
+        var map = {
+            'a': '\u0430', 'b': '\u0431', 'v': '\u0432', 'g': '\u0433',
+            'd': '\u0434', 'e': '\u0435', 'yo': '\u0451', 'zh': '\u0436',
+            'z': '\u0437', 'i': '\u0438', 'y': '\u0439', 'k': '\u043a',
+            'l': '\u043b', 'm': '\u043c', 'n': '\u043d', 'o': '\u043e',
+            'p': '\u043f', 'r': '\u0440', 's': '\u0441', 't': '\u0442',
+            'u': '\u0443', 'f': '\u0444', 'h': '\u0445', 'ts': '\u0446',
+            'ch': '\u0447', 'sh': '\u0448', 'sch': '\u0449', 'yu': '\u044e',
+            'ya': '\u044f', 'j': '\u0434\u0436'
+        };
+        var result = '';
+        var w = word.toLowerCase();
+        var i = 0;
+        while (i < w.length) {
+            // Try 3-char, 2-char, then 1-char sequences
+            if (i + 3 <= w.length && map[w.substring(i, i + 3)]) {
+                result += map[w.substring(i, i + 3)];
+                i += 3;
+            } else if (i + 2 <= w.length && map[w.substring(i, i + 2)]) {
+                result += map[w.substring(i, i + 2)];
+                i += 2;
+            } else if (map[w[i]]) {
+                result += map[w[i]];
+                i += 1;
+            } else {
+                result += w[i];
+                i += 1;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Compare dates in "YYYY.MM.DD" format (descending).
+     * Handles "unknown" and "xx" placeholders — exact port from MainCopyCA.gs.
+     */
+    function compareDates(a, b) {
+        var dateA = a['Date'] || '';
+        var dateB = b['Date'] || '';
+        var fileNameA = a['Original file name'] || '';
+        var fileNameB = b['Original file name'] || '';
+
+        if (dateA === 'unknown' && dateB === 'unknown') {
+            return fileNameB.localeCompare(fileNameA, undefined, { numeric: true, sensitivity: 'base' });
+        }
+        if (dateA === 'unknown') return 1;
+        if (dateB === 'unknown') return -1;
+
+        var partsA = dateA.split('.');
+        var partsB = dateB.split('.');
+
+        // Year descending
+        if (partsA[0] !== partsB[0]) return partsB[0] - partsA[0];
+
+        // Month: 'xx' goes to end
+        if (partsA[1] !== 'xx' && partsB[1] !== 'xx') {
+            if (partsA[1] !== partsB[1]) return partsB[1] - partsA[1];
+        } else if (partsA[1] === 'xx' && partsB[1] !== 'xx') {
+            return 1;
+        } else if (partsA[1] !== 'xx' && partsB[1] === 'xx') {
+            return -1;
+        }
+
+        // Day: 'xx' goes to end
+        if (partsA[2] !== 'xx' && partsB[2] !== 'xx') {
+            var dayComp = partsB[2] - partsA[2];
+            if (dayComp !== 0) return dayComp;
+        } else if (partsA[2] === 'xx' && partsB[2] !== 'xx') {
+            return 1;
+        } else if (partsA[2] !== 'xx' && partsB[2] === 'xx') {
+            return -1;
+        }
+
+        // Filename tiebreaker (descending)
+        return fileNameB.localeCompare(fileNameA, undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    /**
+     * Normalize text for diacritics-insensitive search.
+     */
+    function normalizeForSearch(str) {
+        if (!str) return '';
+        return removeDiacritics(str.toLowerCase().trim());
+    }
+
+    /**
+     * Escape special regex characters.
+     */
+    function escapeRegex(s) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * Format length value (e.g., "0.05" → "1 h 12 min").
+     * Exact port from MainCopyCA.gs.
+     */
+    function formatLength(val) {
+        if (!val) return '';
+        if (/\d+\s*h\s*\d+\s*min/.test(val)) return val;
+        function padZero(num) { return num < 10 ? '0' + num : num; }
+        var num = parseFloat(val);
+        if (!isNaN(num) && num >= 0 && num < 1) {
+            var totalMinutes = Math.round(num * 24 * 60);
+            var hours = Math.floor(totalMinutes / 60);
+            var minutes = totalMinutes % 60;
+            return hours + ' h ' + padZero(minutes) + ' min';
+        }
+        var parts = val.toString().split(':');
+        if (parts.length >= 2) {
+            var hours = parseInt(parts[0]);
+            var minutes = parseInt(parts[1]);
+            if (!isNaN(hours) && !isNaN(minutes)) return hours + ' h ' + padZero(minutes) + ' min';
+        }
+        return val.toString();
+    }
+
+    /**
+     * Normalize has: column name to exact header name.
+     */
+    function normalizeHasColumn(raw) {
+        var t = (raw || '').toString().trim();
+        var low = t.toLowerCase();
+        if (low === 'script_lv') return 'Script_LV';
+        if (low === 'script_en') return 'Script_EN';
+        if (low === 'script_ru') return 'Script_RU';
+        if (low === 'dwnld.' || low === 'dwnld') return 'Dwnld.';
+        if (low === 'links' || low === 'link') return 'Links';
+        return t;
+    }
+
+    /**
+     * Check if a cell has a link (XLSX _url field or non-empty content).
+     */
+    function cellHasLink(val, colName, row) {
+        if (row && colName && row[colName + '_url']) return true;
+        if (!val) return false;
+        var s = val.toString().trim();
+        return s !== '' && s !== 'N/A' && s !== '0';
+    }
+
+    /**
+     * Extract URL from cell value.
+     */
+    function extractUrl(val) {
+        if (!val) return null;
+        var s = val.toString().trim();
+        if (s.startsWith('http')) return s;
+        var m = s.match(/=HYPERLINK\("([^"]+)"/i);
+        return m ? m[1] : null;
+    }
+
+    // Public API
+    return {
+        removeDiacritics: removeDiacritics,
+        transliterate: transliterate,
+        compareDates: compareDates,
+        normalizeForSearch: normalizeForSearch,
+        escapeRegex: escapeRegex,
+        formatLength: formatLength,
+        normalizeHasColumn: normalizeHasColumn,
+        cellHasLink: cellHasLink,
+        extractUrl: extractUrl
+    };
+})();

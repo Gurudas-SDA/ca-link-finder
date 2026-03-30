@@ -1,0 +1,1288 @@
+/* ===========================================================================
+   PPP Link Finder — Main application controller
+   Wires up all modules: db, search, ui, i18n, utils
+   Primary data source: SQLite via sql.js
+   Fallback: Google Sheets XLSX/CSV
+   =========================================================================== */
+window.PPP = window.PPP || {};
+
+PPP.app = (function () {
+    'use strict';
+
+    var db = PPP.db;
+    var search = PPP.search;
+    var ui = PPP.ui;
+    var i18n = PPP.i18n;
+    var utils = PPP.utils;
+
+    // ===== CONSTANTS =====
+    var SPREADSHEET_ID = '1O66GTEB2AfBWYEq0sDLusVkJk9gg1XpmZNJmmQkvtls';
+    var SHEET_NAME = 'Base';
+    var LINK_COLS = new Set(['Dwnld.', 'Links', 'Script_EN', 'Script_LV', 'Script_RU']);
+
+    // Column mapping: SQLite lowercase → UI display names
+    var SQL_TO_UI = {
+        'nr': 'Nr.', 'original_file_name': 'Original file name', 'date': 'Date',
+        'type': 'Type', 'lang': 'Lang.', 'length': 'Length', 'subject': 'Subject',
+        'country': 'Country', 'links': 'Links', 'dwnld': 'Dwnld.',
+        'direct_url': 'Direct URL', 'script_en': 'Script_EN', 'script_lv': 'Script_LV',
+        'script_ru': 'Script_RU',
+        'links_url': 'Links_url', 'dwnld_url': 'Dwnld._url',
+        'script_en_url': 'Script_EN_url', 'script_lv_url': 'Script_LV_url', 'script_ru_url': 'Script_RU_url',
+        'source': 'Source', 'added': 'Added',
+        'scripts_added': 'Scripts added', 'subtype': 'Subtype', 'author': 'Author',
+        'books': 'Books', 'personality': 'Personality', 'bhajans': 'Bhajans',
+        'transcribe': 'Transcribe', 'check_verses': 'Check verses', 'recheck': 'Recheck',
+        'quality': 'Quality', 'duplicate': 'Duplicate', 'change_file_name': 'Change file name',
+        'lang_added': 'Lang added'
+    };
+
+    // ===== STATE =====
+    var DB = [];                    // In-memory data (mapped to UI column names)
+    var currentPage = 1;
+    var pageSize = 10;
+    var totalResults = 0;
+    var lastSearchTerm = '';
+    var allResults = [];
+    var matchHints = new Map();
+    var dataLoaded = false;
+    var usingSqlite = false;        // true if SQLite loaded successfully
+    var searchMode = 'metadata';    // 'metadata', 'citations', or 'citationsTop'
+    var deferredPrompt = null;
+    var installMode = 'ios';
+    var totalLectures = 0;
+
+    // ===== PWA =====
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        showInstallBanner('native');
+    });
+
+    // ===== INIT =====
+    function init() {
+        var savedLang = localStorage.getItem('preferredLanguage') || 'en';
+        setLanguage(savedLang);
+
+        // Wire search input
+        var searchInput = document.getElementById('searchTerm');
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        // Ensure metadata mode is active on start
+        setSearchMode('metadata');
+
+        // Wire search mode toggle
+        var modeButtons = document.querySelectorAll('.search-mode-btn');
+        modeButtons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var mode = btn.getAttribute('data-mode');
+                setSearchMode(mode);
+                // Auto-show verse sources panel when switching to Verses
+                if (mode === 'citations') {
+                    showVerseSources();
+                }
+            });
+        });
+
+        // Load data — try SQLite first, fall back to XLSX/CSV
+        loadData();
+
+        // Install banner (delayed)
+        setTimeout(function () {
+            var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+            var dismissed = localStorage.getItem('installDismissed');
+            var banner = document.getElementById('installBanner');
+            if (deferredPrompt || (banner && banner.style.display === 'block') || isStandalone || dismissed) return;
+            var isAndroid = /android/i.test(navigator.userAgent);
+            showInstallBanner(isAndroid ? 'android' : 'ios');
+        }, 2000);
+    }
+
+    // ===== DATA LOADING =====
+
+    /**
+     * Map a SQLite row object (lowercase keys) to UI row object (display keys).
+     */
+    function mapSqlRowToUI(sqlRow) {
+        var uiRow = {};
+        for (var sqlCol in sqlRow) {
+            if (sqlRow.hasOwnProperty(sqlCol)) {
+                var uiCol = SQL_TO_UI[sqlCol] || sqlCol;
+                uiRow[uiCol] = (sqlRow[sqlCol] != null) ? sqlRow[sqlCol].toString() : '';
+            }
+        }
+        return uiRow;
+    }
+
+    /**
+     * Primary load: SQLite via sql.js.
+     * Fallback: XLSX from Google Sheets.
+     */
+    function loadData() {
+        // Show progress bar
+        ui.showLoading(i18n.t('loadingDB'));
+
+        // Try SQLite first
+        loadSqlite().then(function () {
+            ui.hideLoading();
+            usingSqlite = true;
+            onDataLoaded();
+        }).catch(function (sqliteErr) {
+            console.warn('SQLite load failed, falling back to XLSX:', sqliteErr);
+            ui.hideLoading();
+            loadXlsxFallback();
+        });
+    }
+
+    /**
+     * Load SQLite database via sql.js.
+     */
+    function loadSqlite() {
+        return db.initSqlJs().then(function () {
+            return db.loadMetaDB(function (progress) {
+                ui.updateProgress(progress);
+            });
+        }).then(function () {
+            // Get stats for total count
+            var stats = db.getStats();
+            totalLectures = parseInt(stats.total_lectures || '0', 10);
+
+            // Also populate DB[] array for backward-compatible features
+            // (topics rendering, recommendations, etc. that iterate DB[])
+            var allRows = db.queryMeta('SELECT * FROM lectures');
+            DB = allRows.map(mapSqlRowToUI);
+        });
+    }
+
+    /**
+     * XLSX fallback (original logic).
+     */
+    function loadXlsxFallback() {
+        var xlsxUrl = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/export?format=xlsx&gid=0';
+
+        getCachedData().then(function (cached) {
+            if (cached && (Date.now() - cached.timestamp < 5 * 60 * 1000)) {
+                DB = cached.rows;
+                totalLectures = DB.length;
+                onDataLoaded();
+                return;
+            }
+            return fetch(xlsxUrl).then(function (response) {
+                return response.arrayBuffer();
+            }).then(function (arrayBuffer) {
+                var wb = XLSX.read(arrayBuffer, { type: 'array' });
+                var rows = parseXlsxData(wb);
+                DB = rows;
+                totalLectures = DB.length;
+                cacheData(rows);
+                onDataLoaded();
+            });
+        }).catch(function (e) {
+            console.error('XLSX load failed, trying CSV fallback:', e);
+            var csvUrl = 'https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(SHEET_NAME);
+            return new Promise(function (resolve, reject) {
+                Papa.parse(csvUrl, { download: true, header: true, skipEmptyLines: true, complete: function (r) { resolve(r.data); }, error: reject });
+            }).then(function (rows) {
+                DB = rows;
+                totalLectures = DB.length;
+                cacheData(rows);
+                onDataLoaded();
+            }).catch(function (e2) {
+                console.error('CSV fallback also failed:', e2);
+                getCachedData().then(function (cached) {
+                    if (cached) { DB = cached.rows; totalLectures = DB.length; onDataLoaded(); }
+                });
+            });
+        });
+    }
+
+    // XLSX parser (preserves HYPERLINK formulas with URLs)
+    function parseXlsxData(wb) {
+        var ws = wb.Sheets[SHEET_NAME] || wb.Sheets[wb.SheetNames[0]];
+        var range = XLSX.utils.decode_range(ws['!ref']);
+        var headers = [];
+        for (var c = range.s.c; c <= range.e.c; c++) {
+            var cell = ws[XLSX.utils.encode_cell({ r: 0, c: c })];
+            headers.push(cell ? cell.v.toString() : '');
+        }
+        var rows = [];
+        for (var r = 1; r <= range.e.r; r++) {
+            var row = {};
+            var hasData = false;
+            for (var ci = 0; ci < headers.length; ci++) {
+                var h = headers[ci];
+                var cell2 = ws[XLSX.utils.encode_cell({ r: r, c: ci })];
+                if (!cell2) { row[h] = ''; continue; }
+                hasData = true;
+                row[h] = (cell2.v != null) ? cell2.v.toString() : '';
+                if (LINK_COLS.has(h) || h === 'Direct URL') {
+                    var url = null;
+                    if (cell2.f) {
+                        var m = cell2.f.match(/HYPERLINK\("([^"]+)"/i);
+                        if (m) url = m[1];
+                    }
+                    if (!url && cell2.l && cell2.l.Target) url = cell2.l.Target;
+                    if (url) row[h + '_url'] = url;
+                }
+            }
+            if (hasData) rows.push(row);
+        }
+        return rows;
+    }
+
+    function onDataLoaded() {
+        dataLoaded = true;
+        var input = document.getElementById('searchTerm');
+        input.disabled = false;
+        var count = totalLectures || DB.length;
+        input.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
+        ui.renderEmptyTable();
+    }
+
+    // ===== IndexedDB Cache (for XLSX fallback) =====
+    function openCacheDB() {
+        return new Promise(function (resolve, reject) {
+            var req = indexedDB.open('CA_LinkFinder', 1);
+            req.onupgradeneeded = function (e) { e.target.result.createObjectStore('cache'); };
+            req.onsuccess = function (e) { resolve(e.target.result); };
+            req.onerror = function () { reject(req.error); };
+        });
+    }
+
+    function getCachedData() {
+        return openCacheDB().then(function (idb) {
+            return new Promise(function (resolve) {
+                var tx = idb.transaction('cache', 'readonly');
+                var req = tx.objectStore('cache').get('sheets');
+                req.onsuccess = function () { resolve(req.result || null); };
+                req.onerror = function () { resolve(null); };
+            });
+        }).catch(function () { return null; });
+    }
+
+    function cacheData(rows) {
+        openCacheDB().then(function (idb) {
+            var tx = idb.transaction('cache', 'readwrite');
+            tx.objectStore('cache').put({ timestamp: Date.now(), rows: rows }, 'sheets');
+        }).catch(function (e) { console.warn('Cache fail:', e); });
+    }
+
+    // ===== SEARCH =====
+    function doSearch() {
+        var term = document.getElementById('searchTerm').value.trim();
+        if (!dataLoaded) return;
+        // Allow empty search in citations mode (shows stats overview)
+        if (!term && searchMode !== 'citations' && searchMode !== 'citationsTop') return;
+        lastSearchTerm = term;
+        currentPage = 1;
+        performSearch();
+    }
+
+    function performSearch() {
+        var startTime = performance.now();
+        // Clear verse position data on new search
+        activeVersePositions = {};
+        activeVerseReference = '';
+
+        if (searchMode === 'transcripts') {
+            performTranscriptSearch(startTime);
+            return;
+        }
+
+        if (searchMode === 'citationsTop') {
+            showTopCitations();
+            return;
+        }
+
+        if (searchMode === 'citations') {
+            performCitationSearch(startTime);
+            return;
+        }
+
+        if (usingSqlite) {
+            performSqliteSearch(startTime);
+        } else {
+            performInMemorySearch(startTime);
+        }
+    }
+
+    /**
+     * SQLite-powered metadata search.
+     */
+    function performSqliteSearch(startTime) {
+        var parsed = search.parseSearchQuery(lastSearchTerm);
+        var q = search.buildMetaSQL(parsed);
+
+        try {
+            var sqlRows = db.queryMeta(q.sql, q.params);
+            var uiRows = sqlRows.map(mapSqlRowToUI);
+
+            // Build match hints for hidden columns
+            matchHints = new Map();
+            if (parsed.otherTerms && parsed.otherTerms.length > 0) {
+                uiRows.forEach(function (row) {
+                    var hints = [];
+                    parsed.otherTerms.forEach(function (term) {
+                        term.split('//').map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (ot) {
+                            findMatchingHiddenCols(row, ot).forEach(function (c) {
+                                hints.push(c.col + ': ' + c.val);
+                            });
+                        });
+                    });
+                    if (hints.length > 0) {
+                        matchHints.set(row, hints.filter(function (v, i, a) { return a.indexOf(v) === i; }));
+                    }
+                });
+            }
+
+            allResults = uiRows;
+            totalResults = uiRows.length;
+            currentPage = 1;
+
+            var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+            document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
+
+            displayResults();
+        } catch (err) {
+            console.error('SQLite search error, falling back to in-memory:', err);
+            performInMemorySearch(startTime);
+        }
+    }
+
+    /**
+     * In-memory search (XLSX/CSV fallback).
+     */
+    function performInMemorySearch(startTime) {
+        var result = search.searchInMemory(DB, lastSearchTerm);
+        allResults = result.results;
+        matchHints = result.matchHints;
+        totalResults = allResults.length;
+        currentPage = 1;
+
+        var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+        document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
+
+        displayResults();
+    }
+
+    /**
+     * Find matches in hidden columns for hint display.
+     */
+    function findMatchingHiddenCols(row, searchTerm) {
+        var HIDDEN_COLS = ['Subject', 'Subtype', 'Books', 'Author', 'Bhajans', 'Personality'];
+        var matched = [];
+        var termLower = searchTerm.toLowerCase();
+        var termNoDia = utils.removeDiacritics(termLower);
+        for (var i = 0; i < HIDDEN_COLS.length; i++) {
+            var col = HIDDEN_COLS[i];
+            var val = (row[col] || '').toLowerCase();
+            if (!val) continue;
+            if (val.includes(termLower) || utils.removeDiacritics(val).includes(termNoDia)) {
+                matched.push({ col: col, val: row[col] });
+            }
+        }
+        return matched;
+    }
+
+    function performTranscriptSearch(startTime) {
+        if (!db.isTranscriptsLoaded()) {
+            ui.showLoading(i18n.t('loadingTranscripts'));
+            db.loadTranscriptsDB(function (progress) {
+                ui.updateProgress(progress);
+            }).then(function () {
+                ui.hideLoading();
+                executeTranscriptSearch(startTime);
+            }).catch(function (err) {
+                ui.hideLoading();
+                console.error('Failed to load transcripts DB:', err);
+                searchMode = 'metadata';
+                performSearch();
+            });
+            return;
+        }
+        executeTranscriptSearch(startTime);
+    }
+
+    function executeTranscriptSearch(startTime) {
+        var parsed = search.parseSearchQuery(lastSearchTerm);
+        var q = search.buildTranscriptSQL(parsed);
+
+        try {
+            var results = db.queryTranscripts(q.sql, q.params);
+
+            // Enrich transcript results with lecture metadata from meta DB
+            if (usingSqlite && results.length > 0) {
+                results.forEach(function (row) {
+                    if (row.nr) {
+                        try {
+                            var meta = db.queryMeta(
+                                "SELECT date, original_file_name, type FROM lectures WHERE nr = $nr LIMIT 1",
+                                { '$nr': row.nr }
+                            );
+                            if (meta.length > 0) {
+                                row.date = meta[0].date || '';
+                                row.original_file_name = meta[0].original_file_name || '';
+                                row.type = meta[0].type || '';
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                });
+            }
+
+            allResults = results;
+            totalResults = results.length;
+            currentPage = 1;
+
+            var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+            document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
+            document.getElementById('resultsInfo').innerHTML = '<strong>' + totalResults + ' ' + i18n.t('transcriptResults') + '</strong>';
+
+            ui.renderTranscriptResults(results, lastSearchTerm);
+            ui.renderPagination(totalResults, currentPage, pageSize, changePage);
+        } catch (err) {
+            console.error('Transcript search error:', err);
+        }
+    }
+
+    function displayResults() {
+        var startIndex = (currentPage - 1) * pageSize;
+        var endIndex = Math.min(currentPage * pageSize, totalResults);
+
+        document.getElementById('resultsInfo').innerHTML =
+            '<strong>' + totalResults + ' ' + i18n.t('filesFound') + '</strong>&nbsp;&nbsp;&nbsp;' +
+            i18n.t('showingResults') + ' ' + (totalResults === 0 ? 0 : (startIndex + 1)) + '-' + endIndex;
+
+        ui.renderResults(allResults, lastSearchTerm, startIndex, endIndex, matchHints);
+        ui.renderPagination(totalResults, currentPage, pageSize, changePage);
+    }
+
+    function changePage(p) {
+        var totalPages = Math.ceil(totalResults / pageSize);
+        if (p >= 1 && p <= totalPages) {
+            currentPage = p;
+            displayResults();
+        }
+    }
+
+    // ===== SEARCH MODE TOGGLE =====
+    function setSearchMode(mode) {
+        var prevMode = searchMode;
+        searchMode = mode || 'metadata';
+        document.querySelectorAll('.search-mode-btn').forEach(function (btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-mode') === searchMode);
+        });
+        // Hide verse sources panel when switching away from citations mode
+        var versePanel = document.getElementById('verseSourcesList');
+        if (versePanel && mode !== 'citations') {
+            versePanel.style.display = 'none';
+        }
+        var verseList = document.getElementById('verseList');
+        if (verseList && mode !== 'citations') {
+            verseList.style.display = 'none';
+        }
+        // Clear results and search field when switching modes
+        if (prevMode !== mode) {
+            document.getElementById('searchTerm').value = '';
+            document.getElementById('resultsInfo').innerHTML = '';
+            document.getElementById('timer').textContent = '';
+            document.getElementById('pagination').innerHTML = '';
+            var tbody = document.getElementById('resultsTable').querySelector('tbody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="empty-result-message" data-i18n="enterSearchTerms">' + i18n.t('enterSearchTerms') + '</td></tr>';
+            allResults = [];
+            totalResults = 0;
+            lastSearchTerm = '';
+        }
+        // Update search placeholder based on mode
+        var searchInput = document.getElementById('searchTerm');
+        if (mode === 'citations' || mode === 'citationsTop') {
+            searchInput.placeholder = i18n.t('quotesSearchHint');
+            searchInput.disabled = true;
+        } else {
+            var count = totalLectures || 0;
+            searchInput.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
+            searchInput.disabled = false;
+        }
+        // Immediately show top 108 when that mode is selected
+        if (mode === 'citationsTop') {
+            showTopCitations();
+        }
+    }
+
+    // ===== QUICK ACTIONS =====
+
+    function showLatestFiles() {
+        if (!dataLoaded) return;
+
+        if (usingSqlite) {
+            try {
+                var rows = db.queryMeta(
+                    "SELECT * FROM lectures WHERE added != '' AND nr != '' ORDER BY added DESC LIMIT 20"
+                );
+                var uiRows = rows.map(mapSqlRowToUI);
+                lastSearchTerm = i18n.t('latest20Files');
+                allResults = uiRows;
+                totalResults = uiRows.length;
+                currentPage = 1;
+                matchHints = new Map();
+                document.getElementById('searchTerm').value = i18n.t('latest20Files');
+                document.getElementById('timer').textContent = '';
+                displayResults();
+                return;
+            } catch (e) {
+                console.warn('SQLite latest files failed, falling back:', e);
+            }
+        }
+
+        // Fallback: in-memory
+        var withAdded = DB.filter(function (r) {
+            var added = (r['Added'] || '').toString().trim();
+            var nr = (r['Nr.'] || '').toString().trim();
+            return added !== '' && nr !== '';
+        });
+        withAdded.sort(function (a, b) { return (b['Added'] || '').toString().localeCompare((a['Added'] || '').toString()); });
+        var top20 = withAdded.slice(0, 20);
+        var nrSet = new Set(top20.map(function (r) { return (r['Nr.'] || '').toString().trim(); }));
+
+        lastSearchTerm = 'latest_files:' + Array.from(nrSet).join(',');
+        allResults = DB.filter(function (r) { return nrSet.has((r['Nr.'] || '').toString().trim()); });
+        allResults.sort(utils.compareDates);
+        totalResults = allResults.length;
+        currentPage = 1;
+        matchHints = new Map();
+        document.getElementById('searchTerm').value = i18n.t('latest20Files');
+        document.getElementById('timer').textContent = '';
+        displayResults();
+    }
+
+    function showLatestTranscripts() {
+        if (!dataLoaded) return;
+
+        if (usingSqlite) {
+            try {
+                var rows = db.queryMeta(
+                    "SELECT * FROM lectures WHERE scripts_added != '' AND nr != '' ORDER BY scripts_added DESC LIMIT 20"
+                );
+                var uiRows = rows.map(mapSqlRowToUI);
+                lastSearchTerm = i18n.t('latest20Transcripts');
+                allResults = uiRows;
+                totalResults = uiRows.length;
+                currentPage = 1;
+                matchHints = new Map();
+                document.getElementById('searchTerm').value = i18n.t('latest20Transcripts');
+                document.getElementById('timer').textContent = '';
+                displayResults();
+                return;
+            } catch (e) {
+                console.warn('SQLite latest transcripts failed, falling back:', e);
+            }
+        }
+
+        // Fallback: in-memory
+        var withScripts = DB.filter(function (r) {
+            var sa = (r['Scripts added'] || '').toString().trim();
+            var nr = (r['Nr.'] || '').toString().trim();
+            return sa !== '' && nr !== '';
+        });
+        withScripts.sort(function (a, b) { return (b['Scripts added'] || '').toString().localeCompare((a['Scripts added'] || '').toString()); });
+        var top20 = withScripts.slice(0, 20);
+        var nrSet = new Set(top20.map(function (r) { return (r['Nr.'] || '').toString().trim(); }));
+
+        lastSearchTerm = 'latest_transcripts:' + Array.from(nrSet).join(',');
+        allResults = DB.filter(function (r) { return nrSet.has((r['Nr.'] || '').toString().trim()); });
+        allResults.sort(utils.compareDates);
+        totalResults = allResults.length;
+        currentPage = 1;
+        matchHints = new Map();
+        document.getElementById('searchTerm').value = i18n.t('latest20Transcripts');
+        document.getElementById('timer').textContent = '';
+        displayResults();
+    }
+
+    function showRecommendations() {
+        var div = document.getElementById('recommendationsList');
+        if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
+        document.getElementById('topicsList').style.display = 'none';
+        if (!dataLoaded) return;
+
+        var langCounts = {}, subjCounts = {};
+
+        if (usingSqlite) {
+            try {
+                // Language counts (only specific lang patterns)
+                var langRows = db.queryMeta(
+                    "SELECT lang, COUNT(*) as cnt FROM lectures WHERE lang != '' " +
+                    "AND (LOWER(lang) LIKE 'eng;%' OR LOWER(lang) = 'eng only' OR LOWER(lang) = 'rus only') " +
+                    "GROUP BY lang ORDER BY lang"
+                );
+                langRows.forEach(function (r) { langCounts[r.lang] = parseInt(r.cnt, 10); });
+
+                // Subject counts (starting with '.')
+                var subjRows = db.queryMeta(
+                    "SELECT subject, COUNT(*) as cnt FROM lectures WHERE subject LIKE '.%' GROUP BY subject ORDER BY subject"
+                );
+                subjRows.forEach(function (r) { subjCounts[r.subject] = parseInt(r.cnt, 10); });
+            } catch (e) {
+                console.warn('SQLite recommendations failed, falling back:', e);
+                buildRecommendationsFromMemory(langCounts, subjCounts);
+            }
+        } else {
+            buildRecommendationsFromMemory(langCounts, subjCounts);
+        }
+
+        var html = '<div id="recommendationsListTitle">' + i18n.t('recommendationsTitle') + '</div><div id="recommendationsListContent">';
+        Object.entries(langCounts).sort(function (a, b) { return a[0].localeCompare(b[0]); }).forEach(function (entry) {
+            var name = entry[0], count = entry[1];
+            html += '<div class="recommendation-item"><span class="recommendation-name">' + name +
+                ' <span style="color:var(--primary-dark);font-weight:700;">(' + count + ')</span></span>' +
+                '<button class="recommendation-search-btn" onclick="PPP.app.applyLangFilter(\'' + name.replace(/'/g, "\\'") + '\')">Yes</button></div>';
+        });
+        Object.entries(subjCounts).sort(function (a, b) { return a[0].localeCompare(b[0]); }).forEach(function (entry) {
+            var name = entry[0], count = entry[1];
+            html += '<div class="recommendation-item"><span class="recommendation-name">' + name +
+                ' <span style="color:var(--primary-dark);font-weight:700;">(' + count + ')</span></span>' +
+                '<button class="recommendation-search-btn" onclick="PPP.app.applySubjectFilter(\'' + name.replace(/'/g, "\\'") + '\')">Yes</button></div>';
+        });
+        html += '</div>';
+        div.innerHTML = html;
+        div.style.display = 'block';
+    }
+
+    function buildRecommendationsFromMemory(langCounts, subjCounts) {
+        DB.forEach(function (r) {
+            var l = (r['Lang.'] || '').trim();
+            if (l && (l.toLowerCase().startsWith('eng;') || l.toLowerCase() === 'eng only' || l.toLowerCase() === 'rus only'))
+                langCounts[l] = (langCounts[l] || 0) + 1;
+            var s = (r['Subject'] || '').trim();
+            if (s && s.startsWith('.')) subjCounts[s] = (subjCounts[s] || 0) + 1;
+        });
+    }
+
+    function showTopics() {
+        var div = document.getElementById('topicsList');
+        if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
+        document.getElementById('recommendationsList').style.display = 'none';
+        if (!dataLoaded) return;
+
+        if (usingSqlite) {
+            try {
+                // Topics with transcripts: subjects where script_en is non-empty
+                var topicRows = db.queryMeta(
+                    "SELECT subject, COUNT(*) as cnt FROM lectures " +
+                    "WHERE subject != '' AND script_en != '' AND script_en != 'N/A' AND script_en != '0' " +
+                    "GROUP BY subject ORDER BY subject"
+                );
+                var html = '<div id="topicsListTitle">' + i18n.t('topics') + '</div><div id="topicsListContent">';
+                topicRows.forEach(function (r) {
+                    html += '<div class="topic-item"><span class="topic-name">' + r.subject +
+                        ' <span style="color:var(--primary-dark);font-weight:700;">(' + r.cnt + ')</span></span>' +
+                        '<button class="topic-search-btn" onclick="PPP.app.applySubjectFilter(\'' + r.subject.replace(/'/g, "\\'") + '\')">Yes</button></div>';
+                });
+                html += '</div>';
+                div.innerHTML = html;
+                div.style.display = 'block';
+                return;
+            } catch (e) {
+                console.warn('SQLite topics failed, falling back:', e);
+            }
+        }
+
+        // Fallback: in-memory
+        ui.renderTopics(DB, div);
+        div.style.display = 'block';
+    }
+
+    function showSources() {
+        var div = document.getElementById('sourcesList');
+        if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
+        if (!dataLoaded) return;
+
+        var sources = {};
+
+        if (usingSqlite) {
+            try {
+                var srcRows = db.queryMeta(
+                    "SELECT source, COUNT(*) as cnt FROM lectures WHERE source != '' GROUP BY source ORDER BY source"
+                );
+                srcRows.forEach(function (r) { sources[r.source] = parseInt(r.cnt, 10); });
+            } catch (e) {
+                console.warn('SQLite sources failed, falling back:', e);
+                DB.forEach(function (r) { var s = (r['Source'] || '').trim(); if (s) sources[s] = (sources[s] || 0) + 1; });
+            }
+        } else {
+            DB.forEach(function (r) { var s = (r['Source'] || '').trim(); if (s) sources[s] = (sources[s] || 0) + 1; });
+        }
+
+        var html = '<h3>' + i18n.t('sources') + '</h3><ul>';
+        Object.keys(sources).sort().forEach(function (name) {
+            html += '<li onclick="PPP.app.applySourceFilter(\'' + name.replace(/'/g, "\\'") + '\')">' + name + '</li>';
+        });
+        html += '</ul>';
+        div.innerHTML = html;
+        div.style.display = 'block';
+    }
+
+    // ===== VERSE NAVIGATION (Sources > Verses > Lectures) =====
+
+    function hideVersePanels() {
+        document.getElementById('verseSourcesList').style.display = 'none';
+        document.getElementById('verseList').style.display = 'none';
+    }
+
+    function showVerseSources() {
+        var div = document.getElementById('verseSourcesList');
+        // Toggle off if already open
+        if (div.style.display !== 'none' && div.style.display !== '') { hideVersePanels(); return; }
+        document.getElementById('verseList').style.display = 'none';
+        document.getElementById('recommendationsList').style.display = 'none';
+        document.getElementById('topicsList').style.display = 'none';
+        if (!usingSqlite) return;
+
+        try {
+            // Get top 30 by unique_verses, then rest A-Z
+            var topRows = db.queryMeta(
+                "SELECT source_canonical, unique_verses, total_citations, lecture_count FROM verse_citation_stats ORDER BY unique_verses DESC LIMIT 30"
+            );
+            var allRows = db.queryMeta(
+                "SELECT source_canonical, unique_verses, total_citations, lecture_count FROM verse_citation_stats ORDER BY source_canonical ASC"
+            );
+            var topNames = {};
+            topRows.forEach(function (r) { topNames[r.source_canonical] = true; });
+            var otherRows = allRows.filter(function (r) { return !topNames[r.source_canonical]; });
+
+            var html = '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;color:var(--primary-dark);font-size:14px;font-weight:600;padding:10px 14px;letter-spacing:1px;border-bottom:2px solid var(--border);">' +
+                'Scripture Sources (' + allRows.length + ')</div>' +
+                '<div style="padding:6px 14px 14px;overflow-y:auto;max-height:60vh;">';
+
+            function renderSourceItem(row) {
+                var name = row.source_canonical || '';
+                var count = row.unique_verses || 0;
+                return '<div class="recommendation-item">' +
+                    '<span class="recommendation-name">' + name +
+                    ' <span style="color:var(--primary-dark);font-weight:700;">(' + count + ')</span></span>' +
+                    '<button class="recommendation-search-btn" onclick="PPP.app.showVerseList(\'' + name.replace(/'/g, "\\'") + '\')">Yes</button>' +
+                    '</div>';
+            }
+
+            // Top 30 section (sorted by unique_verses desc)
+            html += '<div style="font-size:11px;color:var(--primary-dark);font-weight:600;padding:8px 0 4px;border-bottom:1px solid var(--border-light);letter-spacing:0.5px;">TOP 30</div>';
+            topRows.forEach(function (row) { html += renderSourceItem(row); });
+
+            // Others section (A-Z)
+            if (otherRows.length > 0) {
+                html += '<div style="font-size:11px;color:var(--primary-dark);font-weight:600;padding:12px 0 4px;border-bottom:1px solid var(--border-light);letter-spacing:0.5px;">OTHERS (' + otherRows.length + ')</div>';
+                otherRows.forEach(function (row) { html += renderSourceItem(row); });
+            }
+
+            html += '</div>';
+            div.innerHTML = html;
+            div.style.display = 'block';
+        } catch (err) {
+            console.error('Verse sources error:', err);
+        }
+    }
+
+    function showVerseList(sourceName) {
+        var div = document.getElementById('verseList');
+        document.getElementById('verseSourcesList').style.display = 'none';
+        if (!usingSqlite) return;
+
+        try {
+            var rows = db.queryMeta(
+                "SELECT reference, chapter_verse, COUNT(*) as lecture_count " +
+                "FROM verse_citations WHERE source_canonical = $src " +
+                "GROUP BY reference ORDER BY " +
+                "CAST(REPLACE(SUBSTR(chapter_verse, 1, INSTR(chapter_verse || '.', '.') - 1), '-', '') AS INTEGER), " +
+                "CAST(REPLACE(SUBSTR(chapter_verse, INSTR(chapter_verse || '.', '.') + 1), '-', '') AS INTEGER)",
+                { $src: sourceName }
+            );
+
+            var html = '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;color:var(--primary-dark);font-size:14px;font-weight:600;padding:10px 14px;letter-spacing:1px;border-bottom:2px solid var(--border);">' +
+                '<span onclick="PPP.app.showVerseSources()" style="cursor:pointer;margin-right:8px;">&larr;</span>' +
+                sourceName + ' (' + rows.length + ' verses)</div>' +
+                '<div style="padding:6px 14px 14px;overflow-y:auto;max-height:60vh;">';
+
+            rows.forEach(function (row) {
+                var ref = row.reference || '';
+                var cv = row.chapter_verse || '';
+                var cnt = row.lecture_count || 0;
+                html += '<div class="recommendation-item">' +
+                    '<span class="recommendation-name">' + cv +
+                    ' <span style="color:var(--primary-dark);font-weight:700;">(' + cnt + ')</span></span>' +
+                    '<button class="recommendation-search-btn" onclick="PPP.app.showVerseLectures(\'' + ref.replace(/'/g, "\\'") + '\')">Yes</button>' +
+                    '</div>';
+            });
+            html += '</div>';
+            div.innerHTML = html;
+            div.style.display = 'block';
+        } catch (err) {
+            console.error('Verse list error:', err);
+        }
+    }
+
+    // Store verse position data for transcript viewer links
+    var activeVersePositions = {}; // { lectureNr: { reference, position } }
+    var activeVerseReference = '';
+
+    function showVerseLectures(reference) {
+        hideVersePanels();
+        // Ensure we're in citations mode for proper result rendering
+        setSearchMode('citations');
+        if (!usingSqlite) return;
+
+        try {
+            // Get verse citations with position and block_index data for this reference
+            var vcRows = db.queryMeta(
+                "SELECT lecture_nr, position, context, block_index FROM verse_citations WHERE reference = $ref",
+                { $ref: reference }
+            );
+            if (vcRows.length === 0) return;
+
+            // Store position data for transcript viewer
+            activeVersePositions = {};
+            activeVerseReference = reference;
+            vcRows.forEach(function (r) {
+                // Keep first (or best) position per lecture
+                if (!activeVersePositions[r.lecture_nr]) {
+                    activeVersePositions[r.lecture_nr] = {
+                        reference: reference,
+                        position: r.position || 0,
+                        context: r.context || '',
+                        block_index: r.block_index || null
+                    };
+                }
+            });
+
+            // Get unique lecture nrs
+            var uniqueNrs = {};
+            vcRows.forEach(function (r) { uniqueNrs[r.lecture_nr] = true; });
+            var nrList = Object.keys(uniqueNrs);
+
+            // Build IN clause for lecture nrs
+            var params = {};
+            var placeholders = nrList.map(function (nr, i) {
+                var key = '$nr' + i;
+                params[key] = nr;
+                return key;
+            });
+
+            var sqlRows = db.queryMeta(
+                "SELECT * FROM lectures WHERE nr IN (" + placeholders.join(',') + ") ORDER BY date DESC",
+                params
+            );
+
+            var uiRows = sqlRows.map(function (sqlRow) {
+                var uiRow = mapSqlRowToUI(sqlRow);
+                // Attach verse position data for transcript viewer
+                var nr = String(sqlRow.nr || '');
+                if (activeVersePositions[nr]) {
+                    uiRow._versePosition = activeVersePositions[nr].position;
+                    uiRow._verseReference = reference;
+                    uiRow._lectureNr = nr;
+                    uiRow._blockIndex = activeVersePositions[nr].block_index;
+                }
+                return uiRow;
+            });
+            allResults = uiRows;
+            totalResults = uiRows.length;
+            currentPage = 1;
+            matchHints = new Map();
+
+            document.getElementById('searchTerm').value = reference;
+            lastSearchTerm = reference;
+            document.getElementById('timer').textContent = '';
+
+            displayResults();
+        } catch (err) {
+            console.error('Verse lectures error:', err);
+        }
+    }
+
+    // ===== TRANSCRIPT VIEWER =====
+
+    /**
+     * Extract the diacritized verse reference from citation context.
+     * Context format: "...text (Bhagavad-gītā 2.12 by Author)..."
+     * Returns diacritized reference or null.
+     */
+    function extractDiacriticReference(context) {
+        if (!context) return null;
+        var m = context.match(/\(([^)]+?\d+[\.:]\d+[^)]*?)\s+by\s/);
+        return m ? m[1].trim() : null;
+    }
+
+    /**
+     * Show a temporary toast notification.
+     */
+    function showToast(message, durationMs) {
+        var existing = document.getElementById('verseToast');
+        if (existing) existing.remove();
+
+        var toast = document.createElement('div');
+        toast.id = 'verseToast';
+        toast.className = 'verse-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(function () {
+            toast.classList.add('visible');
+        });
+
+        setTimeout(function () {
+            toast.classList.remove('visible');
+            setTimeout(function () { toast.remove(); }, 400);
+        }, durationMs || 4000);
+    }
+
+    function openTranscriptAtVerse(lectureNr, position, reference, blockIndex) {
+        var nr = String(lectureNr);
+        var block = blockIndex ? parseInt(blockIndex, 10) : null;
+
+        // If no block_index from caller, try to get it from DB
+        if (!block) {
+            try {
+                var vc = db.queryMeta(
+                    "SELECT block_index FROM verse_citations WHERE lecture_nr = $nr AND reference = $ref LIMIT 1",
+                    { $nr: nr, $ref: reference }
+                );
+                if (vc.length > 0 && vc[0].block_index) {
+                    block = vc[0].block_index;
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // Open HTML transcript in modal with block anchor scroll
+        openHtmlTranscriptViewer(nr, 'en', block, reference);
+    }
+
+    /**
+     * Open HTML transcript viewer in modal, scroll to block-N anchor.
+     * lang: 'en', 'lv', 'ru'
+     */
+    function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference) {
+        var overlay = document.getElementById('transcriptModalOverlay');
+        var body = document.getElementById('transcriptModalBody');
+        var title = document.getElementById('transcriptModalTitle');
+
+        title.textContent = 'Loading transcript...';
+        body.innerHTML = '';
+        overlay.classList.add('active');
+
+        var loadPromise = db.isHtmlLoaded(lang)
+            ? Promise.resolve()
+            : db.loadHtmlDB(lang, function (progress) {
+                title.textContent = 'Loading ' + lang.toUpperCase() + ' transcripts... ' + Math.round(progress * 100) + '%';
+            });
+
+        loadPromise.then(function () {
+            try {
+                var rows = db.queryHtmlTranscripts(lang,
+                    "SELECT html_content FROM transcripts_html WHERE nr = $nr LIMIT 1",
+                    { $nr: String(lectureNr) }
+                );
+
+                if (rows.length === 0) {
+                    title.textContent = 'Transcript not found';
+                    body.textContent = 'No ' + lang.toUpperCase() + ' transcript for lecture Nr.' + lectureNr;
+                    return;
+                }
+
+                // Set title
+                try {
+                    var meta = db.queryMeta(
+                        "SELECT original_file_name FROM lectures WHERE nr = $nr LIMIT 1",
+                        { $nr: String(lectureNr) }
+                    );
+                    if (meta.length > 0) {
+                        title.textContent = (meta[0].original_file_name || 'Nr.' + lectureNr) +
+                            (reference ? ' — ' + reference : '');
+                    } else {
+                        title.textContent = 'Nr.' + lectureNr + (reference ? ' — ' + reference : '');
+                    }
+                } catch (e) {
+                    title.textContent = 'Nr.' + lectureNr + (reference ? ' — ' + reference : '');
+                }
+
+                // Insert HTML content
+                body.innerHTML = rows[0].html_content || '';
+
+                // Scroll to block anchor
+                if (blockIndex) {
+                    setTimeout(function () {
+                        var anchor = document.getElementById('block-' + blockIndex);
+                        if (anchor && body) {
+                            // Scroll so block marker is near bottom of viewport — verse content visible above
+                            var scrollTarget = anchor.offsetTop - body.clientHeight + 60;
+                            body.scrollTop = Math.max(0, scrollTarget);
+
+                            // Highlight the block marker row
+                            var blockP = anchor.closest('p') || anchor.parentElement;
+                            if (blockP) {
+                                blockP.classList.add('transcript-highlight');
+                            }
+                        }
+                    }, 100);
+                }
+
+            } catch (err) {
+                title.textContent = 'Error';
+                body.textContent = 'Failed to load transcript: ' + err.message;
+            }
+        }).catch(function (err) {
+            title.textContent = 'Error';
+            body.textContent = 'Failed to load HTML transcripts: ' + err.message;
+        });
+    }
+
+    function closeTranscriptModal(event) {
+        if (!event || event.target === document.getElementById('transcriptModalOverlay')) {
+            document.getElementById('transcriptModalOverlay').classList.remove('active');
+        }
+    }
+
+    function searchCitationSource(sourceName) {
+        setSearchMode('citations');
+        showVerseList(sourceName);
+    }
+
+    // Legacy citation search (for manual text search in Verses mode)
+    function performCitationSearch(startTime) {
+        if (!usingSqlite) {
+            document.getElementById('resultsInfo').innerHTML = '<strong>Citation search requires SQLite</strong>';
+            return;
+        }
+
+        var parsed = search.parseSearchQuery(lastSearchTerm);
+        var q = search.buildCitationSQL(parsed);
+
+        try {
+            var results = db.queryMeta(q.sql, q.params);
+            var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+            document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
+
+            if (q.mode === 'stats') {
+                showVerseSources();
+            } else {
+                document.getElementById('resultsInfo').innerHTML = '<strong>' + results.length + ' ' + i18n.t('citationResults') + '</strong>';
+                ui.renderCitationResults(results, lastSearchTerm);
+            }
+        } catch (err) {
+            console.error('Citation search error:', err);
+            document.getElementById('resultsInfo').innerHTML = '<strong>Error: ' + err.message + '</strong>';
+        }
+    }
+
+    // ===== TOP 108 CITATIONS =====
+    function showTopCitations() {
+        if (!usingSqlite) {
+            document.getElementById('resultsInfo').innerHTML = '<strong>Top citations require SQLite</strong>';
+            return;
+        }
+
+        try {
+            // Get top 108 most cited verses across all sources
+            var rows = db.queryMeta(
+                "SELECT reference, COUNT(*) as lecture_count " +
+                "FROM verse_citations " +
+                "GROUP BY reference " +
+                "ORDER BY lecture_count DESC " +
+                "LIMIT 108"
+            );
+
+            var resultsInfo = document.getElementById('resultsInfo');
+            resultsInfo.innerHTML = '<strong>' + i18n.t('searchModeCitationsTop') + '</strong>';
+            document.getElementById('timer').textContent = '';
+
+            // Render flat list in the results table
+            var table = document.getElementById('resultsTable');
+            var tbody = table.querySelector('tbody') || table;
+            tbody.innerHTML = '';
+
+            var html = '';
+            rows.forEach(function (row, idx) {
+                var ref = row.reference || '';
+                var cnt = row.lecture_count || 0;
+                html += '<tr>' +
+                    '<td style="width:40px;text-align:center;color:var(--primary-dark);font-weight:600;">' + (idx + 1) + '</td>' +
+                    '<td style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:16px;font-weight:600;color:var(--primary-dark);">' +
+                    ref + ' <span style="color:var(--text-muted);font-size:13px;font-weight:400;">(' + cnt + ' lectures)</span></td>' +
+                    '<td style="width:60px;text-align:center;">' +
+                    '<button class="recommendation-search-btn" onclick="PPP.app.showVerseLectures(\'' + ref.replace(/'/g, "\\'") + '\')" style="padding:4px 12px;">Yes</button>' +
+                    '</td></tr>';
+            });
+
+            tbody.innerHTML = html;
+            document.getElementById('pagination').innerHTML = '';
+        } catch (err) {
+            console.error('Top citations error:', err);
+            document.getElementById('resultsInfo').innerHTML = '<strong>Error: ' + err.message + '</strong>';
+        }
+    }
+
+    // ===== FILTER HELPERS =====
+    function applyHasFilter(col) {
+        document.getElementById('searchTerm').value = 'has:' + col;
+        lastSearchTerm = 'has:' + col;
+        currentPage = 1;
+        performSearch();
+    }
+
+    function applySubjectFilter(subj) {
+        document.getElementById('searchTerm').value = 'subject:' + subj;
+        lastSearchTerm = 'subject:' + subj;
+        currentPage = 1;
+        document.getElementById('topicsList').style.display = 'none';
+        document.getElementById('recommendationsList').style.display = 'none';
+        performSearch();
+    }
+
+    function applyLangFilter(lang) {
+        document.getElementById('searchTerm').value = 'lang:' + lang;
+        lastSearchTerm = 'lang:' + lang;
+        currentPage = 1;
+        document.getElementById('recommendationsList').style.display = 'none';
+        performSearch();
+    }
+
+    function applySourceFilter(src) {
+        document.getElementById('searchTerm').value = '@' + src;
+        lastSearchTerm = '@' + src;
+        currentPage = 1;
+        document.getElementById('sourcesList').style.display = 'none';
+        performSearch();
+    }
+
+    // ===== LANGUAGE =====
+    function setLanguage(lang) {
+        i18n.setLanguage(lang);
+        document.querySelectorAll('.lang-btn').forEach(function (btn) {
+            btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+        });
+        document.querySelectorAll('[data-i18n]').forEach(function (el) {
+            var key = el.getAttribute('data-i18n');
+            var val = i18n.t(key);
+            if (val !== key) el.textContent = val;
+        });
+        document.querySelector('h1').textContent = i18n.t('pageTitle');
+        if (dataLoaded) {
+            var inp = document.getElementById('searchTerm');
+            if (searchMode === 'citations' || searchMode === 'citationsTop') {
+                inp.placeholder = i18n.t('quotesSearchHint');
+            } else {
+                var count = totalLectures || DB.length;
+                inp.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
+            }
+        }
+        localStorage.setItem('preferredLanguage', lang);
+        if (allResults.length > 0) displayResults();
+        else ui.renderEmptyTable();
+    }
+
+    // ===== HELP MODAL =====
+    function openHelpModal() {
+        document.getElementById('helpModalTitle').textContent = i18n.t('helpModalTitle');
+        document.getElementById('helpModalBody').innerHTML = i18n.t('helpContent');
+        document.getElementById('helpModalOverlay').classList.add('active');
+    }
+
+    function closeHelpModal(event) {
+        if (!event || event.target === document.getElementById('helpModalOverlay'))
+            document.getElementById('helpModalOverlay').classList.remove('active');
+    }
+
+    // ===== INSTALL BANNER =====
+    function showInstallBanner(mode) {
+        installMode = mode || 'ios';
+        var banner = document.getElementById('installBanner');
+        var textEl = document.getElementById('installText');
+        var btnEl = document.getElementById('installBtn');
+        textEl.textContent = i18n.t('installBannerText');
+        if (installMode === 'native') {
+            btnEl.textContent = 'Install';
+            btnEl.setAttribute('onclick', 'PPP.app.installApp()');
+        } else {
+            btnEl.textContent = i18n.t('installBtn');
+            btnEl.setAttribute('onclick', 'PPP.app.showInstallInstruction()');
+        }
+        banner.style.display = 'block';
+    }
+
+    function installApp() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function () {
+                deferredPrompt = null;
+                document.getElementById('installBanner').style.display = 'none';
+            });
+        }
+    }
+
+    function showInstallInstruction() {
+        var overlay = document.createElement('div');
+        overlay.className = 'ios-install-overlay';
+        overlay.onclick = function (e) { if (e.target === overlay) overlay.remove(); };
+        var steps;
+        if (installMode === 'android') {
+            steps = '<p><b>1.</b> ' + i18n.t('androidStep1') + '</p>' +
+                '<p><b>2.</b> ' + i18n.t('androidStep2') + '</p>' +
+                '<p><b>3.</b> ' + i18n.t('androidStep3') + '</p>' +
+                '<p><b>4.</b> ' + i18n.t('androidStep4') + '</p>';
+        } else {
+            steps = '<p><b>1.</b> ' + i18n.t('iosStep1') + '</p>' +
+                '<p><b>2.</b> ' + i18n.t('iosStep2') + '</p>' +
+                '<p><b>3.</b> ' + i18n.t('iosStep3') + '</p>' +
+                '<p><b>4.</b> ' + i18n.t('iosStep4') + '</p>';
+        }
+        overlay.innerHTML = '<div class="ios-install-card">' +
+            '<div class="share-icon">' + (installMode === 'android' ? '\u22ee' : '\u2B06\uFE0F') + '</div>' +
+            steps +
+            '<button onclick="this.closest(\'.ios-install-overlay\').remove()">' + i18n.t('iosGotIt') + '</button>' +
+            '</div>';
+        document.body.appendChild(overlay);
+    }
+
+    function dismissInstall() {
+        document.getElementById('installBanner').style.display = 'none';
+        localStorage.setItem('installDismissed', '1');
+    }
+
+    // ===== PUBLIC API =====
+    return {
+        init: init,
+        search: doSearch,
+        setLanguage: setLanguage,
+        showLatestFiles: showLatestFiles,
+        showLatestTranscripts: showLatestTranscripts,
+        showRecommendations: showRecommendations,
+        showTopics: showTopics,
+        showSources: showSources,
+        applyHasFilter: applyHasFilter,
+        applySubjectFilter: applySubjectFilter,
+        applyLangFilter: applyLangFilter,
+        applySourceFilter: applySourceFilter,
+        openHelpModal: openHelpModal,
+        closeHelpModal: closeHelpModal,
+        installApp: installApp,
+        showInstallInstruction: showInstallInstruction,
+        dismissInstall: dismissInstall,
+        setSearchMode: setSearchMode,
+        searchCitationSource: searchCitationSource,
+        showVerseSources: showVerseSources,
+        showVerseList: showVerseList,
+        showVerseLectures: showVerseLectures,
+        showTopCitations: showTopCitations,
+        openTranscriptAtVerse: openTranscriptAtVerse,
+        openHtmlTranscriptViewer: openHtmlTranscriptViewer,
+        closeTranscriptModal: closeTranscriptModal
+    };
+})();
+
+// ===== Auto-init on DOM ready =====
+document.addEventListener('DOMContentLoaded', function () {
+    PPP.app.init();
+});
