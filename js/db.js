@@ -195,9 +195,12 @@ PPP.db = (function () {
             progressCallbacks[dbName] = progressCallback;
         }
 
+        // Worker needs absolute URL (its base is js/, not page root)
+        var resolvedUrl = useWorker ? new URL(url, location.href).href : url;
+
         var promise;
         if (useWorker) {
-            promise = workerCall('loadDB', { dbName: dbName, url: url }).then(function () {
+            promise = workerCall('loadDB', { dbName: dbName, url: resolvedUrl }).then(function () {
                 loadedDBs[dbName] = true;
                 delete loadingDBs[dbName];
                 delete progressCallbacks[dbName];

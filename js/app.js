@@ -913,7 +913,7 @@ PPP.app = (function () {
             });
         }).catch(function (err) {
             console.error('Verse lectures error:', err);
-        }
+        });
     }
 
     // ===== TRANSCRIPT VIEWER =====
