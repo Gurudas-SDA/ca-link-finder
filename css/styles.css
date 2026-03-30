@@ -999,4 +999,36 @@ th.transcripts-block {
     .language-switcher { gap: 4px; }
     .lang-btn { padding: 5px 10px; font-size: 11px; }
     #pagination { flex-wrap: wrap; justify-content: center; }
+    .fav-cell { width: 22px; }
+    .fav-star { font-size: 16px; }
+}
+
+/* ===== FAVORITES ===== */
+.fav-cell { width: 28px; text-align: center; padding: 2px !important; }
+.fav-star {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--border);
+    transition: color 0.2s, transform 0.15s;
+    padding: 2px;
+    line-height: 1;
+}
+.fav-star:hover { color: var(--primary-light); transform: scale(1.2); }
+.fav-star.active { color: var(--primary); }
+
+.fav-count-badge {
+    display: inline-block;
+    background: #fff;
+    color: var(--primary-dark);
+    font-size: 10px;
+    font-weight: 800;
+    border-radius: 50%;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    margin-left: 4px;
+    vertical-align: middle;
 }

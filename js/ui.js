@@ -29,6 +29,11 @@ PPP.ui = (function () {
      */
     function buildHeader(thead) {
         var row0 = thead.insertRow();
+        // Extra spacer for star column
+        var starSpacer = document.createElement('th');
+        starSpacer.style.border = 'none';
+        starSpacer.style.backgroundColor = 'transparent';
+        row0.appendChild(starSpacer);
         for (var i = 0; i < 5; i++) {
             var c = document.createElement('th');
             c.style.border = 'none';
@@ -62,6 +67,15 @@ PPP.ui = (function () {
         var row1 = thead.insertRow();
         var row2 = thead.insertRow();
         var row3 = thead.insertRow();
+
+        // Star column header
+        var starTh = document.createElement('th');
+        starTh.rowSpan = 3;
+        starTh.className = 'fav-cell';
+        starTh.innerHTML = '&#9733;';
+        starTh.style.color = 'var(--primary)';
+        starTh.style.fontSize = '14px';
+        row1.appendChild(starTh);
 
         for (var idx = 0; idx < columnHeaders.length; idx++) {
             var h = columnHeaders[idx];
@@ -111,7 +125,7 @@ PPP.ui = (function () {
         if (rows.length === 0) {
             var r = tbody.insertRow();
             var c = r.insertCell();
-            c.colSpan = columnHeaders.length;
+            c.colSpan = columnHeaders.length + 1;
             c.className = 'empty-result-message';
             c.textContent = t('noResultsFound');
             return;
@@ -122,6 +136,26 @@ PPP.ui = (function () {
         for (var i = startIndex; i < endIndex && i < rows.length; i++) {
             var row = rows[i];
             var tr = tbody.insertRow();
+
+            // Star / favorite cell
+            var starTd = tr.insertCell();
+            starTd.className = 'fav-cell';
+            var nr = (row['Nr.'] || '').toString().trim();
+            if (nr && PPP.favorites) {
+                var btn = document.createElement('button');
+                btn.className = 'fav-star' + (PPP.favorites.isFavorite(nr) ? ' active' : '');
+                btn.setAttribute('data-nr', nr);
+                btn.innerHTML = '&#9733;';
+                btn.onclick = function (e) {
+                    var el = e.currentTarget;
+                    var nrVal = el.getAttribute('data-nr');
+                    var isNowFav = PPP.favorites.toggle(nrVal);
+                    el.classList.toggle('active', isNowFav);
+                    if (PPP.app.updateFavoritesCount) PPP.app.updateFavoritesCount();
+                };
+                starTd.appendChild(btn);
+            }
+
             for (var ci = 0; ci < columnHeaders.length; ci++) {
                 var col = columnHeaders[ci];
                 var td = tr.insertCell();
@@ -292,7 +326,7 @@ PPP.ui = (function () {
         var tbody = table.createTBody();
         var r = tbody.insertRow();
         var c = r.insertCell();
-        c.colSpan = columnHeaders.length;
+        c.colSpan = columnHeaders.length + 1;
         c.className = 'empty-result-message';
         c.textContent = t('enterSearchTerms');
     }

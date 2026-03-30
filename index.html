@@ -117,6 +117,7 @@
             <div class="search-quick-buttons">
                 <button class="latest-files-btn" onclick="PPP.app.showLatestFiles()" data-i18n="latest20Files">20 latest files</button>
                 <button class="recommendations-btn" onclick="PPP.app.showRecommendations()" data-i18n="recommendations">Recommendations</button>
+                <button class="favorites-btn" id="favoritesBtn" onclick="PPP.app.showFavorites()">&#9733; Favorites <span id="favCount" class="fav-count-badge" style="display:none"></span></button>
             </div>
             <!-- Search mode toggle: Mp3 files | Quotes (all) | Quotes (Top 108) -->
             <div class="search-mode-toggle">
@@ -154,7 +155,7 @@
             <table id="resultsTable">
                 <tbody>
                     <tr>
-                        <td colspan="11" class="empty-result-message" data-i18n="enterSearchTerms">Enter search terms to see results</td>
+                        <td colspan="12" class="empty-result-message" data-i18n="enterSearchTerms">Enter search terms to see results</td>
                     </tr>
                 </tbody>
             </table>
@@ -191,6 +192,7 @@
     <script src="js/db.js?v=b1d84669"></script>
     <script src="js/search.js?v=53c5c281"></script>
     <script src="js/ui.js?v=da82f70b"></script>
+    <script src="js/favorites.js?v=1"></script>
     <script src="js/app.js?v=9a0b3725"></script>
 
 </body>

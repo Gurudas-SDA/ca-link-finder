@@ -250,6 +250,7 @@ PPP.app = (function () {
         var count = totalLectures || DB.length;
         input.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
         ui.renderEmptyTable();
+        updateFavoritesCount();
     }
 
     // ===== IndexedDB Cache (for XLSX fallback) =====
@@ -557,6 +558,80 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = i18n.t('latest20Transcripts');
         document.getElementById('timer').textContent = '';
         displayResults();
+    }
+
+    // ===== FAVORITES =====
+
+    function showFavorites() {
+        if (!dataLoaded) return;
+        track('quick-action', { action: 'favorites' });
+        setSearchMode('metadata');
+
+        var favNrs = PPP.favorites ? PPP.favorites.getAll() : [];
+        if (favNrs.length === 0) {
+            lastSearchTerm = '';
+            allResults = [];
+            totalResults = 0;
+            currentPage = 1;
+            matchHints = new Map();
+            document.getElementById('searchTerm').value = i18n.t('favorites');
+            document.getElementById('timer').textContent = '';
+            displayResults();
+            // Show helpful message
+            var tbody = document.querySelector('#resultsTable tbody');
+            if (tbody) {
+                var row = tbody.querySelector('tr');
+                if (row && row.cells[0]) row.cells[0].textContent = i18n.t('noFavorites');
+            }
+            return;
+        }
+
+        if (usingSqlite) {
+            var placeholders = favNrs.map(function () { return '?'; }).join(',');
+            db.queryMetaAsync(
+                'SELECT * FROM lectures WHERE nr IN (' + placeholders + ') ORDER BY date DESC',
+                favNrs
+            ).then(function (rows) {
+                var uiRows = rows.map(mapSqlRowToUI);
+                lastSearchTerm = i18n.t('favorites');
+                allResults = uiRows;
+                totalResults = uiRows.length;
+                currentPage = 1;
+                matchHints = new Map();
+                document.getElementById('searchTerm').value = i18n.t('favorites');
+                document.getElementById('timer').textContent = '';
+                displayResults();
+            });
+            return;
+        }
+
+        // Fallback: filter in-memory DB
+        var nrSet = new Set(favNrs);
+        allResults = DB.filter(function (r) {
+            return nrSet.has((r['Nr.'] || '').toString().trim());
+        });
+        allResults.sort(utils.compareDates);
+        lastSearchTerm = i18n.t('favorites');
+        totalResults = allResults.length;
+        currentPage = 1;
+        matchHints = new Map();
+        document.getElementById('searchTerm').value = i18n.t('favorites');
+        document.getElementById('timer').textContent = '';
+        displayResults();
+    }
+
+    function updateFavoritesCount() {
+        var btn = document.getElementById('favoritesBtn');
+        var badge = document.getElementById('favCount');
+        if (!badge) return;
+        var c = PPP.favorites ? PPP.favorites.count() : 0;
+        badge.textContent = c > 0 ? c : '';
+        badge.style.display = c > 0 ? 'inline-block' : 'none';
+        // Update label with current language (no data-i18n since badge is inside)
+        if (btn) {
+            var label = '\u2605 ' + i18n.t('favorites') + ' ';
+            btn.firstChild.textContent = label;
+        }
     }
 
     function showRecommendations() {
@@ -1159,6 +1234,7 @@ PPP.app = (function () {
             }
         }
         localStorage.setItem('preferredLanguage', lang);
+        updateFavoritesCount();
         if (allResults.length > 0) displayResults();
         else ui.renderEmptyTable();
     }
@@ -1259,7 +1335,9 @@ PPP.app = (function () {
         showTopCitations: showTopCitations,
         openTranscriptAtVerse: openTranscriptAtVerse,
         openHtmlTranscriptViewer: openHtmlTranscriptViewer,
-        closeTranscriptModal: closeTranscriptModal
+        closeTranscriptModal: closeTranscriptModal,
+        showFavorites: showFavorites,
+        updateFavoritesCount: updateFavoritesCount
     };
 })();
 
