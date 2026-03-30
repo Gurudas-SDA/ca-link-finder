@@ -1010,17 +1010,17 @@ PPP.app = (function () {
             : db.loadHtmlDB(lang, function (progress) {
                 var pct = Math.round(progress * 100);
                 if (pct >= 100) {
-                    title.textContent = 'Opening ' + lang.toUpperCase() + ' transcript...';
-                    if (loadingMsg) loadingMsg.textContent = 'Preparing transcript...';
+                    title.textContent = 'Opening all ' + lang.toUpperCase() + ' transcripts...';
+                    if (loadingMsg) loadingMsg.textContent = 'Preparing transcripts (first time only)...';
                 } else {
-                    title.textContent = 'Loading ' + lang.toUpperCase() + ' transcripts... ' + pct + '%';
+                    title.textContent = 'Loading all ' + lang.toUpperCase() + ' transcripts... ' + pct + '%';
                     if (loadingMsg) loadingMsg.textContent = pct + '% downloaded';
                 }
             });
 
         loadPromise.then(function () {
             title.textContent = 'Opening ' + lang.toUpperCase() + ' transcript...';
-            if (loadingMsg) loadingMsg.textContent = 'Preparing transcript...';
+            if (loadingMsg) loadingMsg.textContent = 'Preparing transcripts...';
             return db.queryHtmlAsync(lang,
                 "SELECT html_content FROM transcripts_html WHERE nr = $nr LIMIT 1",
                 { $nr: String(lectureNr) }
