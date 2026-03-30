@@ -1,0 +1,124 @@
+name: Daily App Health Check
+
+on:
+  schedule:
+    # Every day at 08:00 UTC (10:00 Riga time)
+    - cron: '0 8 * * *'
+  # Also run after every push (catches deploy breakage immediately)
+  push:
+    branches: [master]
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Wait for GitHub Pages (on push)
+        if: github.event_name == 'push'
+        run: sleep 90
+
+      - name: Run tests
+        id: tests
+        run: npx playwright test
+        continue-on-error: true
+
+      - name: Parse test results
+        if: always()
+        id: results
+        run: |
+          if [ -f test-results.json ]; then
+            TOTAL=$(jq '.stats.expected + .stats.unexpected + .stats.flaky' test-results.json)
+            PASSED=$(jq '.stats.expected' test-results.json)
+            FAILED=$(jq '.stats.unexpected' test-results.json)
+            FLAKY=$(jq '.stats.flaky' test-results.json)
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+            echo "passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "failed=$FAILED" >> $GITHUB_OUTPUT
+            echo "flaky=$FLAKY" >> $GITHUB_OUTPUT
+          else
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "failed=0" >> $GITHUB_OUTPUT
+            echo "flaky=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Telegram message
+        if: always()
+        id: message
+        run: |
+          PASSED="${{ steps.results.outputs.passed }}"
+          FAILED="${{ steps.results.outputs.failed }}"
+          TOTAL="${{ steps.results.outputs.total }}"
+
+          if [ "$FAILED" = "0" ]; then
+            STATUS="✅ ALL TESTS PASSED"
+          else
+            STATUS="❌ $FAILED/$TOTAL TESTS FAILED"
+          fi
+
+          # Get failed test names if any
+          FAIL_DETAILS=""
+          if [ -f test-results.json ] && [ "$FAILED" != "0" ]; then
+            FAIL_DETAILS=$(jq -r '.suites[].specs[] | select(.ok == false) | "  ❌ " + .title' test-results.json 2>/dev/null | head -10)
+          fi
+
+          MSG="🔍 *CA Link Finder — Daily Test*
+
+          $STATUS
+          Passed: $PASSED | Failed: $FAILED | Total: $TOTAL"
+
+          if [ -n "$FAIL_DETAILS" ]; then
+            MSG="$MSG
+
+          *Failed tests:*
+          $FAIL_DETAILS"
+          fi
+
+          MSG="$MSG
+
+          [View run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          # Escape for JSON
+          MSG_ESCAPED=$(echo "$MSG" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+          echo "msg=$MSG_ESCAPED" >> $GITHUB_OUTPUT
+
+      - name: Send Telegram notification
+        if: always()
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+              -H "Content-Type: application/json" \
+              -d "{\"chat_id\": \"${CHAT_ID}\", \"text\": ${{ steps.message.outputs.msg }}, \"parse_mode\": \"Markdown\", \"disable_web_page_preview\": true}"
+          else
+            echo "Telegram secrets not configured — skipping notification"
+          fi
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-screenshots
+          path: test-results/
+          retention-days: 7
+
+      - name: Fail if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
