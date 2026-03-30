@@ -3,7 +3,7 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
-  timeout: 120000,       // 2 min per test (DB loading can be slow)
+  timeout: 60000,        // 1 min per test
   retries: 1,            // Retry once on failure (network flakiness)
   reporter: [['list'], ['json', { outputFile: 'test-results.json' }]],
   use: {

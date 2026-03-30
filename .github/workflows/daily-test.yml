@@ -13,7 +13,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -59,59 +59,31 @@ jobs:
             echo "flaky=0" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build Telegram message
-        if: always()
-        id: message
-        run: |
-          PASSED="${{ steps.results.outputs.passed }}"
-          FAILED="${{ steps.results.outputs.failed }}"
-          TOTAL="${{ steps.results.outputs.total }}"
-
-          if [ "$FAILED" = "0" ]; then
-            STATUS="✅ ALL TESTS PASSED"
-          else
-            STATUS="❌ $FAILED/$TOTAL TESTS FAILED"
-          fi
-
-          # Get failed test names if any
-          FAIL_DETAILS=""
-          if [ -f test-results.json ] && [ "$FAILED" != "0" ]; then
-            FAIL_DETAILS=$(jq -r '.suites[].specs[] | select(.ok == false) | "  ❌ " + .title' test-results.json 2>/dev/null | head -10)
-          fi
-
-          MSG="🔍 *CA Link Finder — Daily Test*
-
-          $STATUS
-          Passed: $PASSED | Failed: $FAILED | Total: $TOTAL"
-
-          if [ -n "$FAIL_DETAILS" ]; then
-            MSG="$MSG
-
-          *Failed tests:*
-          $FAIL_DETAILS"
-          fi
-
-          MSG="$MSG
-
-          [View run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-
-          # Escape for JSON
-          MSG_ESCAPED=$(echo "$MSG" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
-          echo "msg=$MSG_ESCAPED" >> $GITHUB_OUTPUT
-
       - name: Send Telegram notification
         if: always()
         env:
           BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PASSED: ${{ steps.results.outputs.passed }}
+          FAILED: ${{ steps.results.outputs.failed }}
+          TOTAL: ${{ steps.results.outputs.total }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then
-            curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-              -H "Content-Type: application/json" \
-              -d "{\"chat_id\": \"${CHAT_ID}\", \"text\": ${{ steps.message.outputs.msg }}, \"parse_mode\": \"Markdown\", \"disable_web_page_preview\": true}"
-          else
-            echo "Telegram secrets not configured — skipping notification"
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "Telegram secrets not configured — skipping"
+            exit 0
           fi
+          python3 << 'PYEOF'
+          import json, urllib.request, os
+          p, f, t = os.environ["PASSED"], os.environ["FAILED"], os.environ["TOTAL"]
+          status = "ALL TESTS PASSED" if f == "0" and t != "0" else f"{f}/{t} TESTS FAILED"
+          msg = f"CA Link Finder Daily Test\n\n{status}\nPassed: {p} | Failed: {f} | Total: {t}\n\nView run: {os.environ['RUN_URL']}"
+          data = json.dumps({"chat_id": os.environ["CHAT_ID"], "text": msg, "disable_web_page_preview": True}).encode()
+          req = urllib.request.Request(
+              f"https://api.telegram.org/bot{os.environ['BOT_TOKEN']}/sendMessage",
+              data=data, headers={"Content-Type": "application/json"})
+          urllib.request.urlopen(req)
+          PYEOF
 
       - name: Upload screenshots on failure
         if: failure()
