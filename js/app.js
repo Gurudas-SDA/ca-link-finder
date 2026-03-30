@@ -37,6 +37,13 @@ PPP.app = (function () {
         'lang_added': 'Lang added'
     };
 
+    // ===== ANALYTICS =====
+    function track(event, data) {
+        if (typeof umami !== 'undefined' && umami.track) {
+            umami.track(event, data);
+        }
+    }
+
     // ===== STATE =====
     var DB = [];                    // In-memory data (mapped to UI column names)
     var currentPage = 1;
@@ -347,6 +354,7 @@ PPP.app = (function () {
             var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
             document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
 
+            track('search', { query: lastSearchTerm, mode: searchMode, results: totalResults });
             displayResults();
         }).catch(function (err) {
             console.error('SQLite search error, falling back to in-memory:', err);
@@ -439,6 +447,7 @@ PPP.app = (function () {
             document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
             document.getElementById('resultsInfo').innerHTML = '<strong>' + totalResults + ' ' + i18n.t('transcriptResults') + '</strong>';
 
+            track('search', { query: lastSearchTerm, mode: 'transcripts', results: totalResults });
             ui.renderTranscriptResults(results, lastSearchTerm);
             ui.renderPagination(totalResults, currentPage, pageSize, changePage);
         }).catch(function (err) {
@@ -470,6 +479,9 @@ PPP.app = (function () {
     function setSearchMode(mode) {
         var prevMode = searchMode;
         searchMode = mode || 'metadata';
+        if (prevMode !== mode) {
+            track('mode-switch', { from: prevMode, to: searchMode });
+        }
         document.querySelectorAll('.search-mode-btn').forEach(function (btn) {
             btn.classList.toggle('active', btn.getAttribute('data-mode') === searchMode);
         });
@@ -514,6 +526,7 @@ PPP.app = (function () {
 
     function showLatestFiles() {
         if (!dataLoaded) return;
+        track('quick-action', { action: 'latest-files' });
         setSearchMode('metadata');
 
         if (usingSqlite) {
@@ -562,6 +575,7 @@ PPP.app = (function () {
 
     function showLatestTranscripts() {
         if (!dataLoaded) return;
+        track('quick-action', { action: 'latest-transcripts' });
         setSearchMode('metadata');
 
         if (usingSqlite) {
@@ -609,6 +623,7 @@ PPP.app = (function () {
     }
 
     function showRecommendations() {
+        track('quick-action', { action: 'recommendations' });
         var div = document.getElementById('recommendationsList');
         if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
         document.getElementById('topicsList').style.display = 'none';
@@ -980,6 +995,7 @@ PPP.app = (function () {
      * lang: 'en', 'lv', 'ru'
      */
     function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference) {
+        track('transcript-open', { nr: String(lectureNr), lang: lang, block: blockIndex || 0 });
         var overlay = document.getElementById('transcriptModalOverlay');
         var body = document.getElementById('transcriptModalBody');
         var title = document.getElementById('transcriptModalTitle');
@@ -1164,6 +1180,7 @@ PPP.app = (function () {
 
     // ===== LANGUAGE =====
     function setLanguage(lang) {
+        track('language', { lang: lang });
         i18n.setLanguage(lang);
         document.querySelectorAll('.lang-btn').forEach(function (btn) {
             btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
@@ -1219,6 +1236,7 @@ PPP.app = (function () {
 
     function installApp() {
         if (deferredPrompt) {
+            track('pwa-install');
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then(function () {
                 deferredPrompt = null;
