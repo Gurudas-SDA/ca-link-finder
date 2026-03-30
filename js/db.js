@@ -1,82 +1,111 @@
 /* ===========================================================================
    PPP Link Finder — Database abstraction (sql.js / SQLite in browser)
+   Uses Web Worker for non-blocking DB parsing when available.
+   Falls back to main-thread sql.js if Workers are unsupported.
    =========================================================================== */
 window.PPP = window.PPP || {};
 
 PPP.db = (function () {
     'use strict';
 
-    var SQL = null;       // sql.js module
-    var metaDB = null;    // meta database instance
-    var transcriptsDB = null; // transcripts database instance (lazy)
-    var transcriptsLoading = false;
-    var htmlDBs = {};         // {lang: Database} — HTML transcript databases
-    var htmlDBLoading = {};   // {lang: true} — loading flags
+    // ===== WEB WORKER MODE =====
+    var worker = null;
+    var pendingCallbacks = {};  // { id: { resolve, reject } }
+    var progressCallbacks = {}; // { dbName: fn(progress) }
+    var msgId = 0;
+    var useWorker = false;
 
-    // CDN fallback URL for WASM file
+    // ===== MAIN-THREAD FALLBACK =====
+    var SQL = null;
+    var databases = {};  // { dbName: SQL.Database } — only used in fallback mode
+
     var WASM_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.11.0/sql-wasm.wasm';
 
-    /**
-     * Initialize sql.js WASM engine.
-     * Uses CDN WASM (sql.js 1.11.0, standard build — no FTS5).
-     */
-    function initSqlJs() {
-        if (SQL) return Promise.resolve(SQL);
+    // DB name constants
+    var META = 'meta';
+    var TRANSCRIPTS = 'transcripts';
 
-        // Always use CDN WASM (local lib/ may not have it)
+    // Loading state tracking
+    var loadingDBs = {};  // { dbName: Promise } — deduplicates concurrent load requests
+    var loadedDBs = {};   // { dbName: true } — tracks which DBs have been loaded
+
+    /**
+     * Send a message to Worker and return a Promise for the response.
+     */
+    function workerCall(cmd, data) {
+        return new Promise(function (resolve, reject) {
+            var id = ++msgId;
+            pendingCallbacks[id] = { resolve: resolve, reject: reject };
+            var msg = Object.assign({ id: id, cmd: cmd }, data || {});
+            worker.postMessage(msg);
+        });
+    }
+
+    /**
+     * Handle Worker messages.
+     */
+    function onWorkerMessage(e) {
+        var msg = e.data;
+
+        // Progress broadcasts (no id)
+        if (msg.cmd === 'progress' && msg.dbName) {
+            var cb = progressCallbacks[msg.dbName];
+            if (cb) cb(msg.progress);
+            return;
+        }
+
+        // Response to a specific call
+        var pending = pendingCallbacks[msg.id];
+        if (!pending) return;
+        delete pendingCallbacks[msg.id];
+
+        if (msg.error) {
+            pending.reject(new Error(msg.error));
+        } else {
+            pending.resolve(msg.result);
+        }
+    }
+
+    /**
+     * Try to initialize Worker. Returns true if successful.
+     */
+    function tryInitWorker() {
+        try {
+            worker = new Worker('js/db-worker.js');
+            worker.onmessage = onWorkerMessage;
+            worker.onerror = function (err) {
+                console.warn('DB Worker error, falling back to main thread:', err);
+                useWorker = false;
+                worker = null;
+                // Reject all pending callbacks so promises don't hang
+                var ids = Object.keys(pendingCallbacks);
+                ids.forEach(function (id) {
+                    var cb = pendingCallbacks[id];
+                    delete pendingCallbacks[id];
+                    cb.reject(new Error('Worker crashed'));
+                });
+            };
+            useWorker = true;
+            return true;
+        } catch (e) {
+            console.warn('Web Workers not supported, using main thread:', e);
+            return false;
+        }
+    }
+
+    // ===== MAIN-THREAD FALLBACK FUNCTIONS =====
+
+    function initSqlJsFallback() {
+        if (SQL) return Promise.resolve(SQL);
         return window.initSqlJs({
-            locateFile: function () {
-                return WASM_CDN;
-            }
+            locateFile: function () { return WASM_CDN; }
         }).then(function (sqlModule) {
             SQL = sqlModule;
             return SQL;
         });
     }
 
-    /**
-     * Fetch and open the metadata database.
-     * Returns a Promise<Database>.
-     */
-    function loadMetaDB(progressCallback) {
-        if (metaDB) return Promise.resolve(metaDB);
-
-        return fetchDB('data/ppp_meta.db', progressCallback).then(function (db) {
-            metaDB = db;
-            return metaDB;
-        });
-    }
-
-    /**
-     * Lazy-fetch the transcripts database (only when user searches transcripts).
-     * Returns a Promise<Database>.
-     */
-    function loadTranscriptsDB(progressCallback) {
-        if (transcriptsDB) return Promise.resolve(transcriptsDB);
-        if (transcriptsLoading) {
-            // Return a polling promise if already loading
-            return new Promise(function (resolve) {
-                var check = setInterval(function () {
-                    if (transcriptsDB) { clearInterval(check); resolve(transcriptsDB); }
-                }, 100);
-            });
-        }
-
-        transcriptsLoading = true;
-        return fetchDB('data/ppp_transcripts_en.db', progressCallback).then(function (db) {
-            transcriptsDB = db;
-            transcriptsLoading = false;
-            return transcriptsDB;
-        }).catch(function (err) {
-            transcriptsLoading = false;
-            throw err;
-        });
-    }
-
-    /**
-     * Internal: fetch a .db file and create a sql.js Database.
-     */
-    function fetchDB(url, progressCallback) {
+    function fetchDBFallback(url, dbName, progressCallback) {
         return new Promise(function (resolve, reject) {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
@@ -84,20 +113,17 @@ PPP.db = (function () {
 
             if (progressCallback) {
                 xhr.onprogress = function (e) {
-                    if (e.lengthComputable) {
-                        progressCallback(e.loaded / e.total);
-                    }
+                    if (e.lengthComputable) progressCallback(e.loaded / e.total);
                 };
             }
 
             xhr.onload = function () {
                 if (xhr.status === 200 || xhr.status === 0) {
-                    // Use setTimeout to let UI update before heavy SQL.Database parsing
                     setTimeout(function () {
                         try {
-                            var uInt8Array = new Uint8Array(xhr.response);
-                            var db = new SQL.Database(uInt8Array);
-                            resolve(db);
+                            var arr = new Uint8Array(xhr.response);
+                            databases[dbName] = new SQL.Database(arr);
+                            resolve();
                         } catch (err) {
                             reject(err);
                         }
@@ -115,60 +141,182 @@ PPP.db = (function () {
         });
     }
 
-    /**
-     * Run a SQL query on the meta database.
-     * Returns array of objects [{col: val, ...}, ...].
-     */
-    function queryMeta(sql, params) {
-        if (!metaDB) throw new Error('Meta DB not loaded');
-        return runQuery(metaDB, sql, params);
-    }
-
-    /**
-     * Run a SQL query on the transcripts database.
-     * Returns array of objects [{col: val, ...}, ...].
-     */
-    function queryTranscripts(sql, params) {
-        if (!transcriptsDB) throw new Error('Transcripts DB not loaded');
-        return runQuery(transcriptsDB, sql, params);
-    }
-
-    /**
-     * Internal: execute SQL and return results as objects.
-     */
-    function runQuery(db, sql, params) {
+    function runQueryFallback(dbName, sql, params) {
+        var db = databases[dbName];
+        if (!db) throw new Error('Database "' + dbName + '" not loaded');
         var results = [];
+        var stmt = db.prepare(sql);
         try {
-            var stmt = db.prepare(sql);
             if (params) stmt.bind(params);
             while (stmt.step()) {
-                var row = stmt.getAsObject();
-                results.push(row);
+                results.push(stmt.getAsObject());
             }
+        } finally {
             stmt.free();
-        } catch (err) {
-            console.error('SQL error:', err.message, '\nQuery:', sql);
-            throw err;
         }
         return results;
     }
 
+    // ===== PUBLIC API =====
+
     /**
-     * Get pre-computed stats from the stats table in meta DB.
+     * Initialize sql.js engine (Worker or main thread).
+     */
+    function initSqlJs() {
+        if (useWorker) {
+            return workerCall('init');
+        }
+
+        // Try Worker first
+        if (tryInitWorker()) {
+            return workerCall('init').catch(function (err) {
+                console.warn('Worker init failed, falling back:', err);
+                useWorker = false;
+                worker = null;
+                return initSqlJsFallback();
+            });
+        }
+
+        return initSqlJsFallback();
+    }
+
+    /**
+     * Generic DB loader with deduplication.
+     */
+    function loadDB(dbName, url, progressCallback) {
+        // Already loaded?
+        if (loadedDBs[dbName]) return Promise.resolve();
+        if (!useWorker && databases[dbName]) return Promise.resolve();
+
+        // Deduplicate concurrent requests
+        if (loadingDBs[dbName]) return loadingDBs[dbName];
+
+        if (progressCallback) {
+            progressCallbacks[dbName] = progressCallback;
+        }
+
+        var promise;
+        if (useWorker) {
+            promise = workerCall('loadDB', { dbName: dbName, url: url }).then(function () {
+                loadedDBs[dbName] = true;
+                delete loadingDBs[dbName];
+                delete progressCallbacks[dbName];
+            }).catch(function (err) {
+                delete loadingDBs[dbName];
+                delete progressCallbacks[dbName];
+                throw err;
+            });
+        } else {
+            promise = initSqlJsFallback().then(function () {
+                return fetchDBFallback(url, dbName, progressCallback);
+            }).then(function () {
+                loadedDBs[dbName] = true;
+                delete loadingDBs[dbName];
+            }).catch(function (err) {
+                delete loadingDBs[dbName];
+                throw err;
+            });
+        }
+
+        loadingDBs[dbName] = promise;
+        return promise;
+    }
+
+    /**
+     * Fetch and open the metadata database.
+     */
+    function loadMetaDB(progressCallback) {
+        return loadDB(META, 'data/ppp_meta.db', progressCallback);
+    }
+
+    /**
+     * Lazy-fetch the transcripts database.
+     */
+    function loadTranscriptsDB(progressCallback) {
+        return loadDB(TRANSCRIPTS, 'data/ppp_transcripts_en.db', progressCallback);
+    }
+
+    /**
+     * Lazy-load an HTML transcript database for a given language.
+     */
+    function loadHtmlDB(lang, progressCallback) {
+        lang = lang || 'en';
+        var dbName = 'html_' + lang;
+        return loadDB(dbName, 'data/ppp_transcripts_html_' + lang + '.db', progressCallback);
+    }
+
+    /**
+     * Run a SQL query. Returns array of objects (sync for fallback, async for Worker).
+     * For backward compatibility, this is SYNCHRONOUS in fallback mode.
+     * Use queryAsync() for the Promise-based version.
+     */
+    function queryMeta(sql, params) {
+        if (useWorker) {
+            throw new Error('Use queryMetaAsync() in Worker mode');
+        }
+        return runQueryFallback(META, sql, params);
+    }
+
+    function queryTranscripts(sql, params) {
+        if (useWorker) {
+            throw new Error('Use queryAsync() in Worker mode');
+        }
+        return runQueryFallback(TRANSCRIPTS, sql, params);
+    }
+
+    function queryHtmlTranscripts(lang, sql, params) {
+        if (useWorker) {
+            throw new Error('Use queryAsync() in Worker mode');
+        }
+        return runQueryFallback('html_' + (lang || 'en'), sql, params);
+    }
+
+    /**
+     * Async query — works in both Worker and fallback modes.
+     * Returns Promise<Array<Object>>.
+     */
+    function queryAsync(dbName, sql, params) {
+        if (useWorker) {
+            return workerCall('query', { dbName: dbName, sql: sql, params: params });
+        }
+        return new Promise(function (resolve, reject) {
+            try {
+                resolve(runQueryFallback(dbName, sql, params));
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    function queryMetaAsync(sql, params) {
+        return queryAsync(META, sql, params);
+    }
+
+    function queryTranscriptsAsync(sql, params) {
+        return queryAsync(TRANSCRIPTS, sql, params);
+    }
+
+    function queryHtmlAsync(lang, sql, params) {
+        return queryAsync('html_' + (lang || 'en'), sql, params);
+    }
+
+    /**
+     * Get pre-computed stats from the stats table.
      */
     function getStats() {
-        if (!metaDB) return null;
+        if (useWorker) {
+            // Caller should use getStatsAsync() in Worker mode
+            throw new Error('Use getStatsAsync() in Worker mode');
+        }
+        if (!databases[META]) return null;
         try {
-            var rows = runQuery(metaDB, 'SELECT key, value FROM stats');
+            var rows = runQueryFallback(META, 'SELECT key, value FROM stats');
             var stats = {};
-            rows.forEach(function (r) {
-                stats[r.key] = r.value;
-            });
+            rows.forEach(function (r) { stats[r.key] = r.value; });
             return stats;
         } catch (e) {
-            // stats table might not exist — count from lectures
             try {
-                var countRows = runQuery(metaDB, 'SELECT COUNT(*) as cnt FROM lectures');
+                var countRows = runQueryFallback(META, 'SELECT COUNT(*) as cnt FROM lectures');
                 return { total_lectures: countRows[0].cnt };
             } catch (e2) {
                 return { total_lectures: 0 };
@@ -176,55 +324,38 @@ PPP.db = (function () {
         }
     }
 
-    /**
-     * Lazy-load an HTML transcript database for a given language.
-     * Returns Promise<Database>.
-     */
-    function loadHtmlDB(lang, progressCallback) {
-        lang = lang || 'en';
-        if (htmlDBs[lang]) return Promise.resolve(htmlDBs[lang]);
-        if (htmlDBLoading[lang]) {
-            return new Promise(function (resolve) {
-                var check = setInterval(function () {
-                    if (htmlDBs[lang]) { clearInterval(check); resolve(htmlDBs[lang]); }
-                }, 100);
+    function getStatsAsync() {
+        return queryAsync(META, 'SELECT key, value FROM stats').then(function (rows) {
+            var stats = {};
+            rows.forEach(function (r) { stats[r.key] = r.value; });
+            return stats;
+        }).catch(function () {
+            return queryAsync(META, 'SELECT COUNT(*) as cnt FROM lectures').then(function (rows) {
+                return { total_lectures: rows[0] ? rows[0].cnt : 0 };
+            }).catch(function () {
+                return { total_lectures: 0 };
             });
-        }
-        htmlDBLoading[lang] = true;
-        return fetchDB('data/ppp_transcripts_html_' + lang + '.db', progressCallback).then(function (db) {
-            htmlDBs[lang] = db;
-            htmlDBLoading[lang] = false;
-            return db;
-        }).catch(function (err) {
-            htmlDBLoading[lang] = false;
-            throw err;
         });
     }
 
-    /**
-     * Query an HTML transcript database.
-     */
-    function queryHtmlTranscripts(lang, sql, params) {
-        if (!htmlDBs[lang]) throw new Error('HTML DB (' + lang + ') not loaded');
-        return runQuery(htmlDBs[lang], sql, params);
+    function isMetaLoaded() {
+        return !!loadedDBs[META] || !!databases[META];
+    }
+
+    function isTranscriptsLoaded() {
+        return !!loadedDBs[TRANSCRIPTS] || !!databases[TRANSCRIPTS];
     }
 
     function isHtmlLoaded(lang) {
-        return !!htmlDBs[lang || 'en'];
+        var dbName = 'html_' + (lang || 'en');
+        return !!loadedDBs[dbName] || !!databases[dbName];
     }
 
     /**
-     * Check if meta DB is loaded.
+     * Check if Worker mode is active.
      */
-    function isMetaLoaded() {
-        return metaDB !== null;
-    }
-
-    /**
-     * Check if transcripts DB is loaded.
-     */
-    function isTranscriptsLoaded() {
-        return transcriptsDB !== null;
+    function isWorkerMode() {
+        return useWorker;
     }
 
     return {
@@ -232,12 +363,21 @@ PPP.db = (function () {
         loadMetaDB: loadMetaDB,
         loadTranscriptsDB: loadTranscriptsDB,
         loadHtmlDB: loadHtmlDB,
+        // Sync queries (fallback mode only)
         queryMeta: queryMeta,
         queryTranscripts: queryTranscripts,
         queryHtmlTranscripts: queryHtmlTranscripts,
         getStats: getStats,
+        // Async queries (both modes)
+        queryMetaAsync: queryMetaAsync,
+        queryTranscriptsAsync: queryTranscriptsAsync,
+        queryHtmlAsync: queryHtmlAsync,
+        getStatsAsync: getStatsAsync,
+        queryAsync: queryAsync,
+        // State checks
         isMetaLoaded: isMetaLoaded,
         isTranscriptsLoaded: isTranscriptsLoaded,
-        isHtmlLoaded: isHtmlLoaded
+        isHtmlLoaded: isHtmlLoaded,
+        isWorkerMode: isWorkerMode
     };
 })();

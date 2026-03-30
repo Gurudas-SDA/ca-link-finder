@@ -172,6 +172,28 @@ PPP.utils = (function () {
         return m ? m[1] : null;
     }
 
+    /**
+     * Escape HTML special characters to prevent XSS.
+     */
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    /**
+     * Encode a value for safe use inside onclick="func('VALUE')".
+     * Uses encodeURIComponent — safe in both HTML attribute and JS string contexts.
+     * Decode on the JS side with decodeURIComponent().
+     */
+    function encodeForAttr(str) {
+        return encodeURIComponent(str || '').replace(/'/g, '%27');
+    }
+
     // Public API
     return {
         removeDiacritics: removeDiacritics,
@@ -182,6 +204,8 @@ PPP.utils = (function () {
         formatLength: formatLength,
         normalizeHasColumn: normalizeHasColumn,
         cellHasLink: cellHasLink,
-        extractUrl: extractUrl
+        extractUrl: extractUrl,
+        escapeHtml: escapeHtml,
+        encodeForAttr: encodeForAttr
     };
 })();
