@@ -1000,12 +1000,25 @@ PPP.app = (function () {
         var body = document.getElementById('transcriptModalBody');
         var title = document.getElementById('transcriptModalTitle');
 
+        var alreadyLoaded = db.isHtmlLoaded(lang);
         title.textContent = 'Loading ' + lang.toUpperCase() + ' transcript...';
-        body.innerHTML = '<div class="transcript-loading"><div class="transcript-spinner"></div><span>Loading database...</span></div>';
+        body.innerHTML = alreadyLoaded
+            ? '<div class="transcript-loading"><div class="transcript-spinner"></div><span>Opening transcript...</span></div>'
+            : '<div class="transcript-loading"><div class="transcript-spinner"></div><span>Loading database...</span><span class="transcript-timer"></span></div>';
         overlay.classList.add('active');
 
         var loadingMsg = body.querySelector('.transcript-loading span');
-        var loadPromise = db.isHtmlLoaded(lang)
+        var timerEl = body.querySelector('.transcript-timer');
+        var timerStart = Date.now();
+        var timerInterval = null;
+        if (!alreadyLoaded && timerEl) {
+            timerInterval = setInterval(function () {
+                var sec = Math.floor((Date.now() - timerStart) / 1000);
+                timerEl.textContent = sec + 's — may take up to 20s on first load';
+            }, 1000);
+        }
+
+        var loadPromise = alreadyLoaded
             ? Promise.resolve()
             : db.loadHtmlDB(lang, function (progress) {
                 var pct = Math.round(progress * 100);
@@ -1019,6 +1032,7 @@ PPP.app = (function () {
             });
 
         loadPromise.then(function () {
+            if (timerInterval) clearInterval(timerInterval);
             title.textContent = 'Opening ' + lang.toUpperCase() + ' transcript...';
             if (loadingMsg) loadingMsg.textContent = 'Preparing transcripts...';
             return db.queryHtmlAsync(lang,

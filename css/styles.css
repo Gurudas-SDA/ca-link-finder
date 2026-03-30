@@ -490,6 +490,11 @@ h1 {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+.transcript-timer {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
 .transcript-highlight-anchor {
     display: block;
     height: 0;
