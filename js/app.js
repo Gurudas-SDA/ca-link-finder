@@ -518,6 +518,7 @@ PPP.app = (function () {
 
     function showLatestFiles() {
         if (!dataLoaded) return;
+        setSearchMode('metadata');
 
         if (usingSqlite) {
             try {
@@ -562,6 +563,7 @@ PPP.app = (function () {
 
     function showLatestTranscripts() {
         if (!dataLoaded) return;
+        setSearchMode('metadata');
 
         if (usingSqlite) {
             try {
@@ -976,7 +978,10 @@ PPP.app = (function () {
         var loadPromise = db.isHtmlLoaded(lang)
             ? Promise.resolve()
             : db.loadHtmlDB(lang, function (progress) {
-                title.textContent = 'Loading ' + lang.toUpperCase() + ' transcripts... ' + Math.round(progress * 100) + '%';
+                var pct = Math.round(progress * 100);
+                title.textContent = pct >= 100
+                    ? 'Opening ' + lang.toUpperCase() + ' transcript...'
+                    : 'Loading ' + lang.toUpperCase() + ' transcripts... ' + pct + '%';
             });
 
         loadPromise.then(function () {

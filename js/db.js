@@ -92,13 +92,16 @@ PPP.db = (function () {
 
             xhr.onload = function () {
                 if (xhr.status === 200 || xhr.status === 0) {
-                    try {
-                        var uInt8Array = new Uint8Array(xhr.response);
-                        var db = new SQL.Database(uInt8Array);
-                        resolve(db);
-                    } catch (err) {
-                        reject(err);
-                    }
+                    // Use setTimeout to let UI update before heavy SQL.Database parsing
+                    setTimeout(function () {
+                        try {
+                            var uInt8Array = new Uint8Array(xhr.response);
+                            var db = new SQL.Database(uInt8Array);
+                            resolve(db);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    }, 50);
                 } else {
                     reject(new Error('HTTP ' + xhr.status + ' loading ' + url));
                 }
