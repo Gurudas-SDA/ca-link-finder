@@ -24,7 +24,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
 
   test('1. App loads and SQLite DB initializes', async ({ page }) => {
     const errors = trackConsoleErrors(page);
-    await page.goto('/');
+    await page.goto('./');
 
     // Page title
     await expect(page).toHaveTitle(/Chaitanya Academy/);
@@ -44,7 +44,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('2. Metadata search returns results', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     // Type a common search term
@@ -63,7 +63,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('3. Quotes (all) mode — sources panel appears', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     // Click Quotes (all) button
@@ -78,7 +78,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('4. Top 108 — table renders', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     // Click Top 108 button
@@ -95,7 +95,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('5. Quick action: 20 latest files', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     // Click "20 latest" button
@@ -108,7 +108,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('6. Quick action: 20 latest transcripts', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     // Click "20 latest transcripts" button
@@ -121,7 +121,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('7. Language switch to Russian changes UI', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     // Switch to Russian
@@ -133,7 +133,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('8. Transcript opens (EN)', { timeout: 120000 }, async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     // Search for something with transcripts
@@ -162,7 +162,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('9. Search with operators: AND (;)', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     await page.fill('#searchTerm', 'guru; tattva');
@@ -175,7 +175,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
 
   test('10. No critical console errors during full workflow', async ({ page }) => {
     const errors = trackConsoleErrors(page);
-    await page.goto('/');
+    await page.goto('./');
     await waitForAppReady(page);
 
     // Run through modes
