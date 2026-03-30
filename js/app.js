@@ -1014,7 +1014,7 @@ PPP.app = (function () {
         if (!alreadyLoaded && timerEl) {
             timerInterval = setInterval(function () {
                 var sec = Math.floor((Date.now() - timerStart) / 1000);
-                timerEl.textContent = sec + 's — may take up to 20s on first load';
+                timerEl.textContent = sec + 's — may take up to 1 min on first load';
             }, 1000);
         }
 
