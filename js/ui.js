@@ -29,8 +29,9 @@ PPP.ui = (function () {
      */
     function buildHeader(thead) {
         var row0 = thead.insertRow();
-        // Extra spacer for star column
+        // Extra spacer for star + share columns
         var starSpacer = document.createElement('th');
+        starSpacer.colSpan = 2;
         starSpacer.style.border = 'none';
         starSpacer.style.backgroundColor = 'transparent';
         row0.appendChild(starSpacer);
@@ -76,6 +77,14 @@ PPP.ui = (function () {
         starTh.style.color = 'var(--primary)';
         starTh.style.fontSize = '14px';
         row1.appendChild(starTh);
+
+        // Share column header
+        var shareTh = document.createElement('th');
+        shareTh.rowSpan = 3;
+        shareTh.className = 'share-cell';
+        shareTh.innerHTML = '&#128279;';
+        shareTh.style.fontSize = '12px';
+        row1.appendChild(shareTh);
 
         for (var idx = 0; idx < columnHeaders.length; idx++) {
             var h = columnHeaders[idx];
@@ -125,7 +134,7 @@ PPP.ui = (function () {
         if (rows.length === 0) {
             var r = tbody.insertRow();
             var c = r.insertCell();
-            c.colSpan = columnHeaders.length + 1;
+            c.colSpan = columnHeaders.length + 2;
             c.className = 'empty-result-message';
             c.textContent = t('noResultsFound');
             return;
@@ -154,6 +163,22 @@ PPP.ui = (function () {
                     if (PPP.app.updateFavoritesCount) PPP.app.updateFavoritesCount();
                 };
                 starTd.appendChild(btn);
+            }
+
+            // Share / deep link cell
+            var shareTd = tr.insertCell();
+            shareTd.className = 'share-cell';
+            if (nr && PPP.app.copyShareLink) {
+                var shareBtn = document.createElement('button');
+                shareBtn.className = 'share-btn';
+                shareBtn.setAttribute('data-nr', nr);
+                shareBtn.innerHTML = '&#128279;'; // 🔗
+                shareBtn.title = 'Copy link';
+                shareBtn.onclick = function (e) {
+                    var el = e.currentTarget;
+                    PPP.app.copyShareLink(el.getAttribute('data-nr'));
+                };
+                shareTd.appendChild(shareBtn);
             }
 
             for (var ci = 0; ci < columnHeaders.length; ci++) {
@@ -326,7 +351,7 @@ PPP.ui = (function () {
         var tbody = table.createTBody();
         var r = tbody.insertRow();
         var c = r.insertCell();
-        c.colSpan = columnHeaders.length + 1;
+        c.colSpan = columnHeaders.length + 2;
         c.className = 'empty-result-message';
         c.textContent = t('enterSearchTerms');
     }

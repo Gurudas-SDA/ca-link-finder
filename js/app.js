@@ -251,6 +251,97 @@ PPP.app = (function () {
         input.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
         ui.renderEmptyTable();
         updateFavoritesCount();
+        handleDeepLink();
+    }
+
+    // ===== Deep Link: #nr=XXX =====
+    function parseHash() {
+        var hash = window.location.hash.replace(/^#/, '');
+        if (!hash) return null;
+        var params = {};
+        hash.split('&').forEach(function (part) {
+            var kv = part.split('=');
+            if (kv.length === 2) params[kv[0]] = decodeURIComponent(kv[1]);
+        });
+        return params;
+    }
+
+    function handleDeepLink() {
+        var params = parseHash();
+        if (!params || !params.nr) return;
+        var nr = params.nr.trim();
+
+        if (usingSqlite) {
+            db.queryMetaAsync(
+                'SELECT * FROM lectures WHERE nr = ? LIMIT 1', [nr]
+            ).then(function (rows) {
+                if (rows.length === 0) return;
+                var uiRows = rows.map(mapSqlRowToUI);
+                lastSearchTerm = 'Nr. ' + nr;
+                allResults = uiRows;
+                totalResults = 1;
+                currentPage = 1;
+                matchHints = new Map();
+                document.getElementById('searchTerm').value = 'Nr. ' + nr;
+                document.getElementById('timer').textContent = '';
+                displayResults();
+            });
+        } else {
+            var found = DB.filter(function (r) {
+                return (r['Nr.'] || '').toString().trim() === nr;
+            });
+            if (found.length === 0) return;
+            lastSearchTerm = 'Nr. ' + nr;
+            allResults = found;
+            totalResults = found.length;
+            currentPage = 1;
+            matchHints = new Map();
+            document.getElementById('searchTerm').value = 'Nr. ' + nr;
+            document.getElementById('timer').textContent = '';
+            displayResults();
+        }
+    }
+
+    function buildShareUrl(nr) {
+        var base = window.location.href.split('#')[0];
+        return base + '#nr=' + encodeURIComponent(nr);
+    }
+
+    function copyShareLink(nr) {
+        var url = buildShareUrl(nr);
+        function fallbackCopy() {
+            var ta = document.createElement('textarea');
+            ta.value = url;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showCopyToast();
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function () {
+                showCopyToast();
+            }).catch(function () {
+                fallbackCopy();
+            });
+        } else {
+            fallbackCopy();
+        }
+    }
+
+    function showCopyToast() {
+        var toast = document.getElementById('copyToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'copyToast';
+            toast.className = 'copy-toast';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = i18n.t('linkCopied') || 'Link copied!';
+        toast.classList.add('show');
+        setTimeout(function () { toast.classList.remove('show'); }, 2000);
     }
 
     // ===== IndexedDB Cache (for XLSX fallback) =====
@@ -1337,7 +1428,9 @@ PPP.app = (function () {
         openHtmlTranscriptViewer: openHtmlTranscriptViewer,
         closeTranscriptModal: closeTranscriptModal,
         showFavorites: showFavorites,
-        updateFavoritesCount: updateFavoritesCount
+        updateFavoritesCount: updateFavoritesCount,
+        copyShareLink: copyShareLink,
+        buildShareUrl: buildShareUrl
     };
 })();
 

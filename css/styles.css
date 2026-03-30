@@ -1018,6 +1018,25 @@ th.transcripts-block {
 .fav-star:hover { color: var(--primary-light); transform: scale(1.2); }
 .fav-star.active { color: var(--primary); }
 
+/* Share / deep link button */
+.share-cell { width: 24px; text-align: center; padding: 2px !important; }
+.share-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 14px; color: var(--border); padding: 2px; line-height: 1;
+    transition: color 0.2s, transform 0.15s;
+}
+.share-btn:hover { color: var(--primary-light); transform: scale(1.15); }
+
+/* Copy toast notification */
+.copy-toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--primary-dark, #1a3a6b); color: #fff;
+    padding: 10px 24px; border-radius: 24px; font-size: 14px; font-weight: 600;
+    opacity: 0; transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
 .fav-count-badge {
     display: inline-block;
     background: #fff;
