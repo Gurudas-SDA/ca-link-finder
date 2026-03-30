@@ -1000,20 +1000,27 @@ PPP.app = (function () {
         var body = document.getElementById('transcriptModalBody');
         var title = document.getElementById('transcriptModalTitle');
 
-        title.textContent = 'Loading transcript...';
-        body.innerHTML = '';
+        title.textContent = 'Loading ' + lang.toUpperCase() + ' transcript...';
+        body.innerHTML = '<div class="transcript-loading"><div class="transcript-spinner"></div><span>Loading database...</span></div>';
         overlay.classList.add('active');
 
+        var loadingMsg = body.querySelector('.transcript-loading span');
         var loadPromise = db.isHtmlLoaded(lang)
             ? Promise.resolve()
             : db.loadHtmlDB(lang, function (progress) {
                 var pct = Math.round(progress * 100);
-                title.textContent = pct >= 100
-                    ? 'Opening ' + lang.toUpperCase() + ' transcript...'
-                    : 'Loading ' + lang.toUpperCase() + ' transcripts... ' + pct + '%';
+                if (pct >= 100) {
+                    title.textContent = 'Opening ' + lang.toUpperCase() + ' transcript...';
+                    if (loadingMsg) loadingMsg.textContent = 'Preparing transcript...';
+                } else {
+                    title.textContent = 'Loading ' + lang.toUpperCase() + ' transcripts... ' + pct + '%';
+                    if (loadingMsg) loadingMsg.textContent = pct + '% downloaded';
+                }
             });
 
         loadPromise.then(function () {
+            title.textContent = 'Opening ' + lang.toUpperCase() + ' transcript...';
+            if (loadingMsg) loadingMsg.textContent = 'Preparing transcript...';
             return db.queryHtmlAsync(lang,
                 "SELECT html_content FROM transcripts_html WHERE nr = $nr LIMIT 1",
                 { $nr: String(lectureNr) }
