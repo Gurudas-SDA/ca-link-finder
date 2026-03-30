@@ -23,7 +23,6 @@ PPP.db = (function () {
 
     // DB name constants
     var META = 'meta';
-    var TRANSCRIPTS = 'transcripts';
 
     // Loading state tracking
     var loadingDBs = {};  // { dbName: Promise } — deduplicates concurrent load requests
@@ -233,13 +232,6 @@ PPP.db = (function () {
     }
 
     /**
-     * Lazy-fetch the transcripts database.
-     */
-    function loadTranscriptsDB(progressCallback) {
-        return loadDB(TRANSCRIPTS, 'data/ppp_transcripts_en.db', progressCallback);
-    }
-
-    /**
      * Lazy-load an HTML transcript database for a given language.
      */
     function loadHtmlDB(lang, progressCallback) {
@@ -258,13 +250,6 @@ PPP.db = (function () {
             throw new Error('Use queryMetaAsync() in Worker mode');
         }
         return runQueryFallback(META, sql, params);
-    }
-
-    function queryTranscripts(sql, params) {
-        if (useWorker) {
-            throw new Error('Use queryAsync() in Worker mode');
-        }
-        return runQueryFallback(TRANSCRIPTS, sql, params);
     }
 
     function queryHtmlTranscripts(lang, sql, params) {
@@ -293,10 +278,6 @@ PPP.db = (function () {
 
     function queryMetaAsync(sql, params) {
         return queryAsync(META, sql, params);
-    }
-
-    function queryTranscriptsAsync(sql, params) {
-        return queryAsync(TRANSCRIPTS, sql, params);
     }
 
     function queryHtmlAsync(lang, sql, params) {
@@ -345,10 +326,6 @@ PPP.db = (function () {
         return !!loadedDBs[META] || !!databases[META];
     }
 
-    function isTranscriptsLoaded() {
-        return !!loadedDBs[TRANSCRIPTS] || !!databases[TRANSCRIPTS];
-    }
-
     function isHtmlLoaded(lang) {
         var dbName = 'html_' + (lang || 'en');
         return !!loadedDBs[dbName] || !!databases[dbName];
@@ -364,22 +341,18 @@ PPP.db = (function () {
     return {
         initSqlJs: initSqlJs,
         loadMetaDB: loadMetaDB,
-        loadTranscriptsDB: loadTranscriptsDB,
         loadHtmlDB: loadHtmlDB,
         // Sync queries (fallback mode only)
         queryMeta: queryMeta,
-        queryTranscripts: queryTranscripts,
         queryHtmlTranscripts: queryHtmlTranscripts,
         getStats: getStats,
         // Async queries (both modes)
         queryMetaAsync: queryMetaAsync,
-        queryTranscriptsAsync: queryTranscriptsAsync,
         queryHtmlAsync: queryHtmlAsync,
         getStatsAsync: getStatsAsync,
         queryAsync: queryAsync,
         // State checks
         isMetaLoaded: isMetaLoaded,
-        isTranscriptsLoaded: isTranscriptsLoaded,
         isHtmlLoaded: isHtmlLoaded,
         isWorkerMode: isWorkerMode
     };

@@ -297,11 +297,6 @@ PPP.app = (function () {
         activeVersePositions = {};
         activeVerseReference = '';
 
-        if (searchMode === 'transcripts') {
-            performTranscriptSearch(startTime);
-            return;
-        }
-
         if (searchMode === 'citationsTop') {
             showTopCitations();
             return;
@@ -395,64 +390,6 @@ PPP.app = (function () {
             }
         }
         return matched;
-    }
-
-    function performTranscriptSearch(startTime) {
-        if (!db.isTranscriptsLoaded()) {
-            ui.showLoading(i18n.t('loadingTranscripts'));
-            db.loadTranscriptsDB(function (progress) {
-                ui.updateProgress(progress);
-            }).then(function () {
-                ui.hideLoading();
-                executeTranscriptSearch(startTime);
-            }).catch(function (err) {
-                ui.hideLoading();
-                console.error('Failed to load transcripts DB:', err);
-                searchMode = 'metadata';
-                performSearch();
-            });
-            return;
-        }
-        executeTranscriptSearch(startTime);
-    }
-
-    function executeTranscriptSearch(startTime) {
-        var parsed = search.parseSearchQuery(lastSearchTerm);
-        var q = search.buildTranscriptSQL(parsed);
-
-        db.queryTranscriptsAsync(q.sql, q.params).then(function (results) {
-            // Enrich transcript results with lecture metadata from meta DB
-            if (usingSqlite && results.length > 0) {
-                var enrichPromises = results.filter(function (row) { return row.nr; }).map(function (row) {
-                    return db.queryMetaAsync(
-                        "SELECT date, original_file_name, type FROM lectures WHERE nr = $nr LIMIT 1",
-                        { '$nr': row.nr }
-                    ).then(function (meta) {
-                        if (meta.length > 0) {
-                            row.date = meta[0].date || '';
-                            row.original_file_name = meta[0].original_file_name || '';
-                            row.type = meta[0].type || '';
-                        }
-                    }).catch(function () { /* ignore */ });
-                });
-                return Promise.all(enrichPromises).then(function () { return results; });
-            }
-            return results;
-        }).then(function (results) {
-            allResults = results;
-            totalResults = results.length;
-            currentPage = 1;
-
-            var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-            document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
-            document.getElementById('resultsInfo').innerHTML = '<strong>' + totalResults + ' ' + i18n.t('transcriptResults') + '</strong>';
-
-            track('search', { query: lastSearchTerm, mode: 'transcripts', results: totalResults });
-            ui.renderTranscriptResults(results, lastSearchTerm);
-            ui.renderPagination(totalResults, currentPage, pageSize, changePage);
-        }).catch(function (err) {
-            console.error('Transcript search error:', err);
-        });
     }
 
     function displayResults() {
