@@ -1420,7 +1420,7 @@ PPP.app = (function () {
             var rect = range.getBoundingClientRect();
             var bodyRect = body.getBoundingClientRect();
 
-            bubble = document.createElement('button');
+            var bubble = document.createElement('button');
             bubble.id = 'transcriptShareBubble';
             bubble.className = 'transcript-share-bubble';
             bubble.textContent = '🔗 ' + i18n.t('shareQuote');
