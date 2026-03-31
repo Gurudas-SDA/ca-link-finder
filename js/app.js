@@ -71,7 +71,25 @@ PPP.app = (function () {
     });
 
     // ===== INIT =====
+    function initTheme() {
+        var saved = localStorage.getItem('ppp_theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = saved === 'dark' || (!saved && prefersDark);
+        if (isDark) document.body.classList.add('dark');
+        var btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+    }
+
+    function toggleTheme() {
+        var isDark = document.body.classList.toggle('dark');
+        localStorage.setItem('ppp_theme', isDark ? 'dark' : 'light');
+        var btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+    }
+
     function init() {
+        initTheme();
+
         var savedLang = localStorage.getItem('preferredLanguage') || 'en';
         setLanguage(savedLang);
 
@@ -99,9 +117,6 @@ PPP.app = (function () {
 
         // Load data — try SQLite first, fall back to XLSX/CSV
         loadData();
-
-        // Update favorites badge
-        updateFavoritesCount();
 
         // Install banner (delayed)
         setTimeout(function () {
@@ -253,6 +268,143 @@ PPP.app = (function () {
         var count = totalLectures || DB.length;
         input.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
         ui.renderEmptyTable();
+        updateFavoritesCount();
+        handleDeepLink();
+    }
+
+    // ===== Deep Link: #nr=XXX =====
+    function parseHash() {
+        var hash = window.location.hash.replace(/^#/, '');
+        if (!hash) return null;
+        var params = {};
+        hash.split('&').forEach(function (part) {
+            var kv = part.split('=');
+            if (kv.length === 2) params[kv[0]] = decodeURIComponent(kv[1]);
+        });
+        return params;
+    }
+
+    // Pending highlight text from deep link — consumed by openHtmlTranscriptViewer
+    var _pendingHighlight = null;
+
+    function handleDeepLink() {
+        var params = parseHash();
+        if (!params || !params.nr) return;
+        var nr = params.nr.trim();
+        var hl = params.hl || null;
+        var hll = params.hll ? parseInt(params.hll, 10) : 0;
+        var lang = params.lang || 'en';
+
+        // Show the lecture in results
+        function showLecture(uiRows) {
+            lastSearchTerm = 'Nr. ' + nr;
+            allResults = uiRows;
+            totalResults = uiRows.length;
+            currentPage = 1;
+            matchHints = new Map();
+            document.getElementById('searchTerm').value = 'Nr. ' + nr;
+            document.getElementById('timer').textContent = '';
+            displayResults();
+
+            // If highlight parameter present — open transcript and scroll to text
+            if (hl) {
+                _pendingHighlight = { start: hl, len: hll || hl.length };
+                openHtmlTranscriptViewer(nr, lang);
+            }
+        }
+
+        if (usingSqlite) {
+            db.queryMetaAsync(
+                'SELECT * FROM lectures WHERE nr = ? LIMIT 1', [nr]
+            ).then(function (rows) {
+                if (rows.length === 0) return;
+                showLecture(rows.map(mapSqlRowToUI));
+            });
+        } else {
+            var found = DB.filter(function (r) {
+                return (r['Nr.'] || '').toString().trim() === nr;
+            });
+            if (found.length === 0) return;
+            showLecture(found);
+        }
+    }
+
+    function buildShareUrl(nr, highlightText, lang) {
+        var base = window.location.href.split('#')[0].replace(/index\.html$/, '');
+        var hash = '#nr=' + encodeURIComponent(nr);
+        if (lang && lang !== 'en') hash += '&lang=' + lang;
+        if (highlightText) {
+            var clean = highlightText.replace(/\s+/g, ' ').trim();
+            hash += '&hl=' + encodeURIComponent(clean.substring(0, 20));
+            hash += '&hll=' + clean.length;
+        }
+        return base + hash;
+    }
+
+    function copyShareLink(nr, title, subject) {
+        var url = buildShareUrl(nr);
+        // Build rich text: title + subject + URL
+        var lines = [];
+        if (title) lines.push(title);
+        if (subject) {
+            // Clean subject: remove leading dot, trim
+            var subj = subject.replace(/^\./, '').trim();
+            if (subj) lines.push(subj);
+        }
+        lines.push(url);
+        var text = lines.join('\n');
+
+        function fallbackCopy() {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showCopyToast();
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+                showCopyToast();
+            }).catch(function () {
+                fallbackCopy();
+            });
+        } else {
+            fallbackCopy();
+        }
+    }
+
+    function showCopyToast() {
+        var toast = document.getElementById('copyToast');
+        if (toast) toast.remove(); // re-create in correct parent
+
+        toast = document.createElement('div');
+        toast.id = 'copyToast';
+        toast.className = 'copy-toast';
+
+        // If transcript modal is open, put toast inside it so it's visible above overlay
+        var overlay = document.getElementById('transcriptModalOverlay');
+        if (overlay && overlay.classList.contains('active')) {
+            var modal = overlay.querySelector('.transcript-modal');
+            if (modal) {
+                toast.style.position = 'absolute';
+                toast.style.bottom = '20px';
+                toast.style.left = '50%';
+                toast.style.transform = 'translateX(-50%)';
+                modal.style.position = 'relative';
+                modal.appendChild(toast);
+            } else {
+                document.body.appendChild(toast);
+            }
+        } else {
+            document.body.appendChild(toast);
+        }
+
+        toast.textContent = i18n.t('linkCopied') || 'Link copied!';
+        toast.classList.add('show');
+        setTimeout(function () { toast.classList.remove('show'); }, 2500);
     }
 
     // ===== IndexedDB Cache (for XLSX fallback) =====
@@ -289,6 +441,7 @@ PPP.app = (function () {
         if (!dataLoaded) return;
         // Allow empty search in citations mode (shows stats overview)
         if (!term && searchMode !== 'citations' && searchMode !== 'citationsTop') return;
+        setActiveCollection(null);
         lastSearchTerm = term;
         currentPage = 1;
         performSearch();
@@ -560,6 +713,192 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = i18n.t('latest20Transcripts');
         document.getElementById('timer').textContent = '';
         displayResults();
+    }
+
+    // ===== FAVORITES =====
+
+    function showFavorites() {
+        if (!dataLoaded) return;
+        track('quick-action', { action: 'favorites' });
+
+        var cols = PPP.favorites ? PPP.favorites.getCollections() : [];
+        if (cols.length === 0) {
+            setSearchMode('metadata');
+            lastSearchTerm = '';
+            allResults = [];
+            totalResults = 0;
+            currentPage = 1;
+            matchHints = new Map();
+            document.getElementById('searchTerm').value = i18n.t('favorites');
+            document.getElementById('timer').textContent = '';
+            displayResults();
+            var tbody = document.querySelector('#resultsTable tbody');
+            if (tbody) {
+                var row = tbody.querySelector('tr');
+                if (row && row.cells[0]) row.cells[0].textContent = i18n.t('noFavorites');
+            }
+            return;
+        }
+
+        // Show collections picker popup under the Favorites button
+        _showCollectionsPicker();
+    }
+
+    function _showCollectionsPicker() {
+        // Close any existing picker
+        var old = document.getElementById('collectionsPickerPopup');
+        if (old) old.remove();
+
+        var cols = PPP.favorites.getCollections();
+        var btn = document.getElementById('favoritesBtn');
+
+        var popup = document.createElement('div');
+        popup.id = 'collectionsPickerPopup';
+        popup.className = 'collections-picker';
+
+        // "All saved" option
+        var allItem = document.createElement('div');
+        allItem.className = 'collections-picker-item';
+        var allCount = PPP.favorites.count();
+        allItem.innerHTML = '<span class="cpi-name">' + (i18n.t('allSaved') || 'All saved') + '</span><span class="cpi-count">' + allCount + '</span>';
+        allItem.onclick = function () {
+            popup.remove();
+            document.removeEventListener('click', onDocClick);
+            _showCollectionLectures(null, i18n.t('allSaved') || 'All saved');
+        };
+        popup.appendChild(allItem);
+
+        // Divider
+        var hr = document.createElement('div');
+        hr.className = 'collections-picker-divider';
+        popup.appendChild(hr);
+
+        // Each collection
+        cols.forEach(function (col) {
+            var item = document.createElement('div');
+            item.className = 'collections-picker-item';
+            item.innerHTML = '<span class="cpi-name">' + _escHtml(col.name) + '</span><span class="cpi-count">' + col.count + '</span>';
+            item.onclick = function () {
+                popup.remove();
+                document.removeEventListener('click', onDocClick);
+                _showCollectionLectures(col.id, col.name);
+            };
+            popup.appendChild(item);
+        });
+
+        document.body.appendChild(popup);
+
+        // Position under button
+        var rect = btn.getBoundingClientRect();
+        popup.style.top = (rect.bottom + 4 + window.scrollY) + 'px';
+        popup.style.left = (rect.left + window.scrollX) + 'px';
+
+        function onDocClick(e) {
+            if (!popup.contains(e.target) && e.target !== btn) {
+                popup.remove();
+                document.removeEventListener('click', onDocClick);
+            }
+        }
+        setTimeout(function () { document.addEventListener('click', onDocClick); }, 0);
+    }
+
+    function _escHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function _showCollectionLectures(colId, label) {
+        setActiveCollection(label);
+        setSearchMode('metadata');
+
+        var nrs = colId !== null
+            ? PPP.favorites.getCollectionLectures(colId)
+            : PPP.favorites.getAll();
+
+        if (nrs.length === 0) {
+            lastSearchTerm = '';
+            allResults = [];
+            totalResults = 0;
+            currentPage = 1;
+            matchHints = new Map();
+            document.getElementById('searchTerm').value = label;
+            document.getElementById('timer').textContent = '';
+            displayResults();
+            var tbody = document.querySelector('#resultsTable tbody');
+            if (tbody) {
+                var row = tbody.querySelector('tr');
+                if (row && row.cells[0]) row.cells[0].textContent = i18n.t('noFavorites');
+            }
+            return;
+        }
+
+        if (usingSqlite) {
+            var placeholders = nrs.map(function () { return '?'; }).join(',');
+            db.queryMetaAsync(
+                'SELECT * FROM lectures WHERE nr IN (' + placeholders + ') ORDER BY date DESC',
+                nrs
+            ).then(function (rows) {
+                var uiRows = rows.map(mapSqlRowToUI);
+                lastSearchTerm = label;
+                allResults = uiRows;
+                totalResults = uiRows.length;
+                currentPage = 1;
+                matchHints = new Map();
+                document.getElementById('searchTerm').value = label;
+                document.getElementById('timer').textContent = '';
+                displayResults();
+            });
+            return;
+        }
+
+        var nrSet = new Set(nrs);
+        allResults = DB.filter(function (r) {
+            return nrSet.has((r['Nr.'] || '').toString().trim());
+        });
+        allResults.sort(utils.compareDates);
+        lastSearchTerm = label;
+        totalResults = allResults.length;
+        currentPage = 1;
+        matchHints = new Map();
+        document.getElementById('searchTerm').value = label;
+        document.getElementById('timer').textContent = '';
+        displayResults();
+    }
+
+    var _activeCollectionName = null;
+
+    function setActiveCollection(name) {
+        _activeCollectionName = name || null;
+        updateFavoritesCount();
+    }
+
+    function updateFavoritesCount() {
+        var btn = document.getElementById('favoritesBtn');
+        var badge = document.getElementById('favCount');
+        if (!badge) return;
+        var c = PPP.favorites ? PPP.favorites.count() : 0;
+        badge.textContent = c > 0 ? c : '';
+        badge.style.display = c > 0 ? 'inline-block' : 'none';
+        if (btn) {
+            var label = '\u2605 ' + i18n.t('favorites') + ' ';
+            btn.firstChild.textContent = label;
+            // Show active collection subtitle
+            var sub = document.getElementById('favActiveCol');
+            if (!sub) {
+                sub = document.createElement('span');
+                sub.id = 'favActiveCol';
+                sub.className = 'fav-active-col';
+                btn.appendChild(sub);
+            }
+            if (_activeCollectionName) {
+                sub.textContent = _activeCollectionName;
+                sub.style.display = 'block';
+            } else {
+                sub.textContent = '';
+                sub.style.display = 'none';
+            }
+        }
     }
 
     function showRecommendations() {
@@ -1003,8 +1342,19 @@ PPP.app = (function () {
                 // Insert HTML content
                 body.innerHTML = rows[0].html_content || '';
 
-                // Scroll to block anchor
-                if (blockIndex) {
+                // Attach selection share handler
+                _attachTranscriptSelectionShare(body, lectureNr, lang);
+
+                // Scroll to block anchor or highlight text
+                var deepHl = _pendingHighlight;
+                _pendingHighlight = null;
+
+                if (deepHl) {
+                    // Deep link highlight — find text, highlight, scroll
+                    setTimeout(function () {
+                        _highlightAndScroll(body, deepHl);
+                    }, 150);
+                } else if (blockIndex) {
                     setTimeout(function () {
                         var anchor = document.getElementById('block-' + blockIndex);
                         if (anchor && body) {
@@ -1021,6 +1371,157 @@ PPP.app = (function () {
         }).catch(function (err) {
             title.textContent = 'Error';
             body.textContent = 'Failed to load HTML transcripts: ' + err.message;
+        });
+    }
+
+    // ===== TRANSCRIPT TEXT HIGHLIGHT SHARING =====
+
+    function _highlightAndScroll(container, hlObj) {
+        // hlObj = { start: "first 50 chars", len: total_char_count }
+        var startText = (typeof hlObj === 'string') ? hlObj : hlObj.start;
+        var totalLen = (typeof hlObj === 'string') ? startText.length : (hlObj.len || startText.length);
+        if (!startText) return;
+
+        // Build concatenated text map for cross-node searching
+        var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+        var textNodes = [];
+        var fullText = '';
+        var n;
+        while ((n = walker.nextNode())) {
+            textNodes.push({ node: n, offset: fullText.length, len: n.textContent.length });
+            fullText += n.textContent;
+        }
+        if (!textNodes.length) return;
+
+        // Find start position
+        var startPos = fullText.toLowerCase().indexOf(startText.toLowerCase());
+        if (startPos === -1) return;
+        var endPos = startPos + totalLen;
+
+        // Map positions back to DOM nodes
+        function findNodeAt(pos) {
+            for (var i = 0; i < textNodes.length; i++) {
+                var t = textNodes[i];
+                if (pos >= t.offset && pos <= t.offset + t.len) {
+                    return { node: t.node, offset: pos - t.offset };
+                }
+            }
+            var last = textNodes[textNodes.length - 1];
+            return { node: last.node, offset: last.len };
+        }
+
+        var startPoint = findNodeAt(startPos);
+        var endPoint = findNodeAt(endPos);
+
+        // Highlight each text node in range individually (works across block elements)
+        var hlClass = 'transcript-deep-highlight';
+        var firstMark = null;
+        for (var ti = 0; ti < textNodes.length; ti++) {
+            var tn = textNodes[ti];
+            var nodeStart = tn.offset;
+            var nodeEnd = tn.offset + tn.len;
+            // Skip nodes outside the highlight range
+            if (nodeEnd <= startPos || nodeStart >= endPos) continue;
+
+            var wrapStart = Math.max(0, startPos - nodeStart);
+            var wrapEnd = Math.min(tn.len, endPos - nodeStart);
+            if (wrapStart >= wrapEnd) continue;
+
+            try {
+                var wr = document.createRange();
+                wr.setStart(tn.node, wrapStart);
+                wr.setEnd(tn.node, wrapEnd);
+                var m = document.createElement('mark');
+                m.className = hlClass;
+                wr.surroundContents(m);
+                if (!firstMark) firstMark = m;
+            } catch (ex) { /* skip problematic nodes */ }
+        }
+
+        if (!firstMark) return;
+
+        setTimeout(function () {
+            var modalBody = document.getElementById('transcriptModalBody');
+            if (modalBody && modalBody.contains(firstMark)) {
+                var markRect = firstMark.getBoundingClientRect();
+                var bodyRect = modalBody.getBoundingClientRect();
+                var relativeTop = markRect.top - bodyRect.top + modalBody.scrollTop;
+                modalBody.scrollTop = Math.max(0, relativeTop - 60);
+            } else {
+                firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 300);
+    }
+
+    function _attachTranscriptSelectionShare(body, lectureNr, lang) {
+        // Remove old share bubble if any
+        var old = document.getElementById('transcriptShareBubble');
+        if (old) old.remove();
+
+        body.addEventListener('mouseup', function (e) {
+            // Don't remove bubble if user is clicking on it (click fires after mouseup)
+            var existingBubble = document.getElementById('transcriptShareBubble');
+            if (existingBubble && existingBubble.contains(e.target)) return;
+
+            var sel = window.getSelection();
+            var text = (sel && sel.toString() || '').trim();
+            // Remove old bubble
+            if (existingBubble) existingBubble.remove();
+
+            if (!text || text.length < 5) return;
+
+            // Create share bubble near selection
+            var range = sel.getRangeAt(0);
+            var rect = range.getBoundingClientRect();
+            var bodyRect = body.getBoundingClientRect();
+
+            var bubble = document.createElement('button');
+            bubble.id = 'transcriptShareBubble';
+            bubble.className = 'transcript-share-bubble';
+            bubble.textContent = '🔗 ' + i18n.t('shareQuote');
+            bubble.style.top = (rect.bottom - bodyRect.top + body.scrollTop + 6) + 'px';
+            bubble.style.left = (rect.left - bodyRect.left + rect.width / 2) + 'px';
+            body.appendChild(bubble);
+
+            bubble.addEventListener('click', function (e) {
+                e.stopPropagation();
+                e.preventDefault();
+                var url = buildShareUrl(lectureNr, text, lang);
+                var title = (document.getElementById('transcriptModalTitle') || {}).textContent || '';
+                var preview = text.substring(0, 60).replace(/\s+/g, ' ').trim();
+                var copyText = 'Quote from:\n"' + title + '"\n\n📖 «' + preview + (text.length > 60 ? '...' : '') + '»\n' + url;
+                var bbl = bubble; // keep ref
+
+                function done() {
+                    showCopyToast();
+                    bbl.remove();
+                }
+
+                function fallback() {
+                    var ta = document.createElement('textarea');
+                    ta.value = copyText;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    done();
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(copyText).then(done).catch(fallback);
+                } else {
+                    fallback();
+                }
+            });
+        });
+
+        // Remove bubble on click elsewhere (but not on the bubble itself)
+        body.addEventListener('mousedown', function (e) {
+            var bubble = document.getElementById('transcriptShareBubble');
+            if (bubble && !bubble.contains(e.target)) bubble.remove();
         });
     }
 
@@ -1162,6 +1663,7 @@ PPP.app = (function () {
             }
         }
         localStorage.setItem('preferredLanguage', lang);
+        updateFavoritesCount();
         if (allResults.length > 0) displayResults();
         else ui.renderEmptyTable();
     }
@@ -1235,61 +1737,6 @@ PPP.app = (function () {
         localStorage.setItem('installDismissed', '1');
     }
 
-    // ===== FAVORITES =====
-    function updateFavoritesCount() {
-        var badge = document.getElementById('favCount');
-        if (!badge || !PPP.favorites) return;
-        var cnt = PPP.favorites.count();
-        if (cnt > 0) {
-            badge.textContent = cnt;
-            badge.style.display = '';
-        } else {
-            badge.style.display = 'none';
-        }
-    }
-
-    function showFavorites() {
-        if (!PPP.favorites) return;
-        var allNrs = PPP.favorites.getAll();
-        if (allNrs.length === 0) {
-            document.getElementById('results').innerHTML =
-                '<p style="padding:20px;text-align:center;color:#888;">' +
-                utils.escapeHtml(i18n.t('noFavorites')) + '</p>';
-            document.getElementById('timer').textContent = '';
-            document.getElementById('resultCount').textContent = '';
-            return;
-        }
-
-        // Switch to metadata mode
-        setSearchMode('metadata');
-
-        var params = {};
-        var placeholders = allNrs.map(function (nr, i) {
-            var key = '$nr' + i;
-            params[key] = nr;
-            return key;
-        });
-
-        db.queryMetaAsync(
-            "SELECT * FROM lectures WHERE nr IN (" + placeholders.join(',') +
-            ") ORDER BY CASE WHEN date = 'unknown' THEN 1 ELSE 0 END, date DESC",
-            params
-        ).then(function (sqlRows) {
-            allResults = sqlRows.map(mapSqlRowToUI);
-            totalResults = allResults.length;
-            currentPage = 1;
-            lastSearchTerm = '';
-            matchHints = new Map();
-            document.getElementById('searchTerm').value = '';
-            document.getElementById('timer').textContent =
-                i18n.t('favorites') + ' (' + totalResults + ')';
-            displayResults();
-            track('quick-action', { type: 'favorites', count: totalResults });
-        }).catch(function (err) {
-            console.error('Favorites query error:', err);
-        });
-    }
-
     // ===== PUBLIC API =====
     return {
         init: init,
@@ -1319,7 +1766,10 @@ PPP.app = (function () {
         openHtmlTranscriptViewer: openHtmlTranscriptViewer,
         closeTranscriptModal: closeTranscriptModal,
         showFavorites: showFavorites,
-        updateFavoritesCount: updateFavoritesCount
+        updateFavoritesCount: updateFavoritesCount,
+        copyShareLink: copyShareLink,
+        buildShareUrl: buildShareUrl,
+        toggleTheme: toggleTheme
     };
 })();
 
