@@ -292,6 +292,7 @@ PPP.app = (function () {
         if (!params || !params.nr) return;
         var nr = params.nr.trim();
         var hl = params.hl || null;
+        var hle = params.hle || null;
 
         // Show the lecture in results
         function showLecture(uiRows) {
@@ -306,7 +307,7 @@ PPP.app = (function () {
 
             // If highlight parameter present — open transcript and scroll to text
             if (hl) {
-                _pendingHighlight = hl;
+                _pendingHighlight = { start: hl, end: hle };
                 openHtmlTranscriptViewer(nr, 'en');
             }
         }
@@ -331,9 +332,14 @@ PPP.app = (function () {
         var base = window.location.href.split('#')[0];
         var hash = '#nr=' + encodeURIComponent(nr);
         if (highlightText) {
-            // Take first 80 chars of selection as anchor
-            var snippet = highlightText.replace(/\s+/g, ' ').trim().substring(0, 80);
-            hash += '&hl=' + encodeURIComponent(snippet);
+            var clean = highlightText.replace(/\s+/g, ' ').trim();
+            // Encode start (first 50 chars) and end (last 50 chars)
+            var hlStart = clean.substring(0, 50);
+            hash += '&hl=' + encodeURIComponent(hlStart);
+            if (clean.length > 60) {
+                var hlEnd = clean.substring(clean.length - 50);
+                hash += '&hle=' + encodeURIComponent(hlEnd);
+            }
         }
         return base + hash;
     }
@@ -1373,29 +1379,79 @@ PPP.app = (function () {
 
     // ===== TRANSCRIPT TEXT HIGHLIGHT SHARING =====
 
-    function _highlightAndScroll(container, searchText) {
-        // Walk text nodes to find the snippet
+    function _highlightAndScroll(container, hlObj) {
+        // hlObj = { start: "first 50 chars", end: "last 50 chars" or null }
+        var startText = (typeof hlObj === 'string') ? hlObj : hlObj.start;
+        var endText = (typeof hlObj === 'string') ? null : hlObj.end;
+        if (!startText) return;
+
+        var startNeedle = startText.toLowerCase();
+        var endNeedle = endText ? endText.toLowerCase() : null;
+
+        // Collect all text nodes
         var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
-        var needle = searchText.toLowerCase();
-        var node;
-        while ((node = walker.nextNode())) {
-            var idx = node.textContent.toLowerCase().indexOf(needle);
-            if (idx === -1) continue;
+        var textNodes = [];
+        var n;
+        while ((n = walker.nextNode())) textNodes.push(n);
+        if (!textNodes.length) return;
 
-            // Split text node and wrap match in <mark>
-            var range = document.createRange();
-            range.setStart(node, idx);
-            range.setEnd(node, Math.min(idx + searchText.length, node.textContent.length));
-            var mark = document.createElement('mark');
-            mark.className = 'transcript-deep-highlight';
-            range.surroundContents(mark);
-
-            // Scroll to highlight
-            setTimeout(function () {
-                mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 50);
-            return;
+        // Find start position
+        var startNode = null, startOffset = 0;
+        for (var i = 0; i < textNodes.length; i++) {
+            var idx = textNodes[i].textContent.toLowerCase().indexOf(startNeedle);
+            if (idx !== -1) {
+                startNode = textNodes[i];
+                startOffset = idx;
+                break;
+            }
         }
+        if (!startNode) return;
+
+        // Find end position
+        var endNode = null, endOffset = 0;
+        if (endNeedle) {
+            // Search from end backwards for the end snippet
+            for (var j = textNodes.length - 1; j >= 0; j--) {
+                var eidx = textNodes[j].textContent.toLowerCase().lastIndexOf(endNeedle);
+                if (eidx !== -1) {
+                    endNode = textNodes[j];
+                    endOffset = eidx + endText.length;
+                    break;
+                }
+            }
+        }
+        if (!endNode) {
+            // No end marker — highlight just the start snippet
+            endNode = startNode;
+            endOffset = Math.min(startOffset + startText.length, startNode.textContent.length);
+        }
+
+        // Create range spanning start to end
+        var range = document.createRange();
+        range.setStart(startNode, startOffset);
+        range.setEnd(endNode, Math.min(endOffset, endNode.textContent.length));
+
+        // Wrap in highlight — use extractContents + mark wrapper for multi-node ranges
+        var mark = document.createElement('mark');
+        mark.className = 'transcript-deep-highlight';
+        try {
+            mark.appendChild(range.extractContents());
+            range.insertNode(mark);
+        } catch (ex) {
+            // Fallback: just highlight start node
+            var fallbackRange = document.createRange();
+            fallbackRange.setStart(startNode, startOffset);
+            fallbackRange.setEnd(startNode, Math.min(startOffset + startText.length, startNode.textContent.length));
+            var m2 = document.createElement('mark');
+            m2.className = 'transcript-deep-highlight';
+            fallbackRange.surroundContents(m2);
+            mark = m2;
+        }
+
+        // Scroll to highlight
+        setTimeout(function () {
+            mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 50);
     }
 
     function _attachTranscriptSelectionShare(body, lectureNr, lang) {
@@ -1432,7 +1488,7 @@ PPP.app = (function () {
                 e.stopPropagation();
                 e.preventDefault();
                 var url = buildShareUrl(lectureNr, text);
-                var copyText = text.substring(0, 120) + (text.length > 120 ? '...' : '') + '\n' + url;
+                var copyText = '«' + text + '»\n' + url;
                 var bbl = bubble; // keep ref
 
                 function done() {
