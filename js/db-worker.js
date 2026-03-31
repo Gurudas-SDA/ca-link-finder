@@ -59,22 +59,21 @@ function loadDB(dbName, url) {
                     // Cache hit — load from cache (fast)
                     self.postMessage({ cmd: 'progress', dbName: dbName, progress: 0.5 });
 
-                    // Background revalidation — check if server has newer version
-                    var cachedLen = cachedResponse.headers.get('x-original-size') ||
-                                    cachedResponse.headers.get('content-length') || '0';
+                    // Background revalidation via ETag (GitHub Pages provides it)
+                    var cachedEtag = cachedResponse.headers.get('x-saved-etag') || '';
                     fetch(url, { method: 'HEAD' }).then(function (headResp) {
                         if (!headResp.ok) return;
-                        var serverLen = headResp.headers.get('content-length') || '0';
-                        if (serverLen !== cachedLen && serverLen !== '0') {
-                            // Server has different version — re-download in background
+                        var serverEtag = headResp.headers.get('etag') || '';
+                        if (serverEtag && serverEtag !== cachedEtag) {
+                            // Server has newer version — re-download in background
                             fetch(url).then(function (resp) {
                                 if (!resp.ok) return;
-                                var contentLen = resp.headers.get('content-length') || '0';
+                                var etag = resp.headers.get('etag') || '';
                                 return resp.arrayBuffer().then(function (buf) {
                                     var freshResp = new Response(buf, {
                                         headers: {
                                             'Content-Type': 'application/octet-stream',
-                                            'x-original-size': contentLen
+                                            'x-saved-etag': etag
                                         }
                                     });
                                     cache.put(url, freshResp);
@@ -90,13 +89,17 @@ function loadDB(dbName, url) {
                         self.postMessage({ cmd: 'progress', dbName: dbName, progress: 1.0 });
                     });
                 }
-                // Cache miss — fetch with progress, then cache
-                return fetchWithProgress(dbName, url).then(function (arrayBuffer) {
-                    var contentLen = String(arrayBuffer.byteLength);
+                // Cache miss — fetch with progress, get ETag via HEAD, then cache
+                var currentEtag = '';
+                return fetch(url, { method: 'HEAD' }).then(function (h) {
+                    currentEtag = (h.ok && h.headers.get('etag')) || '';
+                }).catch(function () {}).then(function () {
+                    return fetchWithProgress(dbName, url);
+                }).then(function (arrayBuffer) {
                     var response = new Response(arrayBuffer, {
                         headers: {
                             'Content-Type': 'application/octet-stream',
-                            'x-original-size': contentLen
+                            'x-saved-etag': currentEtag
                         }
                     });
                     cache.put(url, response);

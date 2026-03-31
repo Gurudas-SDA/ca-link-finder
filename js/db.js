@@ -70,7 +70,7 @@ PPP.db = (function () {
      */
     function tryInitWorker() {
         try {
-            worker = new Worker('js/db-worker.js?v=cache3');
+            worker = new Worker('js/db-worker.js?v=cache4');
             worker.onmessage = onWorkerMessage;
             worker.onerror = function (err) {
                 console.warn('DB Worker error, falling back to main thread:', err);
