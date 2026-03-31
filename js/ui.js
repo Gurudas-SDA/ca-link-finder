@@ -156,11 +156,10 @@ PPP.ui = (function () {
                 btn.setAttribute('data-nr', nr);
                 btn.innerHTML = '&#9733;';
                 btn.onclick = function (e) {
+                    e.stopPropagation();
                     var el = e.currentTarget;
                     var nrVal = el.getAttribute('data-nr');
-                    var isNowFav = PPP.favorites.toggle(nrVal);
-                    el.classList.toggle('active', isNowFav);
-                    if (PPP.app.updateFavoritesCount) PPP.app.updateFavoritesCount();
+                    showSaveToPopup(nrVal, el);
                 };
                 starTd.appendChild(btn);
             }
@@ -563,6 +562,143 @@ PPP.ui = (function () {
         }
         html += '</tbody>';
         table.innerHTML = html;
+    }
+
+    // ===== "Save to..." popup =====
+    var _activePopup = null;
+
+    function closeSaveToPopup() {
+        if (_activePopup) {
+            _activePopup.remove();
+            _activePopup = null;
+        }
+        document.removeEventListener('click', _onDocClick);
+    }
+
+    function _onDocClick(e) {
+        if (_activePopup && !_activePopup.contains(e.target)) {
+            closeSaveToPopup();
+        }
+    }
+
+    function showSaveToPopup(nr, anchorEl) {
+        closeSaveToPopup();
+        var fav = PPP.favorites;
+        var cols = fav.getCollections();
+
+        var popup = document.createElement('div');
+        popup.className = 'save-to-popup';
+        _activePopup = popup;
+
+        // Header
+        var header = document.createElement('div');
+        header.className = 'save-to-header';
+        header.textContent = t('saveTo') || 'Save to...';
+        popup.appendChild(header);
+
+        // Collection list
+        var list = document.createElement('div');
+        list.className = 'save-to-list';
+
+        cols.forEach(function (col) {
+            var item = document.createElement('label');
+            item.className = 'save-to-item';
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = fav.isInCollection(col.id, nr);
+            cb.onchange = function () {
+                if (cb.checked) {
+                    fav.addToCollection(col.id, nr);
+                } else {
+                    fav.removeFromCollection(col.id, nr);
+                }
+                _updateStarState(nr);
+                if (PPP.app.updateFavoritesCount) PPP.app.updateFavoritesCount();
+            };
+            var nameSpan = document.createElement('span');
+            nameSpan.className = 'save-to-name';
+            nameSpan.textContent = col.name;
+            var countSpan = document.createElement('span');
+            countSpan.className = 'save-to-count';
+            countSpan.textContent = col.count;
+            item.appendChild(cb);
+            item.appendChild(nameSpan);
+            item.appendChild(countSpan);
+            list.appendChild(item);
+        });
+
+        popup.appendChild(list);
+
+        // "+ New collection" button
+        var newBtn = document.createElement('button');
+        newBtn.className = 'save-to-new';
+        newBtn.innerHTML = '+ ' + (t('newCollection') || 'New collection');
+        newBtn.onclick = function (e) {
+            e.stopPropagation();
+            _showNewCollectionInput(popup, nr);
+        };
+        popup.appendChild(newBtn);
+
+        // Position popup near the star
+        document.body.appendChild(popup);
+        var rect = anchorEl.getBoundingClientRect();
+        var popupRect = popup.getBoundingClientRect();
+        var top = rect.bottom + 4;
+        var left = rect.left;
+        // Keep within viewport
+        if (left + popupRect.width > window.innerWidth - 8) {
+            left = window.innerWidth - popupRect.width - 8;
+        }
+        if (top + popupRect.height > window.innerHeight - 8) {
+            top = rect.top - popupRect.height - 4;
+        }
+        popup.style.top = (top + window.scrollY) + 'px';
+        popup.style.left = (left + window.scrollX) + 'px';
+
+        setTimeout(function () {
+            document.addEventListener('click', _onDocClick);
+        }, 0);
+    }
+
+    function _showNewCollectionInput(popup, nr) {
+        var existing = popup.querySelector('.save-to-input-row');
+        if (existing) return;
+        var newBtn = popup.querySelector('.save-to-new');
+
+        var row = document.createElement('div');
+        row.className = 'save-to-input-row';
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'save-to-input';
+        input.placeholder = t('collectionName') || 'Collection name';
+        input.maxLength = 40;
+        var okBtn = document.createElement('button');
+        okBtn.className = 'save-to-ok';
+        okBtn.textContent = '✓';
+        okBtn.onclick = function (e) {
+            e.stopPropagation();
+            var name = input.value.trim();
+            if (!name) return;
+            var col = PPP.favorites.createCollection(name);
+            PPP.favorites.addToCollection(col.id, nr);
+            _updateStarState(nr);
+            if (PPP.app.updateFavoritesCount) PPP.app.updateFavoritesCount();
+            closeSaveToPopup();
+        };
+        input.onkeydown = function (e) {
+            if (e.key === 'Enter') okBtn.click();
+            if (e.key === 'Escape') closeSaveToPopup();
+        };
+        row.appendChild(input);
+        row.appendChild(okBtn);
+        popup.insertBefore(row, newBtn);
+        input.focus();
+    }
+
+    function _updateStarState(nr) {
+        var stars = document.querySelectorAll('.fav-star[data-nr="' + nr + '"]');
+        var isFav = PPP.favorites.isFavorite(nr);
+        stars.forEach(function (s) { s.classList.toggle('active', isFav); });
     }
 
     return {

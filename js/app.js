@@ -656,10 +656,10 @@ PPP.app = (function () {
     function showFavorites() {
         if (!dataLoaded) return;
         track('quick-action', { action: 'favorites' });
-        setSearchMode('metadata');
 
-        var favNrs = PPP.favorites ? PPP.favorites.getAll() : [];
-        if (favNrs.length === 0) {
+        var cols = PPP.favorites ? PPP.favorites.getCollections() : [];
+        if (cols.length === 0) {
+            setSearchMode('metadata');
             lastSearchTerm = '';
             allResults = [];
             totalResults = 0;
@@ -668,7 +668,98 @@ PPP.app = (function () {
             document.getElementById('searchTerm').value = i18n.t('favorites');
             document.getElementById('timer').textContent = '';
             displayResults();
-            // Show helpful message
+            var tbody = document.querySelector('#resultsTable tbody');
+            if (tbody) {
+                var row = tbody.querySelector('tr');
+                if (row && row.cells[0]) row.cells[0].textContent = i18n.t('noFavorites');
+            }
+            return;
+        }
+
+        // Show collections picker popup under the Favorites button
+        _showCollectionsPicker();
+    }
+
+    function _showCollectionsPicker() {
+        // Close any existing picker
+        var old = document.getElementById('collectionsPickerPopup');
+        if (old) old.remove();
+
+        var cols = PPP.favorites.getCollections();
+        var btn = document.getElementById('favoritesBtn');
+
+        var popup = document.createElement('div');
+        popup.id = 'collectionsPickerPopup';
+        popup.className = 'collections-picker';
+
+        // "All saved" option
+        var allItem = document.createElement('div');
+        allItem.className = 'collections-picker-item';
+        var allCount = PPP.favorites.count();
+        allItem.innerHTML = '<span class="cpi-name">' + (i18n.t('allSaved') || 'All saved') + '</span><span class="cpi-count">' + allCount + '</span>';
+        allItem.onclick = function () {
+            popup.remove();
+            document.removeEventListener('click', onDocClick);
+            _showCollectionLectures(null, i18n.t('allSaved') || 'All saved');
+        };
+        popup.appendChild(allItem);
+
+        // Divider
+        var hr = document.createElement('div');
+        hr.className = 'collections-picker-divider';
+        popup.appendChild(hr);
+
+        // Each collection
+        cols.forEach(function (col) {
+            var item = document.createElement('div');
+            item.className = 'collections-picker-item';
+            item.innerHTML = '<span class="cpi-name">' + _escHtml(col.name) + '</span><span class="cpi-count">' + col.count + '</span>';
+            item.onclick = function () {
+                popup.remove();
+                document.removeEventListener('click', onDocClick);
+                _showCollectionLectures(col.id, col.name);
+            };
+            popup.appendChild(item);
+        });
+
+        document.body.appendChild(popup);
+
+        // Position under button
+        var rect = btn.getBoundingClientRect();
+        popup.style.top = (rect.bottom + 4 + window.scrollY) + 'px';
+        popup.style.left = (rect.left + window.scrollX) + 'px';
+
+        function onDocClick(e) {
+            if (!popup.contains(e.target) && e.target !== btn) {
+                popup.remove();
+                document.removeEventListener('click', onDocClick);
+            }
+        }
+        setTimeout(function () { document.addEventListener('click', onDocClick); }, 0);
+    }
+
+    function _escHtml(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function _showCollectionLectures(colId, label) {
+        setSearchMode('metadata');
+
+        var nrs = colId !== null
+            ? PPP.favorites.getCollectionLectures(colId)
+            : PPP.favorites.getAll();
+
+        if (nrs.length === 0) {
+            lastSearchTerm = '';
+            allResults = [];
+            totalResults = 0;
+            currentPage = 1;
+            matchHints = new Map();
+            document.getElementById('searchTerm').value = label;
+            document.getElementById('timer').textContent = '';
+            displayResults();
             var tbody = document.querySelector('#resultsTable tbody');
             if (tbody) {
                 var row = tbody.querySelector('tr');
@@ -678,35 +769,34 @@ PPP.app = (function () {
         }
 
         if (usingSqlite) {
-            var placeholders = favNrs.map(function () { return '?'; }).join(',');
+            var placeholders = nrs.map(function () { return '?'; }).join(',');
             db.queryMetaAsync(
                 'SELECT * FROM lectures WHERE nr IN (' + placeholders + ') ORDER BY date DESC',
-                favNrs
+                nrs
             ).then(function (rows) {
                 var uiRows = rows.map(mapSqlRowToUI);
-                lastSearchTerm = i18n.t('favorites');
+                lastSearchTerm = label;
                 allResults = uiRows;
                 totalResults = uiRows.length;
                 currentPage = 1;
                 matchHints = new Map();
-                document.getElementById('searchTerm').value = i18n.t('favorites');
+                document.getElementById('searchTerm').value = label;
                 document.getElementById('timer').textContent = '';
                 displayResults();
             });
             return;
         }
 
-        // Fallback: filter in-memory DB
-        var nrSet = new Set(favNrs);
+        var nrSet = new Set(nrs);
         allResults = DB.filter(function (r) {
             return nrSet.has((r['Nr.'] || '').toString().trim());
         });
         allResults.sort(utils.compareDates);
-        lastSearchTerm = i18n.t('favorites');
+        lastSearchTerm = label;
         totalResults = allResults.length;
         currentPage = 1;
         matchHints = new Map();
-        document.getElementById('searchTerm').value = i18n.t('favorites');
+        document.getElementById('searchTerm').value = label;
         document.getElementById('timer').textContent = '';
         displayResults();
     }
@@ -718,7 +808,6 @@ PPP.app = (function () {
         var c = PPP.favorites ? PPP.favorites.count() : 0;
         badge.textContent = c > 0 ? c : '';
         badge.style.display = c > 0 ? 'inline-block' : 'none';
-        // Update label with current language (no data-i18n since badge is inside)
         if (btn) {
             var label = '\u2605 ' + i18n.t('favorites') + ' ';
             btn.firstChild.textContent = label;

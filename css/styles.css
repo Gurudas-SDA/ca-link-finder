@@ -1037,6 +1037,73 @@ th.transcripts-block {
 }
 .copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* "Save to..." popup */
+.save-to-popup {
+    position: absolute; z-index: 10001;
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    min-width: 220px; max-width: 280px;
+    padding: 8px 0; font-size: 14px;
+}
+.save-to-header {
+    padding: 10px 16px 6px; font-weight: 700; font-size: 15px;
+    color: var(--primary-dark); border-bottom: 1px solid #eee;
+    margin-bottom: 4px;
+}
+.save-to-list { max-height: 240px; overflow-y: auto; }
+.save-to-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 16px; cursor: pointer; transition: background 0.15s;
+}
+.save-to-item:hover { background: #f5f0e8; }
+.save-to-item input[type="checkbox"] {
+    accent-color: var(--primary); width: 16px; height: 16px; flex-shrink: 0;
+}
+.save-to-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.save-to-count {
+    color: #999; font-size: 12px; min-width: 20px; text-align: right;
+}
+.save-to-new {
+    display: block; width: 100%; text-align: left;
+    background: none; border: none; border-top: 1px solid #eee;
+    padding: 10px 16px; cursor: pointer; color: var(--primary);
+    font-size: 14px; font-weight: 600; margin-top: 4px;
+    transition: background 0.15s;
+}
+.save-to-new:hover { background: #f5f0e8; }
+.save-to-input-row {
+    display: flex; gap: 6px; padding: 6px 16px; align-items: center;
+}
+.save-to-input {
+    flex: 1; border: 1px solid #ccc; border-radius: 6px;
+    padding: 5px 8px; font-size: 13px; outline: none;
+}
+.save-to-input:focus { border-color: var(--primary); }
+.save-to-ok {
+    background: var(--primary); color: #fff; border: none;
+    border-radius: 6px; width: 28px; height: 28px;
+    cursor: pointer; font-size: 14px; font-weight: 700;
+}
+
+/* Collections picker (from Favorites button) */
+.collections-picker {
+    position: absolute; z-index: 10001;
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    min-width: 200px; max-width: 280px;
+    padding: 6px 0; font-size: 14px;
+}
+.collections-picker-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 16px; cursor: pointer; transition: background 0.15s;
+}
+.collections-picker-item:hover { background: #f5f0e8; }
+.cpi-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.cpi-count {
+    color: #999; font-size: 12px; min-width: 20px; text-align: right;
+}
+.collections-picker-divider { height: 1px; background: #eee; margin: 2px 12px; }
+
 .fav-count-badge {
     display: inline-block;
     background: #fff;
