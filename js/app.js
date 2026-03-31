@@ -627,6 +627,7 @@ PPP.app = (function () {
                 "SELECT * FROM lectures WHERE added != '' AND nr != '' ORDER BY added DESC LIMIT 20"
             ).then(function (rows) {
                 var uiRows = rows.map(mapSqlRowToUI);
+                uiRows.sort(utils.compareDates);
                 lastSearchTerm = i18n.t('latest20Files');
                 allResults = uiRows;
                 totalResults = uiRows.length;
@@ -676,6 +677,7 @@ PPP.app = (function () {
                 "SELECT * FROM lectures WHERE scripts_added != '' AND nr != '' ORDER BY scripts_added DESC LIMIT 20"
             ).then(function (rows) {
                 var uiRows = rows.map(mapSqlRowToUI);
+                uiRows.sort(utils.compareDates);
                 lastSearchTerm = i18n.t('latest20Transcripts');
                 allResults = uiRows;
                 totalResults = uiRows.length;
