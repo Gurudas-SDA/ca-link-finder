@@ -1479,7 +1479,7 @@ PPP.app = (function () {
             bubble.id = 'transcriptShareBubble';
             bubble.className = 'transcript-share-bubble';
             bubble.textContent = '🔗 ' + i18n.t('shareQuote');
-            bubble.style.top = (rect.top - bodyRect.top + body.scrollTop - 36) + 'px';
+            bubble.style.top = (rect.bottom - bodyRect.top + body.scrollTop + 6) + 'px';
             bubble.style.left = (rect.left - bodyRect.left + rect.width / 2) + 'px';
             body.appendChild(bubble);
 
