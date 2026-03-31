@@ -190,12 +190,15 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await page.keyboard.press('Enter');
     await page.waitForSelector('.fav-star', { timeout: 10000 });
 
-    // Click first star to save
-    await page.click('.fav-star');
+    // Click first star — may open collections popup, toggle handles default collection
+    const firstStar = page.locator('.fav-star').first();
+    await firstStar.click();
 
-    // Star should become active
-    const isActive = await page.locator('.fav-star').first().evaluate(el => el.classList.contains('active'));
-    expect(isActive).toBe(true);
+    // Wait for star to become active (may need short delay for toggle + DOM update)
+    await page.waitForFunction(() => {
+      const star = document.querySelector('.fav-star');
+      return star && star.classList.contains('active');
+    }, { timeout: 5000 });
 
     // Click Favorites button
     await page.click('#favoritesBtn');
@@ -227,23 +230,23 @@ test.describe('CA Link Finder — Daily Health Check', () => {
       return body && body.textContent.length > 100;
     }, { timeout: 90000 });
 
-    // Select some text in the transcript body
-    await page.evaluate(() => {
-      const body = document.getElementById('transcriptModalBody');
-      const textNode = body.querySelector('p') || body.firstChild;
-      if (textNode) {
-        const range = document.createRange();
-        range.selectNodeContents(textNode);
-        const sel = window.getSelection();
-        sel.removeAllRanges();
-        sel.addRange(range);
-        // Trigger mouseup to show bubble
-        textNode.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-      }
-    });
+    // Use real mouse to select text — dispatchEvent doesn't trigger addEventListener handlers
+    const body = page.locator('#transcriptModalBody');
+    const firstP = body.locator('p').first();
+    await firstP.waitFor({ timeout: 5000 });
+    const box = await firstP.boundingBox();
 
-    // Share bubble should appear
-    const bubble = await page.locator('.share-quote-bubble').count();
+    if (box) {
+      // Click and drag to select text
+      await page.mouse.move(box.x + 10, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + Math.min(box.width - 10, 200), box.y + box.height / 2);
+      await page.mouse.up();
+    }
+
+    // Share bubble should appear (class: transcript-share-bubble)
+    await page.waitForSelector('.transcript-share-bubble', { timeout: 5000 });
+    const bubble = await page.locator('.transcript-share-bubble').count();
     expect(bubble).toBeGreaterThanOrEqual(1);
   });
 
