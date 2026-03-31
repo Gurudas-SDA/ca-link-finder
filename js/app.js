@@ -307,11 +307,22 @@ PPP.app = (function () {
         return base + '#nr=' + encodeURIComponent(nr);
     }
 
-    function copyShareLink(nr) {
+    function copyShareLink(nr, title, subject) {
         var url = buildShareUrl(nr);
+        // Build rich text: title + subject + URL
+        var lines = [];
+        if (title) lines.push(title);
+        if (subject) {
+            // Clean subject: remove leading dot, trim
+            var subj = subject.replace(/^\./, '').trim();
+            if (subj) lines.push(subj);
+        }
+        lines.push(url);
+        var text = lines.join('\n');
+
         function fallbackCopy() {
             var ta = document.createElement('textarea');
-            ta.value = url;
+            ta.value = text;
             ta.style.position = 'fixed';
             ta.style.opacity = '0';
             document.body.appendChild(ta);
@@ -321,7 +332,7 @@ PPP.app = (function () {
             showCopyToast();
         }
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(url).then(function () {
+            navigator.clipboard.writeText(text).then(function () {
                 showCopyToast();
             }).catch(function () {
                 fallbackCopy();

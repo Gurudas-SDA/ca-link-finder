@@ -171,11 +171,17 @@ PPP.ui = (function () {
                 var shareBtn = document.createElement('button');
                 shareBtn.className = 'share-btn';
                 shareBtn.setAttribute('data-nr', nr);
+                shareBtn.setAttribute('data-title', (row['Original file name'] || '').toString().trim());
+                shareBtn.setAttribute('data-subject', (row['Subject'] || '').toString().trim());
                 shareBtn.innerHTML = '&#128279;'; // 🔗
                 shareBtn.title = 'Copy link';
                 shareBtn.onclick = function (e) {
                     var el = e.currentTarget;
-                    PPP.app.copyShareLink(el.getAttribute('data-nr'));
+                    PPP.app.copyShareLink(
+                        el.getAttribute('data-nr'),
+                        el.getAttribute('data-title'),
+                        el.getAttribute('data-subject')
+                    );
                 };
                 shareTd.appendChild(shareBtn);
             }
