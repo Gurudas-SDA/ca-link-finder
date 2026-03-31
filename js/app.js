@@ -1403,12 +1403,15 @@ PPP.app = (function () {
         var old = document.getElementById('transcriptShareBubble');
         if (old) old.remove();
 
-        body.addEventListener('mouseup', function () {
+        body.addEventListener('mouseup', function (e) {
+            // Don't remove bubble if user is clicking on it (click fires after mouseup)
+            var existingBubble = document.getElementById('transcriptShareBubble');
+            if (existingBubble && existingBubble.contains(e.target)) return;
+
             var sel = window.getSelection();
             var text = (sel && sel.toString() || '').trim();
             // Remove old bubble
-            var bubble = document.getElementById('transcriptShareBubble');
-            if (bubble) bubble.remove();
+            if (existingBubble) existingBubble.remove();
 
             if (!text || text.length < 5) return;
 
