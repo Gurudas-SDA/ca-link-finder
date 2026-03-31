@@ -71,7 +71,25 @@ PPP.app = (function () {
     });
 
     // ===== INIT =====
+    function initTheme() {
+        var saved = localStorage.getItem('ppp_theme');
+        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var isDark = saved === 'dark' || (!saved && prefersDark);
+        if (isDark) document.body.classList.add('dark');
+        var btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+    }
+
+    function toggleTheme() {
+        var isDark = document.body.classList.toggle('dark');
+        localStorage.setItem('ppp_theme', isDark ? 'dark' : 'light');
+        var btn = document.getElementById('themeToggle');
+        if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+    }
+
     function init() {
+        initTheme();
+
         var savedLang = localStorage.getItem('preferredLanguage') || 'en';
         setLanguage(savedLang);
 
@@ -1554,7 +1572,8 @@ PPP.app = (function () {
         showFavorites: showFavorites,
         updateFavoritesCount: updateFavoritesCount,
         copyShareLink: copyShareLink,
-        buildShareUrl: buildShareUrl
+        buildShareUrl: buildShareUrl,
+        toggleTheme: toggleTheme
     };
 })();
 
