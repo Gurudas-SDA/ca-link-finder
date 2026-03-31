@@ -293,6 +293,7 @@ PPP.app = (function () {
         var nr = params.nr.trim();
         var hl = params.hl || null;
         var hll = params.hll ? parseInt(params.hll, 10) : 0;
+        var lang = params.lang || 'en';
 
         // Show the lecture in results
         function showLecture(uiRows) {
@@ -308,7 +309,7 @@ PPP.app = (function () {
             // If highlight parameter present — open transcript and scroll to text
             if (hl) {
                 _pendingHighlight = { start: hl, len: hll || hl.length };
-                openHtmlTranscriptViewer(nr, 'en');
+                openHtmlTranscriptViewer(nr, lang);
             }
         }
 
@@ -328,9 +329,10 @@ PPP.app = (function () {
         }
     }
 
-    function buildShareUrl(nr, highlightText) {
+    function buildShareUrl(nr, highlightText, lang) {
         var base = window.location.href.split('#')[0];
         var hash = '#nr=' + encodeURIComponent(nr);
+        if (lang && lang !== 'en') hash += '&lang=' + lang;
         if (highlightText) {
             var clean = highlightText.replace(/\s+/g, ' ').trim();
             hash += '&hl=' + encodeURIComponent(clean.substring(0, 50));
@@ -1484,7 +1486,7 @@ PPP.app = (function () {
             bubble.addEventListener('click', function (e) {
                 e.stopPropagation();
                 e.preventDefault();
-                var url = buildShareUrl(lectureNr, text);
+                var url = buildShareUrl(lectureNr, text, lang);
                 var title = (document.getElementById('transcriptModalTitle') || {}).textContent || '';
                 var preview = text.substring(0, 60).replace(/\s+/g, ' ').trim();
                 var copyText = 'Quote from:\n"' + title + '"\n\n📖 «' + preview + (text.length > 60 ? '...' : '') + '»\n' + url;
