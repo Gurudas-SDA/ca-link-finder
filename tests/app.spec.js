@@ -158,7 +158,96 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(parseInt(info)).toBeGreaterThan(0);
   });
 
-  test('10. No critical console errors during full workflow', async ({ page }) => {
+  test('10. Dark mode toggle works', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    // Initially body should not have 'dark' class (or have it from prefers-color-scheme)
+    const initialDark = await page.evaluate(() => document.body.classList.contains('dark'));
+
+    // Click theme toggle button
+    await page.click('#themeToggle');
+
+    // Class should have toggled
+    const afterToggle = await page.evaluate(() => document.body.classList.contains('dark'));
+    expect(afterToggle).toBe(!initialDark);
+
+    // Toggle back
+    await page.click('#themeToggle');
+    const afterSecondToggle = await page.evaluate(() => document.body.classList.contains('dark'));
+    expect(afterSecondToggle).toBe(initialDark);
+  });
+
+  test('11. Favorites — save and show', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    // Clear any existing favorites
+    await page.evaluate(() => localStorage.removeItem('ppp_collections'));
+
+    // Search to get results with star buttons
+    await page.fill('#searchTerm', 'tattva');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('.fav-star', { timeout: 10000 });
+
+    // Click first star to save
+    await page.click('.fav-star');
+
+    // Star should become active
+    const isActive = await page.locator('.fav-star').first().evaluate(el => el.classList.contains('active'));
+    expect(isActive).toBe(true);
+
+    // Click Favorites button
+    await page.click('#favoritesBtn');
+
+    // Should show at least 1 result
+    await page.waitForFunction(() => {
+      const rows = document.querySelectorAll('#resultsTable tbody tr');
+      return rows.length >= 1;
+    }, { timeout: 10000 });
+
+    const rows = await page.locator('#resultsTable tbody tr').count();
+    expect(rows).toBeGreaterThanOrEqual(1);
+
+    // Clean up
+    await page.evaluate(() => localStorage.removeItem('ppp_collections'));
+  });
+
+  test('12. Share quote bubble appears on text selection in transcript', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    // Open a transcript
+    await page.evaluate(() => PPP.app.openHtmlTranscriptViewer('455', 'en'));
+    await page.waitForSelector('#transcriptModalOverlay.active', { timeout: 10000 });
+
+    // Wait for transcript content to load
+    await page.waitForFunction(() => {
+      const body = document.getElementById('transcriptModalBody');
+      return body && body.textContent.length > 100;
+    }, { timeout: 90000 });
+
+    // Select some text in the transcript body
+    await page.evaluate(() => {
+      const body = document.getElementById('transcriptModalBody');
+      const textNode = body.querySelector('p') || body.firstChild;
+      if (textNode) {
+        const range = document.createRange();
+        range.selectNodeContents(textNode);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        // Trigger mouseup to show bubble
+        textNode.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      }
+    });
+
+    // Share bubble should appear
+    const bubble = await page.locator('.share-quote-bubble').count();
+    expect(bubble).toBeGreaterThanOrEqual(1);
+  });
+
+  test('13. No critical console errors during full workflow', async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto('./');
     await waitForAppReady(page);
