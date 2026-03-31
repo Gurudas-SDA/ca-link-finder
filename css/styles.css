@@ -557,6 +557,7 @@ h1 {
     margin-right: 12px;
 }
 .transcript-modal-body {
+    position: relative;
     padding: 20px;
     overflow-y: auto;
     flex: 1;
