@@ -1435,15 +1435,16 @@ PPP.app = (function () {
         }
 
         setTimeout(function () {
-            // Scroll the modal body container, not the window
             var modalBody = document.getElementById('transcriptModalBody');
             if (modalBody && modalBody.contains(mark)) {
-                var markTop = mark.offsetTop;
-                modalBody.scrollTop = Math.max(0, markTop - 60);
+                var markRect = mark.getBoundingClientRect();
+                var bodyRect = modalBody.getBoundingClientRect();
+                var relativeTop = markRect.top - bodyRect.top + modalBody.scrollTop;
+                modalBody.scrollTop = Math.max(0, relativeTop - 60);
             } else {
                 mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-        }, 100);
+        }, 300);
     }
 
     function _attachTranscriptSelectionShare(body, lectureNr, lang) {
