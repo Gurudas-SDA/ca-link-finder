@@ -29,13 +29,14 @@ function initEngine() {
     });
 }
 
-var CACHE_NAME = 'ppp-db-cache-v2';
+// Each DB type gets its own cache — so bumping meta doesn't invalidate transcripts
+var CACHE_PREFIX = 'ppp-db-';
 
-// Clean up old cache versions
+// Clean up legacy unified cache
 if (typeof caches !== 'undefined') {
     caches.keys().then(function (names) {
         names.forEach(function (name) {
-            if (name.startsWith('ppp-db-cache-') && name !== CACHE_NAME) {
+            if (name.startsWith('ppp-db-cache-')) {
                 caches.delete(name);
             }
         });
@@ -44,14 +45,15 @@ if (typeof caches !== 'undefined') {
 
 /**
  * Fetch a DB file with progress reporting, then create SQL.Database.
- * Uses Cache API with stale-while-revalidate:
- *   1. If cached — load instantly (fast UX)
- *   2. Background HEAD check — if server has newer version, re-download and update cache
- *   3. Next page load gets fresh DB automatically
+ * Uses per-DB Cache API with stale-while-revalidate:
+ *   - ppp-db-meta (daily updates, ~7MB)
+ *   - ppp-db-html_en, ppp-db-html_lv, ppp-db-html_ru (rare updates, 34-49MB each)
+ * Background HEAD check detects new versions without re-downloading everything.
  */
 function loadDB(dbName, url) {
+    var cacheName = CACHE_PREFIX + dbName;
     if (typeof caches !== 'undefined') {
-        return caches.open(CACHE_NAME).then(function (cache) {
+        return caches.open(cacheName).then(function (cache) {
             return cache.match(url).then(function (cachedResponse) {
                 if (cachedResponse) {
                     // Cache hit — load from cache (fast)
