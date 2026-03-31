@@ -1385,67 +1385,86 @@ PPP.app = (function () {
         var endText = (typeof hlObj === 'string') ? null : hlObj.end;
         if (!startText) return;
 
-        var startNeedle = startText.toLowerCase();
-        var endNeedle = endText ? endText.toLowerCase() : null;
-
-        // Collect all text nodes
+        // Build concatenated text map: [{node, offset, len}]
+        // This allows searching across formatted elements (<em>, <strong>, etc.)
         var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
         var textNodes = [];
+        var fullText = '';
         var n;
-        while ((n = walker.nextNode())) textNodes.push(n);
+        while ((n = walker.nextNode())) {
+            textNodes.push({ node: n, offset: fullText.length, len: n.textContent.length });
+            fullText += n.textContent;
+        }
         if (!textNodes.length) return;
 
-        // Find start position
-        var startNode = null, startOffset = 0;
-        for (var i = 0; i < textNodes.length; i++) {
-            var idx = textNodes[i].textContent.toLowerCase().indexOf(startNeedle);
-            if (idx !== -1) {
-                startNode = textNodes[i];
-                startOffset = idx;
-                break;
-            }
-        }
-        if (!startNode) return;
+        var fullLower = fullText.toLowerCase();
+        var startNeedle = startText.toLowerCase();
+
+        // Find start position in concatenated text
+        var startPos = fullLower.indexOf(startNeedle);
+        if (startPos === -1) return;
 
         // Find end position
-        var endNode = null, endOffset = 0;
-        if (endNeedle) {
-            // Search from end backwards for the end snippet
-            for (var j = textNodes.length - 1; j >= 0; j--) {
-                var eidx = textNodes[j].textContent.toLowerCase().lastIndexOf(endNeedle);
-                if (eidx !== -1) {
-                    endNode = textNodes[j];
-                    endOffset = eidx + endText.length;
-                    break;
+        var endPos;
+        if (endText) {
+            var endNeedle = endText.toLowerCase();
+            // Search from startPos forward for the end snippet
+            var searchFrom = startPos + startNeedle.length;
+            endPos = fullLower.indexOf(endNeedle, searchFrom);
+            if (endPos !== -1) {
+                endPos = endPos + endText.length; // end of the end snippet
+            } else {
+                // Try from startPos (end might overlap with start area)
+                endPos = fullLower.lastIndexOf(endNeedle);
+                if (endPos !== -1 && endPos >= startPos) {
+                    endPos = endPos + endText.length;
+                } else {
+                    endPos = startPos + startText.length; // fallback to start only
                 }
             }
+        } else {
+            endPos = startPos + startText.length;
         }
-        if (!endNode) {
-            // No end marker — highlight just the start snippet
-            endNode = startNode;
-            endOffset = Math.min(startOffset + startText.length, startNode.textContent.length);
+
+        // Map concatenated positions back to DOM nodes
+        function findNodeAt(pos) {
+            for (var i = 0; i < textNodes.length; i++) {
+                var t = textNodes[i];
+                if (pos >= t.offset && pos <= t.offset + t.len) {
+                    return { node: t.node, offset: pos - t.offset };
+                }
+            }
+            // Past the end — use last node
+            var last = textNodes[textNodes.length - 1];
+            return { node: last.node, offset: last.len };
         }
+
+        var startPoint = findNodeAt(startPos);
+        var endPoint = findNodeAt(endPos);
 
         // Create range spanning start to end
         var range = document.createRange();
-        range.setStart(startNode, startOffset);
-        range.setEnd(endNode, Math.min(endOffset, endNode.textContent.length));
+        range.setStart(startPoint.node, startPoint.offset);
+        range.setEnd(endPoint.node, Math.min(endPoint.offset, endPoint.node.textContent.length));
 
-        // Wrap in highlight — use extractContents + mark wrapper for multi-node ranges
+        // Wrap in highlight — extractContents handles multi-node ranges
         var mark = document.createElement('mark');
         mark.className = 'transcript-deep-highlight';
         try {
             mark.appendChild(range.extractContents());
             range.insertNode(mark);
         } catch (ex) {
-            // Fallback: just highlight start node
-            var fallbackRange = document.createRange();
-            fallbackRange.setStart(startNode, startOffset);
-            fallbackRange.setEnd(startNode, Math.min(startOffset + startText.length, startNode.textContent.length));
-            var m2 = document.createElement('mark');
-            m2.className = 'transcript-deep-highlight';
-            fallbackRange.surroundContents(m2);
-            mark = m2;
+            // Fallback: highlight just start snippet
+            try {
+                var fbRange = document.createRange();
+                fbRange.setStart(startPoint.node, startPoint.offset);
+                var fbEnd = Math.min(startPoint.offset + startText.length, startPoint.node.textContent.length);
+                fbRange.setEnd(startPoint.node, fbEnd);
+                var m2 = document.createElement('mark');
+                m2.className = 'transcript-deep-highlight';
+                fbRange.surroundContents(m2);
+                mark = m2;
+            } catch (ex2) { return; }
         }
 
         // Scroll to highlight
