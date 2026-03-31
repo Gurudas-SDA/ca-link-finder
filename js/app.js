@@ -624,7 +624,7 @@ PPP.app = (function () {
 
         if (usingSqlite) {
             db.queryMetaAsync(
-                "SELECT * FROM lectures WHERE added != '' AND nr != '' ORDER BY added DESC LIMIT 20"
+                "SELECT * FROM lectures WHERE date != '' AND date != 'N/A' AND date != 'unknown' AND nr != '' ORDER BY date DESC LIMIT 20"
             ).then(function (rows) {
                 var uiRows = rows.map(mapSqlRowToUI);
                 uiRows.sort(utils.compareDates);
