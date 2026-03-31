@@ -330,12 +330,12 @@ PPP.app = (function () {
     }
 
     function buildShareUrl(nr, highlightText, lang) {
-        var base = window.location.href.split('#')[0];
+        var base = window.location.href.split('#')[0].replace(/index\.html$/, '');
         var hash = '#nr=' + encodeURIComponent(nr);
         if (lang && lang !== 'en') hash += '&lang=' + lang;
         if (highlightText) {
             var clean = highlightText.replace(/\s+/g, ' ').trim();
-            hash += '&hl=' + encodeURIComponent(clean.substring(0, 50));
+            hash += '&hl=' + encodeURIComponent(clean.substring(0, 20));
             hash += '&hll=' + clean.length;
         }
         return base + hash;
