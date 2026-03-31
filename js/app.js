@@ -378,6 +378,7 @@ PPP.app = (function () {
         if (!dataLoaded) return;
         // Allow empty search in citations mode (shows stats overview)
         if (!term && searchMode !== 'citations' && searchMode !== 'citationsTop') return;
+        setActiveCollection(null);
         lastSearchTerm = term;
         currentPage = 1;
         performSearch();
@@ -745,6 +746,7 @@ PPP.app = (function () {
     }
 
     function _showCollectionLectures(colId, label) {
+        setActiveCollection(label);
         setSearchMode('metadata');
 
         var nrs = colId !== null
@@ -801,6 +803,13 @@ PPP.app = (function () {
         displayResults();
     }
 
+    var _activeCollectionName = null;
+
+    function setActiveCollection(name) {
+        _activeCollectionName = name || null;
+        updateFavoritesCount();
+    }
+
     function updateFavoritesCount() {
         var btn = document.getElementById('favoritesBtn');
         var badge = document.getElementById('favCount');
@@ -811,6 +820,21 @@ PPP.app = (function () {
         if (btn) {
             var label = '\u2605 ' + i18n.t('favorites') + ' ';
             btn.firstChild.textContent = label;
+            // Show active collection subtitle
+            var sub = document.getElementById('favActiveCol');
+            if (!sub) {
+                sub = document.createElement('span');
+                sub.id = 'favActiveCol';
+                sub.className = 'fav-active-col';
+                btn.appendChild(sub);
+            }
+            if (_activeCollectionName) {
+                sub.textContent = _activeCollectionName;
+                sub.style.display = 'block';
+            } else {
+                sub.textContent = '';
+                sub.style.display = 'none';
+            }
         }
     }
 

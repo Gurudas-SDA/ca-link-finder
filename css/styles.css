@@ -1104,6 +1104,14 @@ th.transcripts-block {
 }
 .collections-picker-divider { height: 1px; background: #eee; margin: 2px 12px; }
 
+/* Active collection subtitle under Favorites button */
+.fav-active-col {
+    display: none; font-size: 10px; color: #c0392b; font-weight: 600;
+    line-height: 1.1; margin-top: 1px; letter-spacing: 0.2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 120px;
+}
+
 .fav-count-badge {
     display: inline-block;
     background: #fff;
