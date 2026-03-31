@@ -1411,38 +1411,42 @@ PPP.app = (function () {
         var startPoint = findNodeAt(startPos);
         var endPoint = findNodeAt(endPos);
 
-        // Create range and wrap in highlight
-        var range = document.createRange();
-        range.setStart(startPoint.node, startPoint.offset);
-        range.setEnd(endPoint.node, Math.min(endPoint.offset, endPoint.node.textContent.length));
+        // Highlight each text node in range individually (works across block elements)
+        var hlClass = 'transcript-deep-highlight';
+        var firstMark = null;
+        for (var ti = 0; ti < textNodes.length; ti++) {
+            var tn = textNodes[ti];
+            var nodeStart = tn.offset;
+            var nodeEnd = tn.offset + tn.len;
+            // Skip nodes outside the highlight range
+            if (nodeEnd <= startPos || nodeStart >= endPos) continue;
 
-        var mark = document.createElement('mark');
-        mark.className = 'transcript-deep-highlight';
-        try {
-            mark.appendChild(range.extractContents());
-            range.insertNode(mark);
-        } catch (ex) {
-            // Fallback: highlight start only
+            var wrapStart = Math.max(0, startPos - nodeStart);
+            var wrapEnd = Math.min(tn.len, endPos - nodeStart);
+            if (wrapStart >= wrapEnd) continue;
+
             try {
-                var fbRange = document.createRange();
-                fbRange.setStart(startPoint.node, startPoint.offset);
-                fbRange.setEnd(startPoint.node, Math.min(startPoint.offset + startText.length, startPoint.node.textContent.length));
-                var m2 = document.createElement('mark');
-                m2.className = 'transcript-deep-highlight';
-                fbRange.surroundContents(m2);
-                mark = m2;
-            } catch (ex2) { return; }
+                var wr = document.createRange();
+                wr.setStart(tn.node, wrapStart);
+                wr.setEnd(tn.node, wrapEnd);
+                var m = document.createElement('mark');
+                m.className = hlClass;
+                wr.surroundContents(m);
+                if (!firstMark) firstMark = m;
+            } catch (ex) { /* skip problematic nodes */ }
         }
+
+        if (!firstMark) return;
 
         setTimeout(function () {
             var modalBody = document.getElementById('transcriptModalBody');
-            if (modalBody && modalBody.contains(mark)) {
-                var markRect = mark.getBoundingClientRect();
+            if (modalBody && modalBody.contains(firstMark)) {
+                var markRect = firstMark.getBoundingClientRect();
                 var bodyRect = modalBody.getBoundingClientRect();
                 var relativeTop = markRect.top - bodyRect.top + modalBody.scrollTop;
                 modalBody.scrollTop = Math.max(0, relativeTop - 60);
             } else {
-                mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }, 300);
     }
