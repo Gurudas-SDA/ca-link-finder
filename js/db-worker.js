@@ -33,16 +33,43 @@ var CACHE_NAME = 'ppp-db-cache-v1';
 
 /**
  * Fetch a DB file with progress reporting, then create SQL.Database.
- * Uses Cache API to avoid re-downloading on page reload.
+ * Uses Cache API with stale-while-revalidate:
+ *   1. If cached — load instantly (fast UX)
+ *   2. Background HEAD check — if server has newer version, re-download and update cache
+ *   3. Next page load gets fresh DB automatically
  */
 function loadDB(dbName, url) {
-    // Try Cache API first
     if (typeof caches !== 'undefined') {
         return caches.open(CACHE_NAME).then(function (cache) {
             return cache.match(url).then(function (cachedResponse) {
                 if (cachedResponse) {
                     // Cache hit — load from cache (fast)
                     self.postMessage({ cmd: 'progress', dbName: dbName, progress: 0.5 });
+
+                    // Background revalidation — check if server has newer version
+                    var cachedLen = cachedResponse.headers.get('x-original-size') ||
+                                    cachedResponse.headers.get('content-length') || '0';
+                    fetch(url, { method: 'HEAD' }).then(function (headResp) {
+                        if (!headResp.ok) return;
+                        var serverLen = headResp.headers.get('content-length') || '0';
+                        if (serverLen !== cachedLen && serverLen !== '0') {
+                            // Server has different version — re-download in background
+                            fetch(url).then(function (resp) {
+                                if (!resp.ok) return;
+                                var contentLen = resp.headers.get('content-length') || '0';
+                                return resp.arrayBuffer().then(function (buf) {
+                                    var freshResp = new Response(buf, {
+                                        headers: {
+                                            'Content-Type': 'application/octet-stream',
+                                            'x-original-size': contentLen
+                                        }
+                                    });
+                                    cache.put(url, freshResp);
+                                });
+                            }).catch(function () { /* silent */ });
+                        }
+                    }).catch(function () { /* silent — offline is fine */ });
+
                     return cachedResponse.arrayBuffer().then(function (buf) {
                         self.postMessage({ cmd: 'progress', dbName: dbName, progress: 0.9 });
                         var arr = new Uint8Array(buf);
@@ -52,19 +79,20 @@ function loadDB(dbName, url) {
                 }
                 // Cache miss — fetch with progress, then cache
                 return fetchWithProgress(dbName, url).then(function (arrayBuffer) {
-                    // Store in cache for next time
+                    var contentLen = String(arrayBuffer.byteLength);
                     var response = new Response(arrayBuffer, {
-                        headers: { 'Content-Type': 'application/octet-stream' }
+                        headers: {
+                            'Content-Type': 'application/octet-stream',
+                            'x-original-size': contentLen
+                        }
                     });
                     cache.put(url, response);
                 });
             });
         }).catch(function () {
-            // Cache API failed — fall back to direct fetch
             return fetchWithProgress(dbName, url);
         });
     }
-    // No Cache API — direct fetch
     return fetchWithProgress(dbName, url);
 }
 
