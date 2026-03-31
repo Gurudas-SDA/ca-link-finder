@@ -200,7 +200,7 @@ PPP.search = (function () {
         }
 
         var where = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : '';
-        var sql = 'SELECT * FROM lectures l' + where + ' ORDER BY l.date DESC, l.original_file_name DESC';
+        var sql = 'SELECT * FROM lectures l' + where + ' ORDER BY CASE WHEN l.date = \'unknown\' THEN 1 ELSE 0 END, l.date DESC, l.original_file_name DESC';
 
         return { sql: sql, params: params };
     }
