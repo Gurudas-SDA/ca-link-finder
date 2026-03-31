@@ -63,11 +63,14 @@ PPP.utils = (function () {
         var fileNameA = a['Original file name'] || '';
         var fileNameB = b['Original file name'] || '';
 
-        if (dateA === 'unknown' && dateB === 'unknown') {
+        // Treat unknown, N/A, empty as "no date" — sort to end
+        var noDateA = !dateA || dateA === 'unknown' || dateA === 'N/A';
+        var noDateB = !dateB || dateB === 'unknown' || dateB === 'N/A';
+        if (noDateA && noDateB) {
             return fileNameB.localeCompare(fileNameA, undefined, { numeric: true, sensitivity: 'base' });
         }
-        if (dateA === 'unknown') return 1;
-        if (dateB === 'unknown') return -1;
+        if (noDateA) return 1;
+        if (noDateB) return -1;
 
         var partsA = dateA.split('.');
         var partsB = dateB.split('.');
