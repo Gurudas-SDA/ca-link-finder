@@ -292,7 +292,7 @@ PPP.app = (function () {
         if (!params || !params.nr) return;
         var nr = params.nr.trim();
         var hl = params.hl || null;
-        var hle = params.hle || null;
+        var hll = params.hll ? parseInt(params.hll, 10) : 0;
 
         // Show the lecture in results
         function showLecture(uiRows) {
@@ -307,7 +307,7 @@ PPP.app = (function () {
 
             // If highlight parameter present — open transcript and scroll to text
             if (hl) {
-                _pendingHighlight = { start: hl, end: hle };
+                _pendingHighlight = { start: hl, len: hll || hl.length };
                 openHtmlTranscriptViewer(nr, 'en');
             }
         }
@@ -333,13 +333,8 @@ PPP.app = (function () {
         var hash = '#nr=' + encodeURIComponent(nr);
         if (highlightText) {
             var clean = highlightText.replace(/\s+/g, ' ').trim();
-            // Encode start (first 50 chars) and end (last 50 chars)
-            var hlStart = clean.substring(0, 50);
-            hash += '&hl=' + encodeURIComponent(hlStart);
-            if (clean.length > 60) {
-                var hlEnd = clean.substring(clean.length - 50);
-                hash += '&hle=' + encodeURIComponent(hlEnd);
-            }
+            hash += '&hl=' + encodeURIComponent(clean.substring(0, 50));
+            hash += '&hll=' + clean.length;
         }
         return base + hash;
     }
@@ -1380,13 +1375,12 @@ PPP.app = (function () {
     // ===== TRANSCRIPT TEXT HIGHLIGHT SHARING =====
 
     function _highlightAndScroll(container, hlObj) {
-        // hlObj = { start: "first 50 chars", end: "last 50 chars" or null }
+        // hlObj = { start: "first 50 chars", len: total_char_count }
         var startText = (typeof hlObj === 'string') ? hlObj : hlObj.start;
-        var endText = (typeof hlObj === 'string') ? null : hlObj.end;
+        var totalLen = (typeof hlObj === 'string') ? startText.length : (hlObj.len || startText.length);
         if (!startText) return;
 
-        // Build concatenated text map: [{node, offset, len}]
-        // This allows searching across formatted elements (<em>, <strong>, etc.)
+        // Build concatenated text map for cross-node searching
         var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
         var textNodes = [];
         var fullText = '';
@@ -1397,36 +1391,12 @@ PPP.app = (function () {
         }
         if (!textNodes.length) return;
 
-        var fullLower = fullText.toLowerCase();
-        var startNeedle = startText.toLowerCase();
-
-        // Find start position in concatenated text
-        var startPos = fullLower.indexOf(startNeedle);
+        // Find start position
+        var startPos = fullText.toLowerCase().indexOf(startText.toLowerCase());
         if (startPos === -1) return;
+        var endPos = startPos + totalLen;
 
-        // Find end position
-        var endPos;
-        if (endText) {
-            var endNeedle = endText.toLowerCase();
-            // Search from startPos forward for the end snippet
-            var searchFrom = startPos + startNeedle.length;
-            endPos = fullLower.indexOf(endNeedle, searchFrom);
-            if (endPos !== -1) {
-                endPos = endPos + endText.length; // end of the end snippet
-            } else {
-                // Try from startPos (end might overlap with start area)
-                endPos = fullLower.lastIndexOf(endNeedle);
-                if (endPos !== -1 && endPos >= startPos) {
-                    endPos = endPos + endText.length;
-                } else {
-                    endPos = startPos + startText.length; // fallback to start only
-                }
-            }
-        } else {
-            endPos = startPos + startText.length;
-        }
-
-        // Map concatenated positions back to DOM nodes
+        // Map positions back to DOM nodes
         function findNodeAt(pos) {
             for (var i = 0; i < textNodes.length; i++) {
                 var t = textNodes[i];
@@ -1434,7 +1404,6 @@ PPP.app = (function () {
                     return { node: t.node, offset: pos - t.offset };
                 }
             }
-            // Past the end — use last node
             var last = textNodes[textNodes.length - 1];
             return { node: last.node, offset: last.len };
         }
@@ -1442,24 +1411,22 @@ PPP.app = (function () {
         var startPoint = findNodeAt(startPos);
         var endPoint = findNodeAt(endPos);
 
-        // Create range spanning start to end
+        // Create range and wrap in highlight
         var range = document.createRange();
         range.setStart(startPoint.node, startPoint.offset);
         range.setEnd(endPoint.node, Math.min(endPoint.offset, endPoint.node.textContent.length));
 
-        // Wrap in highlight — extractContents handles multi-node ranges
         var mark = document.createElement('mark');
         mark.className = 'transcript-deep-highlight';
         try {
             mark.appendChild(range.extractContents());
             range.insertNode(mark);
         } catch (ex) {
-            // Fallback: highlight just start snippet
+            // Fallback: highlight start only
             try {
                 var fbRange = document.createRange();
                 fbRange.setStart(startPoint.node, startPoint.offset);
-                var fbEnd = Math.min(startPoint.offset + startText.length, startPoint.node.textContent.length);
-                fbRange.setEnd(startPoint.node, fbEnd);
+                fbRange.setEnd(startPoint.node, Math.min(startPoint.offset + startText.length, startPoint.node.textContent.length));
                 var m2 = document.createElement('mark');
                 m2.className = 'transcript-deep-highlight';
                 fbRange.surroundContents(m2);
@@ -1467,7 +1434,6 @@ PPP.app = (function () {
             } catch (ex2) { return; }
         }
 
-        // Scroll to highlight
         setTimeout(function () {
             mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 50);
