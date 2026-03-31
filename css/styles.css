@@ -1137,6 +1137,41 @@ th.transcripts-block {
 }
 .share-btn:hover { color: var(--primary-light); transform: scale(1.15); }
 
+/* Transcript text selection share bubble */
+.transcript-share-bubble {
+    position: absolute;
+    transform: translateX(-50%);
+    background: var(--accent-dark, #0f2847);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+.transcript-share-bubble:hover {
+    background: var(--primary-dark, #8b6914);
+}
+.transcript-deep-highlight {
+    background: linear-gradient(135deg, #fce9b8, #f5d68a);
+    padding: 2px 0;
+    border-radius: 2px;
+    animation: highlight-pulse 2s ease-in-out 1;
+}
+body.dark .transcript-deep-highlight {
+    background: linear-gradient(135deg, #5a4a1a, #6b5520);
+    color: #f0e0a0;
+}
+@keyframes highlight-pulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 8px rgba(245,214,138,0.6); }
+}
+
 /* Copy toast notification */
 .copy-toast {
     position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);

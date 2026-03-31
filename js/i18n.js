@@ -72,7 +72,8 @@ PPP.i18n = (function () {
             saveTo: 'Save to...',
             newCollection: 'New collection',
             collectionName: 'Collection name',
-            allSaved: 'All saved'
+            allSaved: 'All saved',
+            shareQuote: 'Share quote'
         },
         ru: {
             pageTitle: '\u041f\u043e\u0438\u0441\u043a \u0432\u0438\u0434\u0435\u043e \u0438 \u0430\u0443\u0434\u0438\u043e \u0441\u0441\u044b\u043b\u043e\u043a',
@@ -129,7 +130,8 @@ PPP.i18n = (function () {
             saveTo: '\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0432...',
             newCollection: '\u041d\u043e\u0432\u0430\u044f \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u044f',
             collectionName: '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438',
-            allSaved: '\u0412\u0441\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435'
+            allSaved: '\u0412\u0441\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435',
+            shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0446\u0438\u0442\u0430\u0442\u043e\u0439'
         },
         lv: {
             pageTitle: 'Video & Audio sai\u0161u mekl\u0113t\u0101js',
@@ -185,7 +187,8 @@ PPP.i18n = (function () {
             saveTo: 'Saglab\u0101t...',
             newCollection: 'Jauna kolekcija',
             collectionName: 'Kolekcijas nosaukums',
-            allSaved: 'Visi saglab\u0101tie'
+            allSaved: 'Visi saglab\u0101tie',
+            shareQuote: 'Dal\u012bties ar cit\u0101tu'
         },
         it: {
             pageTitle: 'Cercatore di link video e audio', listOfSources: 'Elenco fonti', lectureTopics: 'Playlists', recommendations: 'Raccomandazioni', recommendationsTitle: 'Lezioni consigliate:', latest20Files: 'Ultimi 20 file', latest20Transcripts: 'Ultime 20 trascrizioni', searchPlaceholder: 'Cercare saggezza tra {count} link', searchButton: 'Cerca', searchTime: 'Ricerca lato client \u2014 risultati istantanei.', enterSearchTerms: 'Inserisci parole di ricerca per vedere i risultati', filesFound: 'file trovati', showingResults: 'Mostra risultati', noResultsFound: 'Nessun risultato trovato', elapsedTime: 'Tempo trascorso:', seconds: 'secondi', searching: 'Ricerca...', page: 'pagina', pages: 'pagine', previous: 'Precedente', next: 'Successiva', sources: 'Fonti:', topics: 'Argomenti con trascrizioni:', transcriptsTitle: 'Trascrizioni / Traduzioni', transcriptsHint: '. Tutte le trascrizioni', clickWord: 'Clicca', colDate: 'Data', colType: 'Tipo', colOriginalFileName: 'Nome file', colCountry: 'Paese', colLang: 'Lingua', colLinks: 'Link', colDwnld: 'Scarica', colLength: 'Durata', helpButton: 'Come cercare?', helpModalTitle: 'Come usare il campo di ricerca?',
@@ -202,7 +205,8 @@ PPP.i18n = (function () {
             saveTo: 'Salva in...',
             newCollection: 'Nuova collezione',
             collectionName: 'Nome della collezione',
-            allSaved: 'Tutti i salvati'
+            allSaved: 'Tutti i salvati',
+            shareQuote: 'Condividi citazione'
         },
         fr: {
             pageTitle: 'Recherche de liens vid\u00e9o et audio', listOfSources: 'Liste des sources', lectureTopics: 'Playlists', recommendations: 'Recommandations', recommendationsTitle: 'Conf\u00e9rences recommand\u00e9es :', latest20Files: 'Derniers 20 fichiers', latest20Transcripts: 'Derni\u00e8res 20 transcriptions', searchPlaceholder: 'Chercher la sagesse parmi {count} liens', searchButton: 'Rechercher', searchTime: 'Recherche c\u00f4t\u00e9 client \u2014 r\u00e9sultats instantan\u00e9s.', enterSearchTerms: 'Saisissez des mots de recherche pour voir les r\u00e9sultats', filesFound: 'fichiers trouv\u00e9s', showingResults: 'Affiche les r\u00e9sultats', noResultsFound: 'Aucun r\u00e9sultat trouv\u00e9', elapsedTime: 'Temps \u00e9coul\u00e9 :', seconds: 'secondes', searching: 'Recherche...', page: 'page', pages: 'pages', previous: 'Pr\u00e9c\u00e9dente', next: 'Suivante', sources: 'Sources :', topics: 'Sujets avec transcriptions :', transcriptsTitle: 'Transcriptions / Traductions', transcriptsHint: '. Toutes les transcriptions', clickWord: 'Cliquez', colDate: 'Date', colType: 'Type', colOriginalFileName: 'Nom du fichier', colCountry: 'Pays', colLang: 'Langue', colLinks: 'Liens', colDwnld: 'T\u00e9l\u00e9ch.', colLength: 'Dur\u00e9e', helpButton: 'Comment chercher ?', helpModalTitle: 'Comment utiliser le champ de recherche ?',
@@ -219,7 +223,8 @@ PPP.i18n = (function () {
             saveTo: 'Enregistrer dans...',
             newCollection: 'Nouvelle collection',
             collectionName: 'Nom de la collection',
-            allSaved: 'Tous les enregistr\u00e9s'
+            allSaved: 'Tous les enregistr\u00e9s',
+            shareQuote: 'Partager la citation'
         },
         es: {
             pageTitle: 'Buscador de enlaces de v\u00eddeo y audio', listOfSources: 'Lista de fuentes', lectureTopics: 'Playlists', recommendations: 'Recomendaciones', recommendationsTitle: 'Conferencias recomendadas:', latest20Files: '\u00daltimos 20 archivos', latest20Transcripts: '\u00daltimas 20 transcripciones', searchPlaceholder: 'Buscar sabidur\u00eda entre {count} enlaces', searchButton: 'Buscar', searchTime: 'B\u00fasqueda del lado del cliente \u2014 resultados instant\u00e1neos.', enterSearchTerms: 'Introduce palabras de b\u00fasqueda para ver resultados', filesFound: 'archivos encontrados', showingResults: 'Mostrando resultados', noResultsFound: 'No se encontraron resultados', elapsedTime: 'Tiempo transcurrido:', seconds: 'segundos', searching: 'Buscando...', page: 'p\u00e1gina', pages: 'p\u00e1ginas', previous: 'Anterior', next: 'Siguiente', sources: 'Fuentes:', topics: 'Temas con transcripciones:', transcriptsTitle: 'Transcripciones / Traducciones', transcriptsHint: '. Todas las transcripciones', clickWord: 'Haz clic', colDate: 'Fecha', colType: 'Tipo', colOriginalFileName: 'Nombre del archivo', colCountry: 'Pa\u00eds', colLang: 'Idioma', colLinks: 'Enlaces', colDwnld: 'Desc.', colLength: 'Duraci\u00f3n', helpButton: '\u00bfC\u00f3mo buscar?', helpModalTitle: '\u00bfC\u00f3mo usar el campo de b\u00fasqueda?',
@@ -236,7 +241,8 @@ PPP.i18n = (function () {
             saveTo: 'Guardar en...',
             newCollection: 'Nueva colecci\u00f3n',
             collectionName: 'Nombre de la colecci\u00f3n',
-            allSaved: 'Todos los guardados'
+            allSaved: 'Todos los guardados',
+            shareQuote: 'Compartir cita'
         }
     };
 

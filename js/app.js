@@ -284,45 +284,58 @@ PPP.app = (function () {
         return params;
     }
 
+    // Pending highlight text from deep link — consumed by openHtmlTranscriptViewer
+    var _pendingHighlight = null;
+
     function handleDeepLink() {
         var params = parseHash();
         if (!params || !params.nr) return;
         var nr = params.nr.trim();
+        var hl = params.hl || null;
+
+        // Show the lecture in results
+        function showLecture(uiRows) {
+            lastSearchTerm = 'Nr. ' + nr;
+            allResults = uiRows;
+            totalResults = uiRows.length;
+            currentPage = 1;
+            matchHints = new Map();
+            document.getElementById('searchTerm').value = 'Nr. ' + nr;
+            document.getElementById('timer').textContent = '';
+            displayResults();
+
+            // If highlight parameter present — open transcript and scroll to text
+            if (hl) {
+                _pendingHighlight = hl;
+                openHtmlTranscriptViewer(nr, 'en');
+            }
+        }
 
         if (usingSqlite) {
             db.queryMetaAsync(
                 'SELECT * FROM lectures WHERE nr = ? LIMIT 1', [nr]
             ).then(function (rows) {
                 if (rows.length === 0) return;
-                var uiRows = rows.map(mapSqlRowToUI);
-                lastSearchTerm = 'Nr. ' + nr;
-                allResults = uiRows;
-                totalResults = 1;
-                currentPage = 1;
-                matchHints = new Map();
-                document.getElementById('searchTerm').value = 'Nr. ' + nr;
-                document.getElementById('timer').textContent = '';
-                displayResults();
+                showLecture(rows.map(mapSqlRowToUI));
             });
         } else {
             var found = DB.filter(function (r) {
                 return (r['Nr.'] || '').toString().trim() === nr;
             });
             if (found.length === 0) return;
-            lastSearchTerm = 'Nr. ' + nr;
-            allResults = found;
-            totalResults = found.length;
-            currentPage = 1;
-            matchHints = new Map();
-            document.getElementById('searchTerm').value = 'Nr. ' + nr;
-            document.getElementById('timer').textContent = '';
-            displayResults();
+            showLecture(found);
         }
     }
 
-    function buildShareUrl(nr) {
+    function buildShareUrl(nr, highlightText) {
         var base = window.location.href.split('#')[0];
-        return base + '#nr=' + encodeURIComponent(nr);
+        var hash = '#nr=' + encodeURIComponent(nr);
+        if (highlightText) {
+            // Take first 80 chars of selection as anchor
+            var snippet = highlightText.replace(/\s+/g, ' ').trim().substring(0, 80);
+            hash += '&hl=' + encodeURIComponent(snippet);
+        }
+        return base + hash;
     }
 
     function copyShareLink(nr, title, subject) {
@@ -1308,8 +1321,19 @@ PPP.app = (function () {
                 // Insert HTML content
                 body.innerHTML = rows[0].html_content || '';
 
-                // Scroll to block anchor
-                if (blockIndex) {
+                // Attach selection share handler
+                _attachTranscriptSelectionShare(body, lectureNr, lang);
+
+                // Scroll to block anchor or highlight text
+                var deepHl = _pendingHighlight;
+                _pendingHighlight = null;
+
+                if (deepHl) {
+                    // Deep link highlight — find text, highlight, scroll
+                    setTimeout(function () {
+                        _highlightAndScroll(body, deepHl);
+                    }, 150);
+                } else if (blockIndex) {
                     setTimeout(function () {
                         var anchor = document.getElementById('block-' + blockIndex);
                         if (anchor && body) {
@@ -1326,6 +1350,94 @@ PPP.app = (function () {
         }).catch(function (err) {
             title.textContent = 'Error';
             body.textContent = 'Failed to load HTML transcripts: ' + err.message;
+        });
+    }
+
+    // ===== TRANSCRIPT TEXT HIGHLIGHT SHARING =====
+
+    function _highlightAndScroll(container, searchText) {
+        // Walk text nodes to find the snippet
+        var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+        var needle = searchText.toLowerCase();
+        var node;
+        while ((node = walker.nextNode())) {
+            var idx = node.textContent.toLowerCase().indexOf(needle);
+            if (idx === -1) continue;
+
+            // Split text node and wrap match in <mark>
+            var range = document.createRange();
+            range.setStart(node, idx);
+            range.setEnd(node, Math.min(idx + searchText.length, node.textContent.length));
+            var mark = document.createElement('mark');
+            mark.className = 'transcript-deep-highlight';
+            range.surroundContents(mark);
+
+            // Scroll to highlight
+            setTimeout(function () {
+                mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
+            return;
+        }
+    }
+
+    function _attachTranscriptSelectionShare(body, lectureNr, lang) {
+        // Remove old share bubble if any
+        var old = document.getElementById('transcriptShareBubble');
+        if (old) old.remove();
+
+        body.addEventListener('mouseup', function () {
+            var sel = window.getSelection();
+            var text = (sel && sel.toString() || '').trim();
+            // Remove old bubble
+            var bubble = document.getElementById('transcriptShareBubble');
+            if (bubble) bubble.remove();
+
+            if (!text || text.length < 5) return;
+
+            // Create share bubble near selection
+            var range = sel.getRangeAt(0);
+            var rect = range.getBoundingClientRect();
+            var bodyRect = body.getBoundingClientRect();
+
+            bubble = document.createElement('button');
+            bubble.id = 'transcriptShareBubble';
+            bubble.className = 'transcript-share-bubble';
+            bubble.textContent = '🔗 ' + i18n.t('shareQuote');
+            bubble.style.top = (rect.top - bodyRect.top + body.scrollTop - 36) + 'px';
+            bubble.style.left = (rect.left - bodyRect.left + rect.width / 2) + 'px';
+            body.appendChild(bubble);
+
+            bubble.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var url = buildShareUrl(lectureNr, text);
+                var copyText = text.substring(0, 120) + (text.length > 120 ? '...' : '') + '\n' + url;
+
+                function fallback() {
+                    var ta = document.createElement('textarea');
+                    ta.value = copyText;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showCopyToast();
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(copyText).then(function () {
+                        showCopyToast();
+                    }).catch(fallback);
+                } else {
+                    fallback();
+                }
+                bubble.remove();
+            });
+        });
+
+        // Remove bubble on click elsewhere
+        body.addEventListener('mousedown', function () {
+            var bubble = document.getElementById('transcriptShareBubble');
+            if (bubble) bubble.remove();
         });
     }
 
