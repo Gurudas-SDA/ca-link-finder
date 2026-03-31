@@ -29,7 +29,18 @@ function initEngine() {
     });
 }
 
-var CACHE_NAME = 'ppp-db-cache-v1';
+var CACHE_NAME = 'ppp-db-cache-v2';
+
+// Clean up old cache versions
+if (typeof caches !== 'undefined') {
+    caches.keys().then(function (names) {
+        names.forEach(function (name) {
+            if (name.startsWith('ppp-db-cache-') && name !== CACHE_NAME) {
+                caches.delete(name);
+            }
+        });
+    });
+}
 
 /**
  * Fetch a DB file with progress reporting, then create SQL.Database.
