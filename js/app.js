@@ -100,6 +100,9 @@ PPP.app = (function () {
         // Load data — try SQLite first, fall back to XLSX/CSV
         loadData();
 
+        // Update favorites badge
+        updateFavoritesCount();
+
         // Install banner (delayed)
         setTimeout(function () {
             var isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
@@ -1232,6 +1235,61 @@ PPP.app = (function () {
         localStorage.setItem('installDismissed', '1');
     }
 
+    // ===== FAVORITES =====
+    function updateFavoritesCount() {
+        var badge = document.getElementById('favCount');
+        if (!badge || !PPP.favorites) return;
+        var cnt = PPP.favorites.count();
+        if (cnt > 0) {
+            badge.textContent = cnt;
+            badge.style.display = '';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    function showFavorites() {
+        if (!PPP.favorites) return;
+        var allNrs = PPP.favorites.getAll();
+        if (allNrs.length === 0) {
+            document.getElementById('results').innerHTML =
+                '<p style="padding:20px;text-align:center;color:#888;">' +
+                utils.escapeHtml(i18n.t('noFavorites')) + '</p>';
+            document.getElementById('timer').textContent = '';
+            document.getElementById('resultCount').textContent = '';
+            return;
+        }
+
+        // Switch to metadata mode
+        setSearchMode('metadata');
+
+        var params = {};
+        var placeholders = allNrs.map(function (nr, i) {
+            var key = '$nr' + i;
+            params[key] = nr;
+            return key;
+        });
+
+        db.queryMetaAsync(
+            "SELECT * FROM lectures WHERE nr IN (" + placeholders.join(',') +
+            ") ORDER BY CASE WHEN date = 'unknown' THEN 1 ELSE 0 END, date DESC",
+            params
+        ).then(function (sqlRows) {
+            allResults = sqlRows.map(mapSqlRowToUI);
+            totalResults = allResults.length;
+            currentPage = 1;
+            lastSearchTerm = '';
+            matchHints = new Map();
+            document.getElementById('searchTerm').value = '';
+            document.getElementById('timer').textContent =
+                i18n.t('favorites') + ' (' + totalResults + ')';
+            displayResults();
+            track('quick-action', { type: 'favorites', count: totalResults });
+        }).catch(function (err) {
+            console.error('Favorites query error:', err);
+        });
+    }
+
     // ===== PUBLIC API =====
     return {
         init: init,
@@ -1259,7 +1317,9 @@ PPP.app = (function () {
         showTopCitations: showTopCitations,
         openTranscriptAtVerse: openTranscriptAtVerse,
         openHtmlTranscriptViewer: openHtmlTranscriptViewer,
-        closeTranscriptModal: closeTranscriptModal
+        closeTranscriptModal: closeTranscriptModal,
+        showFavorites: showFavorites,
+        updateFavoritesCount: updateFavoritesCount
     };
 })();
 
