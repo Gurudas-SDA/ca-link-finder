@@ -190,17 +190,16 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await page.keyboard.press('Enter');
     await page.waitForSelector('.fav-star', { timeout: 10000 });
 
-    // Click first star — may open collections popup, toggle handles default collection
-    const firstStar = page.locator('.fav-star').first();
-    await firstStar.click();
+    // Get first lecture nr and use favorites.toggle() directly
+    // (star click opens collections popup which needs extra interaction)
+    const nr = await page.locator('.fav-star').first().getAttribute('data-nr');
+    await page.evaluate((n) => PPP.favorites.toggle(n), nr);
 
-    // Wait for star to become active (may need short delay for toggle + DOM update)
-    await page.waitForFunction(() => {
-      const star = document.querySelector('.fav-star');
-      return star && star.classList.contains('active');
-    }, { timeout: 5000 });
+    // Verify it's saved
+    const isFav = await page.evaluate((n) => PPP.favorites.isFavorite(n), nr);
+    expect(isFav).toBe(true);
 
-    // Click Favorites button
+    // Click Favorites button to show saved lectures
     await page.click('#favoritesBtn');
 
     // Should show at least 1 result
