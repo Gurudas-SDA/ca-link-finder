@@ -1485,8 +1485,9 @@ PPP.app = (function () {
                 e.stopPropagation();
                 e.preventDefault();
                 var url = buildShareUrl(lectureNr, text);
+                var title = (document.getElementById('transcriptModalTitle') || {}).textContent || '';
                 var preview = text.substring(0, 60).replace(/\s+/g, ' ').trim();
-                var copyText = '📖 «' + preview + (text.length > 60 ? '...' : '') + '»\n' + url;
+                var copyText = 'Quote from:\n"' + title + '"\n\n📖 «' + preview + (text.length > 60 ? '...' : '') + '»\n' + url;
                 var bbl = bubble; // keep ref
 
                 function done() {
