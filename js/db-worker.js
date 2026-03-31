@@ -29,10 +29,49 @@ function initEngine() {
     });
 }
 
+var CACHE_NAME = 'ppp-db-cache-v1';
+
 /**
  * Fetch a DB file with progress reporting, then create SQL.Database.
+ * Uses Cache API to avoid re-downloading on page reload.
  */
 function loadDB(dbName, url) {
+    // Try Cache API first
+    if (typeof caches !== 'undefined') {
+        return caches.open(CACHE_NAME).then(function (cache) {
+            return cache.match(url).then(function (cachedResponse) {
+                if (cachedResponse) {
+                    // Cache hit — load from cache (fast)
+                    self.postMessage({ cmd: 'progress', dbName: dbName, progress: 0.5 });
+                    return cachedResponse.arrayBuffer().then(function (buf) {
+                        self.postMessage({ cmd: 'progress', dbName: dbName, progress: 0.9 });
+                        var arr = new Uint8Array(buf);
+                        databases[dbName] = new SQL.Database(arr);
+                        self.postMessage({ cmd: 'progress', dbName: dbName, progress: 1.0 });
+                    });
+                }
+                // Cache miss — fetch with progress, then cache
+                return fetchWithProgress(dbName, url).then(function (arrayBuffer) {
+                    // Store in cache for next time
+                    var response = new Response(arrayBuffer, {
+                        headers: { 'Content-Type': 'application/octet-stream' }
+                    });
+                    cache.put(url, response);
+                });
+            });
+        }).catch(function () {
+            // Cache API failed — fall back to direct fetch
+            return fetchWithProgress(dbName, url);
+        });
+    }
+    // No Cache API — direct fetch
+    return fetchWithProgress(dbName, url);
+}
+
+/**
+ * Fetch DB with XHR progress reporting and create SQL.Database.
+ */
+function fetchWithProgress(dbName, url) {
     return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
@@ -50,7 +89,7 @@ function loadDB(dbName, url) {
                     var arr = new Uint8Array(xhr.response);
                     // This is the heavy operation — runs in Worker, doesn't block UI
                     databases[dbName] = new SQL.Database(arr);
-                    resolve();
+                    resolve(xhr.response);
                 } catch (err) {
                     reject(err);
                 }
