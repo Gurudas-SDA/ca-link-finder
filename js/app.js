@@ -1409,8 +1409,15 @@ PPP.app = (function () {
 
             bubble.addEventListener('click', function (e) {
                 e.stopPropagation();
+                e.preventDefault();
                 var url = buildShareUrl(lectureNr, text);
                 var copyText = text.substring(0, 120) + (text.length > 120 ? '...' : '') + '\n' + url;
+                var bbl = bubble; // keep ref
+
+                function done() {
+                    showCopyToast();
+                    bbl.remove();
+                }
 
                 function fallback() {
                     var ta = document.createElement('textarea');
@@ -1418,19 +1425,18 @@ PPP.app = (function () {
                     ta.style.position = 'fixed';
                     ta.style.opacity = '0';
                     document.body.appendChild(ta);
+                    ta.focus();
                     ta.select();
                     document.execCommand('copy');
                     document.body.removeChild(ta);
-                    showCopyToast();
+                    done();
                 }
+
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(copyText).then(function () {
-                        showCopyToast();
-                    }).catch(fallback);
+                    navigator.clipboard.writeText(copyText).then(done).catch(fallback);
                 } else {
                     fallback();
                 }
-                bubble.remove();
             });
         });
 
