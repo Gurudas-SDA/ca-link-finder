@@ -375,15 +375,33 @@ PPP.app = (function () {
 
     function showCopyToast() {
         var toast = document.getElementById('copyToast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'copyToast';
-            toast.className = 'copy-toast';
+        if (toast) toast.remove(); // re-create in correct parent
+
+        toast = document.createElement('div');
+        toast.id = 'copyToast';
+        toast.className = 'copy-toast';
+
+        // If transcript modal is open, put toast inside it so it's visible above overlay
+        var overlay = document.getElementById('transcriptModalOverlay');
+        if (overlay && overlay.classList.contains('active')) {
+            var modal = overlay.querySelector('.transcript-modal');
+            if (modal) {
+                toast.style.position = 'absolute';
+                toast.style.bottom = '20px';
+                toast.style.left = '50%';
+                toast.style.transform = 'translateX(-50%)';
+                modal.style.position = 'relative';
+                modal.appendChild(toast);
+            } else {
+                document.body.appendChild(toast);
+            }
+        } else {
             document.body.appendChild(toast);
         }
+
         toast.textContent = i18n.t('linkCopied') || 'Link copied!';
         toast.classList.add('show');
-        setTimeout(function () { toast.classList.remove('show'); }, 2000);
+        setTimeout(function () { toast.classList.remove('show'); }, 2500);
     }
 
     // ===== IndexedDB Cache (for XLSX fallback) =====
