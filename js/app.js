@@ -1435,8 +1435,15 @@ PPP.app = (function () {
         }
 
         setTimeout(function () {
-            mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 50);
+            // Scroll the modal body container, not the window
+            var modalBody = document.getElementById('transcriptModalBody');
+            if (modalBody && modalBody.contains(mark)) {
+                var markTop = mark.offsetTop;
+                modalBody.scrollTop = Math.max(0, markTop - 60);
+            } else {
+                mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 100);
     }
 
     function _attachTranscriptSelectionShare(body, lectureNr, lang) {
