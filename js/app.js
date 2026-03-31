@@ -1434,10 +1434,10 @@ PPP.app = (function () {
             });
         });
 
-        // Remove bubble on click elsewhere
-        body.addEventListener('mousedown', function () {
+        // Remove bubble on click elsewhere (but not on the bubble itself)
+        body.addEventListener('mousedown', function (e) {
             var bubble = document.getElementById('transcriptShareBubble');
-            if (bubble) bubble.remove();
+            if (bubble && !bubble.contains(e.target)) bubble.remove();
         });
     }
 
