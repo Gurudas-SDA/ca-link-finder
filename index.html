@@ -42,12 +42,13 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="e50b4fd4-578a-4674-944d-4fefcb6999e1"></script>
 
     <!-- Application CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=e224e6e2">
+    <link rel="stylesheet" href="css/styles.css?v=shareq2">
 </head>
 <body>
 
     <!-- ===== HERO SECTION ===== -->
     <div class="hero">
+        <button class="theme-toggle" id="themeToggle" onclick="PPP.app.toggleTheme()" title="Dark / Light mode">☀️</button>
         <div class="top-left-buttons">
             <button onclick="PPP.app.showSources()" data-i18n="listOfSources">List Of Sources</button>
             <div id="sourcesList"></div>
@@ -117,13 +118,13 @@
             <div class="search-quick-buttons">
                 <button class="latest-files-btn" onclick="PPP.app.showLatestFiles()" data-i18n="latest20Files">20 latest files</button>
                 <button class="recommendations-btn" onclick="PPP.app.showRecommendations()" data-i18n="recommendations">Recommendations</button>
+                <button class="favorites-btn" id="favoritesBtn" onclick="PPP.app.showFavorites()">&#9733; Favorites <span id="favCount" class="fav-count-badge" style="display:none"></span></button>
             </div>
-            <!-- Search mode toggle: Mp3 files | Quotes (all) | Quotes (Top 108) | Themes -->
+            <!-- Search mode toggle: Mp3 files | Quotes (all) | Quotes (Top 108) -->
             <div class="search-mode-toggle">
                 <button class="search-mode-btn active" data-mode="metadata" data-i18n="searchModeMetadata">Mp3 files</button>
                 <button class="search-mode-btn" data-mode="citations" data-i18n="searchModeCitations">Quotes (all)</button>
                 <button class="search-mode-btn" data-mode="citationsTop" data-i18n="searchModeCitationsTop">Quotes (Top 108)</button>
-                <button class="search-mode-btn" data-mode="concepts" data-i18n="searchModeConcepts">Themes</button>
             </div>
             <div class="search-row">
                 <button class="help-search-btn" onclick="PPP.app.openHelpModal()" data-i18n="helpButton">How to use search?</button>
@@ -155,7 +156,7 @@
             <table id="resultsTable">
                 <tbody>
                     <tr>
-                        <td colspan="11" class="empty-result-message" data-i18n="enterSearchTerms">Enter search terms to see results</td>
+                        <td colspan="13" class="empty-result-message" data-i18n="enterSearchTerms">Enter search terms to see results</td>
                     </tr>
                 </tbody>
             </table>
@@ -188,11 +189,12 @@
     <!-- ===== APPLICATION SCRIPTS ===== -->
     <!-- Load order matters: utils first, then i18n, db, search, ui, app last -->
     <script src="js/utils.js?v=ae5fdbad"></script>
-    <script src="js/i18n.js?v=21d04ffa"></script>
-    <script src="js/db.js?v=368d7754"></script>
-    <script src="js/search.js?v=9b9fe422"></script>
-    <script src="js/ui.js?v=3834d262"></script>
-    <script src="js/app.js?v=a166a87b"></script>
+    <script src="js/i18n.js?v=shareq1"></script>
+    <script src="js/db.js?v=cache1"></script>
+    <script src="js/search.js?v=53c5c281"></script>
+    <script src="js/ui.js?v=da82f70b"></script>
+    <script src="js/favorites.js?v=1"></script>
+    <script src="js/app.js?v=shareq17"></script>
 
 </body>
 </html>

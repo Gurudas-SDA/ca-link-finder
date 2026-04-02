@@ -54,8 +54,7 @@ PPP.app = (function () {
     var matchHints = new Map();
     var dataLoaded = false;
     var usingSqlite = false;        // true if SQLite loaded successfully
-    var searchMode = 'metadata';    // 'metadata', 'citations', 'citationsTop', or 'concepts'
-    var conceptsDBLoading = false;  // true while concepts DB is being loaded
+    var searchMode = 'metadata';    // 'metadata', 'citations', or 'citationsTop'
     var deferredPrompt = null;
     var installMode = 'ios';
     var totalLectures = 0;
@@ -115,9 +114,6 @@ PPP.app = (function () {
                 }
             });
         });
-
-        // Init Firebase auth
-        if (PPP.auth) PPP.auth.init();
 
         // Load data — try SQLite first, fall back to XLSX/CSV
         loadData();
@@ -443,7 +439,7 @@ PPP.app = (function () {
     function doSearch() {
         var term = document.getElementById('searchTerm').value.trim();
         if (!dataLoaded) return;
-        // Allow empty search in citations mode (shows stats overview); require term for concepts
+        // Allow empty search in citations mode (shows stats overview)
         if (!term && searchMode !== 'citations' && searchMode !== 'citationsTop') return;
         setActiveCollection(null);
         lastSearchTerm = term;
@@ -464,11 +460,6 @@ PPP.app = (function () {
 
         if (searchMode === 'citations') {
             performCitationSearch(startTime);
-            return;
-        }
-
-        if (searchMode === 'concepts') {
-            performConceptSearch(startTime);
             return;
         }
 
@@ -613,9 +604,6 @@ PPP.app = (function () {
         if (mode === 'citations' || mode === 'citationsTop') {
             searchInput.placeholder = i18n.t('quotesSearchHint');
             searchInput.disabled = true;
-        } else if (mode === 'concepts') {
-            searchInput.placeholder = i18n.t('conceptsSearchHint');
-            searchInput.disabled = false;
         } else {
             var count = totalLectures || 0;
             searchInput.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
@@ -1572,111 +1560,6 @@ PPP.app = (function () {
             }
         }).catch(function (err) {
             console.error('Citation search error:', err);
-            document.getElementById('resultsInfo').innerHTML = '<strong>Error: ' + utils.escapeHtml(err.message) + '</strong>';
-        });
-    }
-
-    // ===== CONCEPT SEARCH =====
-
-    /**
-     * Ensure concepts DB is loaded (lazy), then resolve.
-     */
-    function ensureConceptsDB() {
-        if (db.isConceptsLoaded()) return Promise.resolve();
-        if (conceptsDBLoading) return conceptsDBLoading;
-        ui.showLoading(i18n.t('loadingConcepts'));
-        conceptsDBLoading = db.loadConceptsDB(function (progress) {
-            ui.updateProgress(progress);
-        }).then(function () {
-            ui.hideLoading();
-            conceptsDBLoading = false;
-        }).catch(function (err) {
-            ui.hideLoading();
-            conceptsDBLoading = false;
-            throw err;
-        });
-        return conceptsDBLoading;
-    }
-
-    /**
-     * Concept search: query concepts DB, then enrich with lecture metadata from meta DB.
-     */
-    function performConceptSearch(startTime) {
-        if (!usingSqlite) {
-            document.getElementById('resultsInfo').innerHTML = '<strong>Concept search requires SQLite</strong>';
-            return;
-        }
-
-        var parsed = search.parseSearchQuery(lastSearchTerm);
-        var q = search.buildConceptSQL(parsed);
-
-        if (!lastSearchTerm.trim()) {
-            document.getElementById('resultsInfo').innerHTML = '';
-            return;
-        }
-
-        ensureConceptsDB().then(function () {
-            return db.queryConceptsAsync(q.sql, q.params);
-        }).then(function (conceptRows) {
-            if (!conceptRows || conceptRows.length === 0) {
-                var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-                document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
-                document.getElementById('resultsInfo').innerHTML = '<strong>0 ' + i18n.t('conceptResults') + '</strong>';
-                ui.renderConceptResults([], lastSearchTerm);
-                return;
-            }
-
-            // Collect unique lecture_nrs to fetch metadata
-            var lectureNrs = [];
-            var seen = {};
-            conceptRows.forEach(function (r) {
-                if (!seen[r.lecture_nr]) {
-                    seen[r.lecture_nr] = true;
-                    lectureNrs.push(r.lecture_nr);
-                }
-            });
-
-            // Build query for lecture metadata
-            var placeholders = lectureNrs.map(function (_, i) { return '$nr' + i; });
-            var metaParams = {};
-            lectureNrs.forEach(function (nr, i) { metaParams['$nr' + i] = nr; });
-            var metaSql = 'SELECT nr, date, original_file_name, subject, links, links_url, dwnld_url, script_en, script_lv, script_ru FROM lectures WHERE nr IN (' + placeholders.join(',') + ')';
-
-            return db.queryMetaAsync(metaSql, metaParams).then(function (metaRows) {
-                // Build lookup by nr
-                var metaMap = {};
-                metaRows.forEach(function (m) { metaMap[m.nr] = m; });
-
-                // Enrich concept rows with metadata
-                var enriched = conceptRows.map(function (c) {
-                    var meta = metaMap[c.lecture_nr] || {};
-                    return {
-                        chunk_id: c.chunk_id,
-                        lecture_nr: c.lecture_nr,
-                        block_num: c.block_num,
-                        concept_summary: c.concept_summary,
-                        word_count: c.word_count,
-                        date: meta.date || '',
-                        original_file_name: meta.original_file_name || '',
-                        subject: meta.subject || '',
-                        links: meta.links || '',
-                        links_url: meta.links_url || '',
-                        dwnld_url: meta.dwnld_url || '',
-                        script_en: meta.script_en || '',
-                        script_lv: meta.script_lv || '',
-                        script_ru: meta.script_ru || ''
-                    };
-                });
-
-                var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-                document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
-                document.getElementById('resultsInfo').innerHTML = '<strong>' + enriched.length + ' ' + i18n.t('conceptResults') + '</strong>';
-
-                track('search', { query: lastSearchTerm, mode: 'concepts', results: enriched.length });
-                ui.renderConceptResults(enriched, lastSearchTerm);
-            });
-        }).catch(function (err) {
-            console.error('Concept search error:', err);
             document.getElementById('resultsInfo').innerHTML = '<strong>Error: ' + utils.escapeHtml(err.message) + '</strong>';
         });
     }

@@ -66,11 +66,14 @@ PPP.i18n = (function () {
             loadingDB: 'Loading database...',
             dbLoaded: 'Database loaded',
             verseCopiedToast: '"{ref}" copied to clipboard — press Ctrl+F and paste to find the verse',
-            searchModeConcepts: 'Themes',
-            conceptsSearchHint: 'Search lecture themes and concepts...',
-            conceptResults: 'concept matches found',
-            noConceptResults: 'No concept matches found',
-            loadingConcepts: 'Loading themes database...'
+            favorites: 'Favorites',
+            noFavorites: 'No favorites saved yet. Click the star \u2605 on any lecture to save it.',
+            linkCopied: 'Link copied!',
+            saveTo: 'Save to...',
+            newCollection: 'New collection',
+            collectionName: 'Collection name',
+            allSaved: 'All saved',
+            shareQuote: 'Share quote'
         },
         ru: {
             pageTitle: '\u041f\u043e\u0438\u0441\u043a \u0432\u0438\u0434\u0435\u043e \u0438 \u0430\u0443\u0434\u0438\u043e \u0441\u0441\u044b\u043b\u043e\u043a',
@@ -121,11 +124,14 @@ PPP.i18n = (function () {
             loadingDB: '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0431\u0430\u0437\u044b \u0434\u0430\u043d\u043d\u044b\u0445...',
             dbLoaded: '\u0411\u0430\u0437\u0430 \u0434\u0430\u043d\u043d\u044b\u0445 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u0430',
             verseCopiedToast: '"{ref}" \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440 \u2014 \u043d\u0430\u0436\u043c\u0438\u0442\u0435 Ctrl+F \u0438 \u0432\u0441\u0442\u0430\u0432\u044c\u0442\u0435',
-            searchModeConcepts: '\u0422\u0435\u043c\u044b',
-            conceptsSearchHint: '\u041f\u043e\u0438\u0441\u043a \u0442\u0435\u043c \u0438 \u043a\u043e\u043d\u0446\u0435\u043f\u0446\u0438\u0439 \u043b\u0435\u043a\u0446\u0438\u0439...',
-            conceptResults: '\u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043f\u043e \u0442\u0435\u043c\u0430\u043c \u043d\u0430\u0439\u0434\u0435\u043d\u043e',
-            noConceptResults: '\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043f\u043e \u0442\u0435\u043c\u0430\u043c \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e',
-            loadingConcepts: '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0431\u0430\u0437\u044b \u0442\u0435\u043c...'
+            favorites: '\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435',
+            noFavorites: '\u041f\u043e\u043a\u0430 \u043d\u0435\u0442 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u044b\u0445. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u0437\u0432\u0451\u0437\u0434\u043e\u0447\u043a\u0443 \u2605 \u043d\u0430 \u043b\u044e\u0431\u043e\u0439 \u043b\u0435\u043a\u0446\u0438\u0438.',
+            linkCopied: '\u0421\u0441\u044b\u043b\u043a\u0430 \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0430!',
+            saveTo: '\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0432...',
+            newCollection: '\u041d\u043e\u0432\u0430\u044f \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u044f',
+            collectionName: '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438',
+            allSaved: '\u0412\u0441\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435',
+            shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0446\u0438\u0442\u0430\u0442\u043e\u0439'
         },
         lv: {
             pageTitle: 'Video & Audio sai\u0161u mekl\u0113t\u0101js',
@@ -175,11 +181,14 @@ PPP.i18n = (function () {
             loadingDB: 'Iel\u0101d\u0113 datub\u0101zi...',
             dbLoaded: 'Datub\u0101ze iel\u0101d\u0113ta',
             verseCopiedToast: '"{ref}" nokop\u0113ts starpliktuve \u2014 spied Ctrl+F un ielim\u0113',
-            searchModeConcepts: 'T\u0113mas',
-            conceptsSearchHint: 'Mekl\u0113t lekciju t\u0113mas un konceptus...',
-            conceptResults: 'tematisko atbilst\u012bbu atrasts',
-            noConceptResults: 'Tematisk\u0101s atbilst\u012bbas nav atrastas',
-            loadingConcepts: 'Iel\u0101d\u0113 t\u0113mu datub\u0101zi...'
+            favorites: 'Izlase',
+            noFavorites: 'V\u0113l nav izlases. Noklik\u0161\u0137iniet uz zvaigzn\u012btes \u2605, lai saglab\u0101tu lekciju.',
+            linkCopied: 'Saite nokop\u0113ta!',
+            saveTo: 'Saglab\u0101t...',
+            newCollection: 'Jauna kolekcija',
+            collectionName: 'Kolekcijas nosaukums',
+            allSaved: 'Visi saglab\u0101tie',
+            shareQuote: 'Dal\u012bties ar cit\u0101tu'
         },
         it: {
             pageTitle: 'Cercatore di link video e audio', listOfSources: 'Elenco fonti', lectureTopics: 'Playlists', recommendations: 'Raccomandazioni', recommendationsTitle: 'Lezioni consigliate:', latest20Files: 'Ultimi 20 file', latest20Transcripts: 'Ultime 20 trascrizioni', searchPlaceholder: 'Cercare saggezza tra {count} link', searchButton: 'Cerca', searchTime: 'Ricerca lato client \u2014 risultati istantanei.', enterSearchTerms: 'Inserisci parole di ricerca per vedere i risultati', filesFound: 'file trovati', showingResults: 'Mostra risultati', noResultsFound: 'Nessun risultato trovato', elapsedTime: 'Tempo trascorso:', seconds: 'secondi', searching: 'Ricerca...', page: 'pagina', pages: 'pagine', previous: 'Precedente', next: 'Successiva', sources: 'Fonti:', topics: 'Argomenti con trascrizioni:', transcriptsTitle: 'Trascrizioni / Traduzioni', transcriptsHint: '. Tutte le trascrizioni', clickWord: 'Clicca', colDate: 'Data', colType: 'Tipo', colOriginalFileName: 'Nome file', colCountry: 'Paese', colLang: 'Lingua', colLinks: 'Link', colDwnld: 'Scarica', colLength: 'Durata', helpButton: 'Come cercare?', helpModalTitle: 'Come usare il campo di ricerca?',
@@ -190,7 +199,14 @@ PPP.i18n = (function () {
             searchTranscripts: 'Cerca nelle trascrizioni', loadingTranscripts: 'Caricamento trascrizioni...', transcriptResults: 'Risultati nelle trascrizioni', noTranscriptResults: 'Nessun risultato nelle trascrizioni',
             searchModeMetadata: 'File Mp3', searchModeCitations: 'Citazioni (tutte)', searchModeCitationsTop: 'Citazioni (Top 108)', quotesSearchHint: 'Per cercare manualmente premi \'File Mp3\'', citationResults: 'citazioni di versetti trovate', noCitationResults: 'Nessuna citazione di versetti trovata', loadingDB: 'Caricamento database...', dbLoaded: 'Database caricato',
             verseCopiedToast: '"{ref}" copiato negli appunti \u2014 premi Ctrl+F e incolla per trovare il versetto',
-            searchModeConcepts: 'Temi', conceptsSearchHint: 'Cerca temi e concetti delle lezioni...', conceptResults: 'corrispondenze tematiche trovate', noConceptResults: 'Nessuna corrispondenza tematica trovata', loadingConcepts: 'Caricamento database dei temi...'
+            favorites: 'Preferiti',
+            noFavorites: 'Nessun preferito salvato. Clicca la stella \u2605 per salvare una lezione.',
+            linkCopied: 'Link copiato!',
+            saveTo: 'Salva in...',
+            newCollection: 'Nuova collezione',
+            collectionName: 'Nome della collezione',
+            allSaved: 'Tutti i salvati',
+            shareQuote: 'Condividi citazione'
         },
         fr: {
             pageTitle: 'Recherche de liens vid\u00e9o et audio', listOfSources: 'Liste des sources', lectureTopics: 'Playlists', recommendations: 'Recommandations', recommendationsTitle: 'Conf\u00e9rences recommand\u00e9es :', latest20Files: 'Derniers 20 fichiers', latest20Transcripts: 'Derni\u00e8res 20 transcriptions', searchPlaceholder: 'Chercher la sagesse parmi {count} liens', searchButton: 'Rechercher', searchTime: 'Recherche c\u00f4t\u00e9 client \u2014 r\u00e9sultats instantan\u00e9s.', enterSearchTerms: 'Saisissez des mots de recherche pour voir les r\u00e9sultats', filesFound: 'fichiers trouv\u00e9s', showingResults: 'Affiche les r\u00e9sultats', noResultsFound: 'Aucun r\u00e9sultat trouv\u00e9', elapsedTime: 'Temps \u00e9coul\u00e9 :', seconds: 'secondes', searching: 'Recherche...', page: 'page', pages: 'pages', previous: 'Pr\u00e9c\u00e9dente', next: 'Suivante', sources: 'Sources :', topics: 'Sujets avec transcriptions :', transcriptsTitle: 'Transcriptions / Traductions', transcriptsHint: '. Toutes les transcriptions', clickWord: 'Cliquez', colDate: 'Date', colType: 'Type', colOriginalFileName: 'Nom du fichier', colCountry: 'Pays', colLang: 'Langue', colLinks: 'Liens', colDwnld: 'T\u00e9l\u00e9ch.', colLength: 'Dur\u00e9e', helpButton: 'Comment chercher ?', helpModalTitle: 'Comment utiliser le champ de recherche ?',
@@ -201,7 +217,14 @@ PPP.i18n = (function () {
             searchTranscripts: 'Rechercher dans les transcriptions', loadingTranscripts: 'Chargement des transcriptions...', transcriptResults: 'R\u00e9sultats dans les transcriptions', noTranscriptResults: 'Aucun r\u00e9sultat dans les transcriptions',
             searchModeMetadata: 'Fichiers Mp3', searchModeCitations: 'Citations (toutes)', searchModeCitationsTop: 'Citations (Top 108)', quotesSearchHint: 'Pour rechercher manuellement appuyez sur \u00abFichiers Mp3\u00bb', citationResults: 'citations de versets trouv\u00e9es', noCitationResults: 'Aucune citation de verset trouv\u00e9e', loadingDB: 'Chargement de la base de donn\u00e9es...', dbLoaded: 'Base de donn\u00e9es charg\u00e9e',
             verseCopiedToast: '"{ref}" copi\u00e9 dans le presse-papiers \u2014 appuyez sur Ctrl+F et collez',
-            searchModeConcepts: 'Th\u00e8mes', conceptsSearchHint: 'Rechercher th\u00e8mes et concepts des conf\u00e9rences...', conceptResults: 'correspondances th\u00e9matiques trouv\u00e9es', noConceptResults: 'Aucune correspondance th\u00e9matique trouv\u00e9e', loadingConcepts: 'Chargement de la base th\u00e9matique...'
+            favorites: 'Favoris',
+            noFavorites: 'Aucun favori enregistr\u00e9. Cliquez sur l\'\u00e9toile \u2605 pour sauvegarder une le\u00e7on.',
+            linkCopied: 'Lien copi\u00e9 !',
+            saveTo: 'Enregistrer dans...',
+            newCollection: 'Nouvelle collection',
+            collectionName: 'Nom de la collection',
+            allSaved: 'Tous les enregistr\u00e9s',
+            shareQuote: 'Partager la citation'
         },
         es: {
             pageTitle: 'Buscador de enlaces de v\u00eddeo y audio', listOfSources: 'Lista de fuentes', lectureTopics: 'Playlists', recommendations: 'Recomendaciones', recommendationsTitle: 'Conferencias recomendadas:', latest20Files: '\u00daltimos 20 archivos', latest20Transcripts: '\u00daltimas 20 transcripciones', searchPlaceholder: 'Buscar sabidur\u00eda entre {count} enlaces', searchButton: 'Buscar', searchTime: 'B\u00fasqueda del lado del cliente \u2014 resultados instant\u00e1neos.', enterSearchTerms: 'Introduce palabras de b\u00fasqueda para ver resultados', filesFound: 'archivos encontrados', showingResults: 'Mostrando resultados', noResultsFound: 'No se encontraron resultados', elapsedTime: 'Tiempo transcurrido:', seconds: 'segundos', searching: 'Buscando...', page: 'p\u00e1gina', pages: 'p\u00e1ginas', previous: 'Anterior', next: 'Siguiente', sources: 'Fuentes:', topics: 'Temas con transcripciones:', transcriptsTitle: 'Transcripciones / Traducciones', transcriptsHint: '. Todas las transcripciones', clickWord: 'Haz clic', colDate: 'Fecha', colType: 'Tipo', colOriginalFileName: 'Nombre del archivo', colCountry: 'Pa\u00eds', colLang: 'Idioma', colLinks: 'Enlaces', colDwnld: 'Desc.', colLength: 'Duraci\u00f3n', helpButton: '\u00bfC\u00f3mo buscar?', helpModalTitle: '\u00bfC\u00f3mo usar el campo de b\u00fasqueda?',
@@ -212,7 +235,14 @@ PPP.i18n = (function () {
             searchTranscripts: 'Buscar en transcripciones', loadingTranscripts: 'Cargando transcripciones...', transcriptResults: 'Resultados en transcripciones', noTranscriptResults: 'Sin resultados en transcripciones',
             searchModeMetadata: 'Archivos Mp3', searchModeCitations: 'Citas (todas)', searchModeCitationsTop: 'Citas (Top 108)', quotesSearchHint: 'Para buscar manualmente pulsa \u00abArchivos Mp3\u00bb', citationResults: 'citas de versos encontradas', noCitationResults: 'No se encontraron citas de versos', loadingDB: 'Cargando base de datos...', dbLoaded: 'Base de datos cargada',
             verseCopiedToast: '"{ref}" copiado al portapapeles \u2014 pulsa Ctrl+F y pega para encontrar el verso',
-            searchModeConcepts: 'Temas', conceptsSearchHint: 'Buscar temas y conceptos de las conferencias...', conceptResults: 'coincidencias tem\u00e1ticas encontradas', noConceptResults: 'No se encontraron coincidencias tem\u00e1ticas', loadingConcepts: 'Cargando base de temas...'
+            favorites: 'Favoritos',
+            noFavorites: 'No hay favoritos guardados. Haga clic en la estrella \u2605 para guardar una lecci\u00f3n.',
+            linkCopied: '\u00a1Enlace copiado!',
+            saveTo: 'Guardar en...',
+            newCollection: 'Nueva colecci\u00f3n',
+            collectionName: 'Nombre de la colecci\u00f3n',
+            allSaved: 'Todos los guardados',
+            shareQuote: 'Compartir cita'
         }
     };
 

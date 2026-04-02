@@ -29,6 +29,12 @@ PPP.ui = (function () {
      */
     function buildHeader(thead) {
         var row0 = thead.insertRow();
+        // Extra spacer for star + share columns
+        var starSpacer = document.createElement('th');
+        starSpacer.colSpan = 2;
+        starSpacer.style.border = 'none';
+        starSpacer.style.backgroundColor = 'transparent';
+        row0.appendChild(starSpacer);
         for (var i = 0; i < 5; i++) {
             var c = document.createElement('th');
             c.style.border = 'none';
@@ -62,6 +68,23 @@ PPP.ui = (function () {
         var row1 = thead.insertRow();
         var row2 = thead.insertRow();
         var row3 = thead.insertRow();
+
+        // Star column header
+        var starTh = document.createElement('th');
+        starTh.rowSpan = 3;
+        starTh.className = 'fav-cell';
+        starTh.innerHTML = '&#9733;';
+        starTh.style.color = 'var(--primary)';
+        starTh.style.fontSize = '14px';
+        row1.appendChild(starTh);
+
+        // Share column header
+        var shareTh = document.createElement('th');
+        shareTh.rowSpan = 3;
+        shareTh.className = 'share-cell';
+        shareTh.innerHTML = '&#128279;';
+        shareTh.style.fontSize = '12px';
+        row1.appendChild(shareTh);
 
         for (var idx = 0; idx < columnHeaders.length; idx++) {
             var h = columnHeaders[idx];
@@ -111,7 +134,7 @@ PPP.ui = (function () {
         if (rows.length === 0) {
             var r = tbody.insertRow();
             var c = r.insertCell();
-            c.colSpan = columnHeaders.length;
+            c.colSpan = columnHeaders.length + 2;
             c.className = 'empty-result-message';
             c.textContent = t('noResultsFound');
             return;
@@ -122,6 +145,47 @@ PPP.ui = (function () {
         for (var i = startIndex; i < endIndex && i < rows.length; i++) {
             var row = rows[i];
             var tr = tbody.insertRow();
+
+            // Star / favorite cell
+            var starTd = tr.insertCell();
+            starTd.className = 'fav-cell';
+            var nr = (row['Nr.'] || '').toString().trim();
+            if (nr && PPP.favorites) {
+                var btn = document.createElement('button');
+                btn.className = 'fav-star' + (PPP.favorites.isFavorite(nr) ? ' active' : '');
+                btn.setAttribute('data-nr', nr);
+                btn.innerHTML = '&#9733;';
+                btn.onclick = function (e) {
+                    e.stopPropagation();
+                    var el = e.currentTarget;
+                    var nrVal = el.getAttribute('data-nr');
+                    showSaveToPopup(nrVal, el);
+                };
+                starTd.appendChild(btn);
+            }
+
+            // Share / deep link cell
+            var shareTd = tr.insertCell();
+            shareTd.className = 'share-cell';
+            if (nr && PPP.app.copyShareLink) {
+                var shareBtn = document.createElement('button');
+                shareBtn.className = 'share-btn';
+                shareBtn.setAttribute('data-nr', nr);
+                shareBtn.setAttribute('data-title', (row['Original file name'] || '').toString().trim());
+                shareBtn.setAttribute('data-subject', (row['Subject'] || '').toString().trim());
+                shareBtn.innerHTML = '&#128279;'; // 🔗
+                shareBtn.title = 'Copy link';
+                shareBtn.onclick = function (e) {
+                    var el = e.currentTarget;
+                    PPP.app.copyShareLink(
+                        el.getAttribute('data-nr'),
+                        el.getAttribute('data-title'),
+                        el.getAttribute('data-subject')
+                    );
+                };
+                shareTd.appendChild(shareBtn);
+            }
+
             for (var ci = 0; ci < columnHeaders.length; ci++) {
                 var col = columnHeaders[ci];
                 var td = tr.insertCell();
@@ -292,7 +356,7 @@ PPP.ui = (function () {
         var tbody = table.createTBody();
         var r = tbody.insertRow();
         var c = r.insertCell();
-        c.colSpan = columnHeaders.length;
+        c.colSpan = columnHeaders.length + 2;
         c.className = 'empty-result-message';
         c.textContent = t('enterSearchTerms');
     }
@@ -478,61 +542,6 @@ PPP.ui = (function () {
     }
 
     /**
-     * Render concept search results (themes/summaries with lecture info).
-     */
-    function renderConceptResults(rows, searchTermStr) {
-        var table = document.getElementById('resultsTable');
-        var searchTerms = searchTermStr ? searchTermStr.split(';').map(function (s) { return s.trim(); }).filter(Boolean) : [];
-
-        var html = '<thead><tr>' +
-            '<th>Date</th>' +
-            '<th>Lecture</th>' +
-            '<th>Theme / Concept</th>' +
-            '<th>Links</th>' +
-            '</tr></thead><tbody>';
-
-        if (!rows || rows.length === 0) {
-            html += '<tr><td colspan="4" class="empty-result-message">' + t('noConceptResults') + '</td></tr>';
-        } else {
-            rows.forEach(function (row) {
-                var date = utils.escapeHtml(row.date || '');
-                var lectureName = row.original_file_name || ('Nr.' + row.lecture_nr);
-                var lectureHighlighted = highlightSearchTerms(lectureName, searchTerms);
-                var conceptText = row.concept_summary || '';
-                var conceptHighlighted = highlightSearchTerms(conceptText, searchTerms);
-
-                // Build links cell
-                var linksHtml = '';
-                var linkUrl = row.links_url || utils.extractUrl(row.links || '');
-                if (linkUrl && linkUrl.startsWith && linkUrl.startsWith('http')) {
-                    linksHtml += '<a href="' + utils.escapeHtml(linkUrl) + '" target="_blank" rel="noopener">Link</a> ';
-                }
-                if (row.dwnld_url) {
-                    linksHtml += '<a href="' + utils.escapeHtml(row.dwnld_url) + '" target="_blank" rel="noopener">Mp3</a> ';
-                }
-                // Script links
-                ['en', 'lv', 'ru'].forEach(function (lang) {
-                    var scriptVal = row['script_' + lang] || '';
-                    if (scriptVal && scriptVal !== 'N/A' && scriptVal !== '0' && scriptVal !== '') {
-                        linksHtml += '<a href="#" onclick="PPP.app.openHtmlTranscriptViewer(\'' +
-                            utils.escapeHtml(row.lecture_nr) + '\',\'' + lang + '\',' + (row.block_num || 0) +
-                            ');return false;" style="color:var(--saffron);font-weight:700;">' + lang.toUpperCase() + '</a> ';
-                    }
-                });
-
-                html += '<tr>' +
-                    '<td style="white-space:nowrap;">' + date + '</td>' +
-                    '<td>' + lectureHighlighted + '</td>' +
-                    '<td style="font-size:0.9em;line-height:1.5;">' + conceptHighlighted + '</td>' +
-                    '<td style="white-space:nowrap;">' + linksHtml + '</td>' +
-                    '</tr>';
-            });
-        }
-        html += '</tbody>';
-        table.innerHTML = html;
-    }
-
-    /**
      * Render citation stats overview (when no search term entered in Verses mode).
      */
     function renderCitationStats(rows) {
@@ -561,12 +570,148 @@ PPP.ui = (function () {
         table.innerHTML = html;
     }
 
+    // ===== "Save to..." popup =====
+    var _activePopup = null;
+
+    function closeSaveToPopup() {
+        if (_activePopup) {
+            _activePopup.remove();
+            _activePopup = null;
+        }
+        document.removeEventListener('click', _onDocClick);
+    }
+
+    function _onDocClick(e) {
+        if (_activePopup && !_activePopup.contains(e.target)) {
+            closeSaveToPopup();
+        }
+    }
+
+    function showSaveToPopup(nr, anchorEl) {
+        closeSaveToPopup();
+        var fav = PPP.favorites;
+        var cols = fav.getCollections();
+
+        var popup = document.createElement('div');
+        popup.className = 'save-to-popup';
+        _activePopup = popup;
+
+        // Header
+        var header = document.createElement('div');
+        header.className = 'save-to-header';
+        header.textContent = t('saveTo') || 'Save to...';
+        popup.appendChild(header);
+
+        // Collection list
+        var list = document.createElement('div');
+        list.className = 'save-to-list';
+
+        cols.forEach(function (col) {
+            var item = document.createElement('label');
+            item.className = 'save-to-item';
+            var cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = fav.isInCollection(col.id, nr);
+            cb.onchange = function () {
+                if (cb.checked) {
+                    fav.addToCollection(col.id, nr);
+                } else {
+                    fav.removeFromCollection(col.id, nr);
+                }
+                _updateStarState(nr);
+                if (PPP.app.updateFavoritesCount) PPP.app.updateFavoritesCount();
+            };
+            var nameSpan = document.createElement('span');
+            nameSpan.className = 'save-to-name';
+            nameSpan.textContent = col.name;
+            var countSpan = document.createElement('span');
+            countSpan.className = 'save-to-count';
+            countSpan.textContent = col.count;
+            item.appendChild(cb);
+            item.appendChild(nameSpan);
+            item.appendChild(countSpan);
+            list.appendChild(item);
+        });
+
+        popup.appendChild(list);
+
+        // "+ New collection" button
+        var newBtn = document.createElement('button');
+        newBtn.className = 'save-to-new';
+        newBtn.innerHTML = '+ ' + (t('newCollection') || 'New collection');
+        newBtn.onclick = function (e) {
+            e.stopPropagation();
+            _showNewCollectionInput(popup, nr);
+        };
+        popup.appendChild(newBtn);
+
+        // Position popup near the star
+        document.body.appendChild(popup);
+        var rect = anchorEl.getBoundingClientRect();
+        var popupRect = popup.getBoundingClientRect();
+        var top = rect.bottom + 4;
+        var left = rect.left;
+        // Keep within viewport
+        if (left + popupRect.width > window.innerWidth - 8) {
+            left = window.innerWidth - popupRect.width - 8;
+        }
+        if (top + popupRect.height > window.innerHeight - 8) {
+            top = rect.top - popupRect.height - 4;
+        }
+        popup.style.top = (top + window.scrollY) + 'px';
+        popup.style.left = (left + window.scrollX) + 'px';
+
+        setTimeout(function () {
+            document.addEventListener('click', _onDocClick);
+        }, 0);
+    }
+
+    function _showNewCollectionInput(popup, nr) {
+        var existing = popup.querySelector('.save-to-input-row');
+        if (existing) return;
+        var newBtn = popup.querySelector('.save-to-new');
+
+        var row = document.createElement('div');
+        row.className = 'save-to-input-row';
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'save-to-input';
+        input.placeholder = t('collectionName') || 'Collection name';
+        input.maxLength = 40;
+        var okBtn = document.createElement('button');
+        okBtn.className = 'save-to-ok';
+        okBtn.textContent = '✓';
+        okBtn.onclick = function (e) {
+            e.stopPropagation();
+            var name = input.value.trim();
+            if (!name) return;
+            var col = PPP.favorites.createCollection(name);
+            PPP.favorites.addToCollection(col.id, nr);
+            _updateStarState(nr);
+            if (PPP.app.updateFavoritesCount) PPP.app.updateFavoritesCount();
+            closeSaveToPopup();
+        };
+        input.onkeydown = function (e) {
+            if (e.key === 'Enter') okBtn.click();
+            if (e.key === 'Escape') closeSaveToPopup();
+        };
+        row.appendChild(input);
+        row.appendChild(okBtn);
+        popup.insertBefore(row, newBtn);
+        input.focus();
+    }
+
+    function _updateStarState(nr) {
+        var stars = document.querySelectorAll('.fav-star[data-nr="' + nr + '"]');
+        var isFav = PPP.favorites.isFavorite(nr);
+        stars.forEach(function (s) { s.classList.toggle('active', isFav); });
+    }
+
     return {
         renderResults: renderResults,
         renderTranscriptResults: renderTranscriptResults,
         renderCitationResults: renderCitationResults,
         renderCitationStats: renderCitationStats,
-        renderConceptResults: renderConceptResults,
         renderPagination: renderPagination,
         renderEmptyTable: renderEmptyTable,
         renderTopics: renderTopics,
