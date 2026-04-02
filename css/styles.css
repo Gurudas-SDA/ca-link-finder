@@ -1272,3 +1272,173 @@ body.dark .transcript-deep-highlight {
     margin-left: 4px;
     vertical-align: middle;
 }
+
+/* ===== ACCOUNT / AUTH ===== */
+.account-area {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.account-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: rgba(255,255,255,0.9);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.account-btn:hover { background: rgba(255,255,255,0.25); }
+.account-btn.signed-in {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.4);
+}
+
+/* Sync status dot */
+.sync-status { font-size: 10px; line-height: 1; }
+.sync-syncing { color: #f0ad4e; }
+.sync-synced { color: #5cb85c; }
+.sync-error { color: #d9534f; }
+
+/* ===== AUTH MODAL ===== */
+.auth-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: authFadeIn 0.2s;
+}
+.auth-modal {
+    background: var(--surface);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    max-width: 420px;
+    width: 90vw;
+    overflow: hidden;
+}
+.auth-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+.auth-modal-header h3 {
+    font-family: "Cormorant Garamond", serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 0;
+}
+.auth-modal-close {
+    background: none; border: none;
+    font-size: 24px; cursor: pointer;
+    color: var(--text-muted);
+    padding: 0 4px;
+}
+.auth-modal-body {
+    padding: 20px 24px 24px;
+}
+.auth-modal-body p {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 0 20px;
+}
+.auth-modal-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.auth-btn-primary {
+    flex: 1;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 140px;
+}
+.auth-btn-primary:hover { background: var(--primary-dark); }
+.auth-btn-secondary {
+    flex: 1;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 140px;
+}
+.auth-btn-secondary:hover { background: var(--bg-warm); }
+
+/* Google sign-in button */
+.auth-google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+}
+.auth-google-btn:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+/* Divider */
+.auth-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 16px 0; color: var(--text-muted); font-size: 13px;
+}
+.auth-divider::before,
+.auth-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* Email section */
+.auth-email-section label {
+    display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;
+}
+.auth-email-row { display: flex; gap: 8px; }
+.auth-email-row input {
+    flex: 1; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px;
+}
+.auth-email-msg { margin-top: 8px; font-size: 13px; }
+.auth-email-msg.success { color: var(--tulasi); }
+.auth-email-msg.error { color: var(--vermillion); }
+
+/* Dark mode overrides for auth */
+body.dark .auth-modal { background: var(--surface); }
+body.dark .auth-google-btn { background: var(--bg-warm); border-color: var(--border); }
+body.dark .auth-email-row input { background: var(--bg); border-color: var(--border); color: var(--text); }
+body.dark .account-btn { background: rgba(255,255,255,0.1); }
+
+@keyframes authFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (max-width: 600px) {
+    .account-area { top: 8px; right: 8px; }
+    .account-btn { font-size: 11px; padding: 4px 10px; }
+}

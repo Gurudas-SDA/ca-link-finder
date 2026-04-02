@@ -70,7 +70,7 @@ PPP.db = (function () {
      */
     function tryInitWorker() {
         try {
-            worker = new Worker('js/db-worker.js?v=cache4');
+            worker = new Worker('js/db-worker.js');
             worker.onmessage = onWorkerMessage;
             worker.onerror = function (err) {
                 console.warn('DB Worker error, falling back to main thread:', err);
@@ -241,6 +241,13 @@ PPP.db = (function () {
     }
 
     /**
+     * Lazy-load the concepts database (on demand, not at startup).
+     */
+    function loadConceptsDB(progressCallback) {
+        return loadDB('concepts_en', 'data/ppp_concepts_en.db', progressCallback);
+    }
+
+    /**
      * Run a SQL query. Returns array of objects (sync for fallback, async for Worker).
      * For backward compatibility, this is SYNCHRONOUS in fallback mode.
      * Use queryAsync() for the Promise-based version.
@@ -282,6 +289,10 @@ PPP.db = (function () {
 
     function queryHtmlAsync(lang, sql, params) {
         return queryAsync('html_' + (lang || 'en'), sql, params);
+    }
+
+    function queryConceptsAsync(sql, params) {
+        return queryAsync('concepts_en', sql, params);
     }
 
     /**
@@ -331,6 +342,10 @@ PPP.db = (function () {
         return !!loadedDBs[dbName] || !!databases[dbName];
     }
 
+    function isConceptsLoaded() {
+        return !!loadedDBs['concepts_en'] || !!databases['concepts_en'];
+    }
+
     /**
      * Check if Worker mode is active.
      */
@@ -342,6 +357,7 @@ PPP.db = (function () {
         initSqlJs: initSqlJs,
         loadMetaDB: loadMetaDB,
         loadHtmlDB: loadHtmlDB,
+        loadConceptsDB: loadConceptsDB,
         // Sync queries (fallback mode only)
         queryMeta: queryMeta,
         queryHtmlTranscripts: queryHtmlTranscripts,
@@ -349,11 +365,13 @@ PPP.db = (function () {
         // Async queries (both modes)
         queryMetaAsync: queryMetaAsync,
         queryHtmlAsync: queryHtmlAsync,
+        queryConceptsAsync: queryConceptsAsync,
         getStatsAsync: getStatsAsync,
         queryAsync: queryAsync,
         // State checks
         isMetaLoaded: isMetaLoaded,
         isHtmlLoaded: isHtmlLoaded,
+        isConceptsLoaded: isConceptsLoaded,
         isWorkerMode: isWorkerMode
     };
 })();
