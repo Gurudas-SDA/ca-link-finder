@@ -13,11 +13,12 @@ PPP.i18n = (function () {
         en: {
             pageTitle: 'Video & Audio Link Finder',
             listOfSources: 'List Of Sources',
-            lectureTopics: 'Playlists',
+            lectureTopics: 'Transcripts by Topic',
             recommendations: 'Recommendations',
             recommendationsTitle: 'Recommended lectures:',
             latest20Files: '20 latest files',
-            latest20Transcripts: '20 latest transcripts',
+            latest20Transcripts: '20 Most Recent Transcripts',
+            allTranscriptsByDate: 'All Transcripts by Date',
             searchPlaceholder: 'Search for wisdom among {count} links',
             searchButton: 'Search',
             searchTime: 'Client-side search — instant results.',
@@ -58,8 +59,8 @@ PPP.i18n = (function () {
             transcriptResults: 'Transcript results',
             noTranscriptResults: 'No results in transcripts',
             searchModeMetadata: 'Mp3 files',
-            searchModeCitations: 'Quotes (all)',
-            searchModeCitationsTop: 'Quotes (Top 108)',
+            searchModeCitations: 'Verses (all)',
+            searchModeCitationsTop: 'Verses (Top 108)',
             quotesSearchHint: 'To search manually press \'Mp3 files\'',
             citationResults: 'verse citations found',
             noCitationResults: 'No verse citations found',
@@ -73,16 +74,17 @@ PPP.i18n = (function () {
             newCollection: 'New collection',
             collectionName: 'Collection name',
             allSaved: 'All saved',
-            shareQuote: 'Share quote'
+            shareQuote: 'Share verse'
         },
         ru: {
             pageTitle: '\u041f\u043e\u0438\u0441\u043a \u0432\u0438\u0434\u0435\u043e \u0438 \u0430\u0443\u0434\u0438\u043e \u0441\u0441\u044b\u043b\u043e\u043a',
             listOfSources: '\u0421\u043f\u0438\u0441\u043e\u043a \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u043e\u0432',
-            lectureTopics: '\u041f\u043b\u0435\u0439\u043b\u0438\u0441\u0442\u044b',
+            lectureTopics: '\u0422\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u044b \u043f\u043e \u0442\u0435\u043c\u0430\u043c',
             recommendations: '\u0420\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0430\u0446\u0438\u0438',
             recommendationsTitle: '\u0420\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u043c\u044b\u0435 \u043b\u0435\u043a\u0446\u0438\u0438:',
             latest20Files: '\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 20 \u0444\u0430\u0439\u043b\u043e\u0432',
-            latest20Transcripts: '\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0435 20 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u043e\u0432',
+            latest20Transcripts: '20 \u043d\u043e\u0432\u0435\u0439\u0448\u0438\u0445 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u043e\u0432',
+            allTranscriptsByDate: '\u0412\u0441\u0435 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u044b \u043f\u043e \u0434\u0430\u0442\u0435',
             searchPlaceholder: '\u0418\u0441\u043a\u0430\u0442\u044c \u043c\u0443\u0434\u0440\u043e\u0441\u0442\u044c \u0441\u0440\u0435\u0434\u0438 {count} \u0441\u0441\u044b\u043b\u043e\u043a',
             searchButton: '\u041f\u043e\u0438\u0441\u043a',
             searchTime: '\u041f\u043e\u0438\u0441\u043a \u043d\u0430 \u0441\u0442\u043e\u0440\u043e\u043d\u0435 \u043a\u043b\u0438\u0435\u043d\u0442\u0430 \u2014 \u043c\u0433\u043d\u043e\u0432\u0435\u043d\u043d\u044b\u0435 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b.',
@@ -116,8 +118,8 @@ PPP.i18n = (function () {
             transcriptResults: '\u0420\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u044b \u0432 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u0430\u0445',
             noTranscriptResults: '\u041d\u0435\u0442 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442\u043e\u0432 \u0432 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u0430\u0445',
             searchModeMetadata: 'Mp3 \u0444\u0430\u0439\u043b\u044b',
-            searchModeCitations: '\u0426\u0438\u0442\u0430\u0442\u044b (\u0432\u0441\u0435)',
-            searchModeCitationsTop: '\u0426\u0438\u0442\u0430\u0442\u044b (Top 108)',
+            searchModeCitations: '\u0421\u0442\u0438\u0445\u0438 (\u0432\u0441\u0435)',
+            searchModeCitationsTop: '\u0421\u0442\u0438\u0445\u0438 (Top 108)',
             quotesSearchHint: '\u0414\u043b\u044f \u0440\u0443\u0447\u043d\u043e\u0433\u043e \u043f\u043e\u0438\u0441\u043a\u0430 \u043d\u0430\u0436\u043c\u0438\u0442\u0435 \u00abMp3 \u0444\u0430\u0439\u043b\u044b\u00bb',
             citationResults: '\u0441\u0441\u044b\u043b\u043e\u043a \u043d\u0430 \u0441\u0442\u0438\u0445\u0438 \u043d\u0430\u0439\u0434\u0435\u043d\u043e',
             noCitationResults: '\u0421\u0441\u044b\u043b\u043e\u043a \u043d\u0430 \u0441\u0442\u0438\u0445\u0438 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e',
@@ -131,16 +133,17 @@ PPP.i18n = (function () {
             newCollection: '\u041d\u043e\u0432\u0430\u044f \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u044f',
             collectionName: '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438',
             allSaved: '\u0412\u0441\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435',
-            shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0446\u0438\u0442\u0430\u0442\u043e\u0439'
+            shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0441\u0442\u0438\u0445\u043e\u043c'
         },
         lv: {
             pageTitle: 'Video & Audio sai\u0161u mekl\u0113t\u0101js',
             listOfSources: 'Avotu saraksts',
-            lectureTopics: 'Atska\u0146o\u0161anas saraksti',
+            lectureTopics: 'Transkripti p\u0113c t\u0113mas',
             recommendations: 'Ieteikumi',
             recommendationsTitle: 'Ieteikt\u0101s lekcijas:',
             latest20Files: 'Jaun\u0101kie 20 faili',
-            latest20Transcripts: 'Jaun\u0101kie 20 transkripti',
+            latest20Transcripts: '20 jaun\u0101kie transkripti',
+            allTranscriptsByDate: 'Visi transkripti p\u0113c datuma',
             searchPlaceholder: 'Mekl\u0113t gudr\u012bbu starp {count} sait\u0113m',
             searchButton: 'Mekl\u0113t',
             searchTime: 'Mekl\u0113\u0161ana klienta pus\u0113 \u2014 t\u016bl\u012bt\u0113ji rezult\u0101ti.',
@@ -173,8 +176,8 @@ PPP.i18n = (function () {
             transcriptResults: 'Transkriptu rezult\u0101ti',
             noTranscriptResults: 'Nav rezult\u0101tu transkriptos',
             searchModeMetadata: 'Mp3 faili',
-            searchModeCitations: 'Cit\u0101ti (visi)',
-            searchModeCitationsTop: 'Cit\u0101ti (Top 108)',
+            searchModeCitations: 'Panti (visi)',
+            searchModeCitationsTop: 'Panti (Top 108)',
             quotesSearchHint: 'Lai mekl\u0113tu manu\u0101li nospied \u00abMp3 faili\u00bb',
             citationResults: 'pantu atsauces atrastas',
             noCitationResults: 'Pantu atsauces nav atrastas',
@@ -188,16 +191,16 @@ PPP.i18n = (function () {
             newCollection: 'Jauna kolekcija',
             collectionName: 'Kolekcijas nosaukums',
             allSaved: 'Visi saglab\u0101tie',
-            shareQuote: 'Dal\u012bties ar cit\u0101tu'
+            shareQuote: 'Dal\u012bties ar pantu'
         },
         it: {
-            pageTitle: 'Cercatore di link video e audio', listOfSources: 'Elenco fonti', lectureTopics: 'Playlists', recommendations: 'Raccomandazioni', recommendationsTitle: 'Lezioni consigliate:', latest20Files: 'Ultimi 20 file', latest20Transcripts: 'Ultime 20 trascrizioni', searchPlaceholder: 'Cercare saggezza tra {count} link', searchButton: 'Cerca', searchTime: 'Ricerca lato client \u2014 risultati istantanei.', enterSearchTerms: 'Inserisci parole di ricerca per vedere i risultati', filesFound: 'file trovati', showingResults: 'Mostra risultati', noResultsFound: 'Nessun risultato trovato', elapsedTime: 'Tempo trascorso:', seconds: 'secondi', searching: 'Ricerca...', page: 'pagina', pages: 'pagine', previous: 'Precedente', next: 'Successiva', sources: 'Fonti:', topics: 'Argomenti con trascrizioni:', transcriptsTitle: 'Trascrizioni / Traduzioni', transcriptsHint: '. Tutte le trascrizioni', clickWord: 'Clicca', colDate: 'Data', colType: 'Tipo', colOriginalFileName: 'Nome file', colCountry: 'Paese', colLang: 'Lingua', colLinks: 'Link', colDwnld: 'Scarica', colLength: 'Durata', helpButton: 'Come cercare?', helpModalTitle: 'Come usare il campo di ricerca?',
+            pageTitle: 'Cercatore di link video e audio', listOfSources: 'Elenco fonti', lectureTopics: 'Trascrizioni per argomento', recommendations: 'Raccomandazioni', recommendationsTitle: 'Lezioni consigliate:', latest20Files: 'Ultimi 20 file', latest20Transcripts: '20 trascrizioni pi\u00f9 recenti', allTranscriptsByDate: 'Tutte le trascrizioni per data', searchPlaceholder: 'Cercare saggezza tra {count} link', searchButton: 'Cerca', searchTime: 'Ricerca lato client \u2014 risultati istantanei.', enterSearchTerms: 'Inserisci parole di ricerca per vedere i risultati', filesFound: 'file trovati', showingResults: 'Mostra risultati', noResultsFound: 'Nessun risultato trovato', elapsedTime: 'Tempo trascorso:', seconds: 'secondi', searching: 'Ricerca...', page: 'pagina', pages: 'pagine', previous: 'Precedente', next: 'Successiva', sources: 'Fonti:', topics: 'Argomenti con trascrizioni:', transcriptsTitle: 'Trascrizioni / Traduzioni', transcriptsHint: '. Tutte le trascrizioni', clickWord: 'Clicca', colDate: 'Data', colType: 'Tipo', colOriginalFileName: 'Nome file', colCountry: 'Paese', colLang: 'Lingua', colLinks: 'Link', colDwnld: 'Scarica', colLength: 'Durata', helpButton: 'Come cercare?', helpModalTitle: 'Come usare il campo di ricerca?',
             helpContent: '<div class="help-section-title">Ricerca di base</div>Inserisci lettere/numeri e fai clic su <strong>Search</strong>. Il Finder analizza ogni cella della tabella e mostra le righe in cui almeno un campo contiene i simboli inseriti. Le corrispondenze vengono evidenziate (di solito in giallo).<div class="help-section-title">Diacritici</div>Il Finder gestisce i diacritici: cercando <code>babaji</code> vengono trovati anche risultati con <strong>B\u0101b\u0101j\u012b</strong> (le corrispondenze con diacritici possono apparire con uno sfondo azzurrato).<div class="help-section-title">Ortografie diverse ("oppure")</div>Usa <code>//</code> per indicare OR ("oppure"): <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principi per una ricerca efficace</div>Usa il punto e virgola <code>;</code> = AND ("e", filtra/raffina): <code>guru; tattva; youtube; 2020</code><br><strong>Importante:</strong> non lasciare <code>;</code> dopo l\'ultima parola.<br>Accorcia le parole (non serve scrivere la parola intera): <code>bhaktis; avir</code><br>Combina AND + OR: <code>rupa; goswami//gosvami; disap</code>',
             installBannerText: 'Installa questa app sul tuo dispositivo', installBtn: 'Mostrami come',
             iosStep1: 'Tocca il pulsante <b>Condividi</b> <span style="font-size:20px">\u23CE</span>', iosStep2: 'Scorri verso il basso. Se non vedi <b>"Aggiungi alla schermata Home"</b>, tocca prima <b>"Altro"</b>', iosStep3: 'Tocca <b>"Aggiungi alla schermata Home"</b>', iosStep4: 'Tocca <b>"Aggiungi"</b> in alto a destra', iosGotIt: 'Capito!',
             androidStep1: 'Apri il link in <b>Chrome</b> (se si \u00e8 aperto in un\'altra app, tocca <b>\u22ee</b> \u2192 <b>"Apri nel browser"</b>)', androidStep2: 'In Chrome, tocca il menu <b>\u22ee</b> in alto a destra', androidStep3: 'Tocca <b>"Aggiungi alla schermata Home"</b>', androidStep4: 'Tocca <b>"Aggiungi"</b>',
             searchTranscripts: 'Cerca nelle trascrizioni', loadingTranscripts: 'Caricamento trascrizioni...', transcriptResults: 'Risultati nelle trascrizioni', noTranscriptResults: 'Nessun risultato nelle trascrizioni',
-            searchModeMetadata: 'File Mp3', searchModeCitations: 'Citazioni (tutte)', searchModeCitationsTop: 'Citazioni (Top 108)', quotesSearchHint: 'Per cercare manualmente premi \'File Mp3\'', citationResults: 'citazioni di versetti trovate', noCitationResults: 'Nessuna citazione di versetti trovata', loadingDB: 'Caricamento database...', dbLoaded: 'Database caricato',
+            searchModeMetadata: 'File Mp3', searchModeCitations: 'Versetti (tutti)', searchModeCitationsTop: 'Versetti (Top 108)', quotesSearchHint: 'Per cercare manualmente premi \'File Mp3\'', citationResults: 'citazioni di versetti trovate', noCitationResults: 'Nessuna citazione di versetti trovata', loadingDB: 'Caricamento database...', dbLoaded: 'Database caricato',
             verseCopiedToast: '"{ref}" copiato negli appunti \u2014 premi Ctrl+F e incolla per trovare il versetto',
             favorites: 'Preferiti',
             noFavorites: 'Nessun preferito salvato. Clicca la stella \u2605 per salvare una lezione.',
@@ -206,16 +209,16 @@ PPP.i18n = (function () {
             newCollection: 'Nuova collezione',
             collectionName: 'Nome della collezione',
             allSaved: 'Tutti i salvati',
-            shareQuote: 'Condividi citazione'
+            shareQuote: 'Condividi versetto'
         },
         fr: {
-            pageTitle: 'Recherche de liens vid\u00e9o et audio', listOfSources: 'Liste des sources', lectureTopics: 'Playlists', recommendations: 'Recommandations', recommendationsTitle: 'Conf\u00e9rences recommand\u00e9es :', latest20Files: 'Derniers 20 fichiers', latest20Transcripts: 'Derni\u00e8res 20 transcriptions', searchPlaceholder: 'Chercher la sagesse parmi {count} liens', searchButton: 'Rechercher', searchTime: 'Recherche c\u00f4t\u00e9 client \u2014 r\u00e9sultats instantan\u00e9s.', enterSearchTerms: 'Saisissez des mots de recherche pour voir les r\u00e9sultats', filesFound: 'fichiers trouv\u00e9s', showingResults: 'Affiche les r\u00e9sultats', noResultsFound: 'Aucun r\u00e9sultat trouv\u00e9', elapsedTime: 'Temps \u00e9coul\u00e9 :', seconds: 'secondes', searching: 'Recherche...', page: 'page', pages: 'pages', previous: 'Pr\u00e9c\u00e9dente', next: 'Suivante', sources: 'Sources :', topics: 'Sujets avec transcriptions :', transcriptsTitle: 'Transcriptions / Traductions', transcriptsHint: '. Toutes les transcriptions', clickWord: 'Cliquez', colDate: 'Date', colType: 'Type', colOriginalFileName: 'Nom du fichier', colCountry: 'Pays', colLang: 'Langue', colLinks: 'Liens', colDwnld: 'T\u00e9l\u00e9ch.', colLength: 'Dur\u00e9e', helpButton: 'Comment chercher ?', helpModalTitle: 'Comment utiliser le champ de recherche ?',
+            pageTitle: 'Recherche de liens vid\u00e9o et audio', listOfSources: 'Liste des sources', lectureTopics: 'Transcriptions par sujet', recommendations: 'Recommandations', recommendationsTitle: 'Conf\u00e9rences recommand\u00e9es :', latest20Files: 'Derniers 20 fichiers', latest20Transcripts: '20 transcriptions les plus r\u00e9centes', allTranscriptsByDate: 'Toutes les transcriptions par date', searchPlaceholder: 'Chercher la sagesse parmi {count} liens', searchButton: 'Rechercher', searchTime: 'Recherche c\u00f4t\u00e9 client \u2014 r\u00e9sultats instantan\u00e9s.', enterSearchTerms: 'Saisissez des mots de recherche pour voir les r\u00e9sultats', filesFound: 'fichiers trouv\u00e9s', showingResults: 'Affiche les r\u00e9sultats', noResultsFound: 'Aucun r\u00e9sultat trouv\u00e9', elapsedTime: 'Temps \u00e9coul\u00e9 :', seconds: 'secondes', searching: 'Recherche...', page: 'page', pages: 'pages', previous: 'Pr\u00e9c\u00e9dente', next: 'Suivante', sources: 'Sources :', topics: 'Sujets avec transcriptions :', transcriptsTitle: 'Transcriptions / Traductions', transcriptsHint: '. Toutes les transcriptions', clickWord: 'Cliquez', colDate: 'Date', colType: 'Type', colOriginalFileName: 'Nom du fichier', colCountry: 'Pays', colLang: 'Langue', colLinks: 'Liens', colDwnld: 'T\u00e9l\u00e9ch.', colLength: 'Dur\u00e9e', helpButton: 'Comment chercher ?', helpModalTitle: 'Comment utiliser le champ de recherche ?',
             helpContent: '<div class="help-section-title">Recherche de base</div>Saisissez des lettres/chiffres puis cliquez sur <strong>Search</strong>. Le Finder parcourt chaque cellule du tableau et affiche les lignes o\u00f9 au moins un champ contient les symboles saisis. Les correspondances sont surlighn\u00e9es (g\u00e9n\u00e9ralement en jaune).<div class="help-section-title">Diacritiques</div>Le Finder g\u00e8re les diacritiques : en recherchant <code>babaji</code>, il trouve aussi <strong>B\u0101b\u0101j\u012b</strong> (les correspondances avec diacritiques peuvent appara\u00eetre sur un fond bleut\u00e9).<div class="help-section-title">Orthographes diff\u00e9rentes (\u00ab ou \u00bb)</div>Utilisez <code>//</code> pour indiquer OR (\u00ab ou \u00bb) : <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principes pour une recherche efficace</div>Utilisez le point-virgule <code>;</code> = AND (\u00ab et \u00bb, filtre) : <code>guru; tattva; youtube; 2020</code><br><strong>Important :</strong> ne laissez pas <code>;</code> apr\u00e8s le dernier mot.<br>Raccourcissez les mots (inutile d\'\u00e9crire le mot en entier) : <code>bhaktis; avir</code><br>Combinez AND + OR : <code>rupa; goswami//gosvami; disap</code>',
             installBannerText: 'Installez cette application sur votre appareil', installBtn: 'Me montrer comment',
             iosStep1: 'Appuyez sur le bouton <b>Partager</b> <span style="font-size:20px">\u23CE</span>', iosStep2: 'Faites d\u00e9filer vers le bas. Si vous ne voyez pas <b>\u00ab Sur l\'\u00e9cran d\'accueil \u00bb</b>, appuyez d\'abord sur <b>\u00ab Plus \u00bb</b>', iosStep3: 'Appuyez sur <b>\u00ab Sur l\'\u00e9cran d\'accueil \u00bb</b>', iosStep4: 'Appuyez sur <b>\u00ab Ajouter \u00bb</b> en haut \u00e0 droite', iosGotIt: 'Compris !',
             androidStep1: 'Ouvrez le lien dans <b>Chrome</b> (s\'il s\'est ouvert dans une autre app, appuyez sur <b>\u22ee</b> \u2192 <b>\u00abOuvrir dans le navigateur\u00bb</b>)', androidStep2: 'Dans Chrome, appuyez sur le menu <b>\u22ee</b> en haut \u00e0 droite', androidStep3: 'Appuyez sur <b>\u00abAjouter \u00e0 l\'\u00e9cran d\'accueil\u00bb</b>', androidStep4: 'Appuyez sur <b>\u00abAjouter\u00bb</b>',
             searchTranscripts: 'Rechercher dans les transcriptions', loadingTranscripts: 'Chargement des transcriptions...', transcriptResults: 'R\u00e9sultats dans les transcriptions', noTranscriptResults: 'Aucun r\u00e9sultat dans les transcriptions',
-            searchModeMetadata: 'Fichiers Mp3', searchModeCitations: 'Citations (toutes)', searchModeCitationsTop: 'Citations (Top 108)', quotesSearchHint: 'Pour rechercher manuellement appuyez sur \u00abFichiers Mp3\u00bb', citationResults: 'citations de versets trouv\u00e9es', noCitationResults: 'Aucune citation de verset trouv\u00e9e', loadingDB: 'Chargement de la base de donn\u00e9es...', dbLoaded: 'Base de donn\u00e9es charg\u00e9e',
+            searchModeMetadata: 'Fichiers Mp3', searchModeCitations: 'Versets (tous)', searchModeCitationsTop: 'Versets (Top 108)', quotesSearchHint: 'Pour rechercher manuellement appuyez sur \u00abFichiers Mp3\u00bb', citationResults: 'citations de versets trouv\u00e9es', noCitationResults: 'Aucune citation de verset trouv\u00e9e', loadingDB: 'Chargement de la base de donn\u00e9es...', dbLoaded: 'Base de donn\u00e9es charg\u00e9e',
             verseCopiedToast: '"{ref}" copi\u00e9 dans le presse-papiers \u2014 appuyez sur Ctrl+F et collez',
             favorites: 'Favoris',
             noFavorites: 'Aucun favori enregistr\u00e9. Cliquez sur l\'\u00e9toile \u2605 pour sauvegarder une le\u00e7on.',
@@ -224,16 +227,16 @@ PPP.i18n = (function () {
             newCollection: 'Nouvelle collection',
             collectionName: 'Nom de la collection',
             allSaved: 'Tous les enregistr\u00e9s',
-            shareQuote: 'Partager la citation'
+            shareQuote: 'Partager le verset'
         },
         es: {
-            pageTitle: 'Buscador de enlaces de v\u00eddeo y audio', listOfSources: 'Lista de fuentes', lectureTopics: 'Playlists', recommendations: 'Recomendaciones', recommendationsTitle: 'Conferencias recomendadas:', latest20Files: '\u00daltimos 20 archivos', latest20Transcripts: '\u00daltimas 20 transcripciones', searchPlaceholder: 'Buscar sabidur\u00eda entre {count} enlaces', searchButton: 'Buscar', searchTime: 'B\u00fasqueda del lado del cliente \u2014 resultados instant\u00e1neos.', enterSearchTerms: 'Introduce palabras de b\u00fasqueda para ver resultados', filesFound: 'archivos encontrados', showingResults: 'Mostrando resultados', noResultsFound: 'No se encontraron resultados', elapsedTime: 'Tiempo transcurrido:', seconds: 'segundos', searching: 'Buscando...', page: 'p\u00e1gina', pages: 'p\u00e1ginas', previous: 'Anterior', next: 'Siguiente', sources: 'Fuentes:', topics: 'Temas con transcripciones:', transcriptsTitle: 'Transcripciones / Traducciones', transcriptsHint: '. Todas las transcripciones', clickWord: 'Haz clic', colDate: 'Fecha', colType: 'Tipo', colOriginalFileName: 'Nombre del archivo', colCountry: 'Pa\u00eds', colLang: 'Idioma', colLinks: 'Enlaces', colDwnld: 'Desc.', colLength: 'Duraci\u00f3n', helpButton: '\u00bfC\u00f3mo buscar?', helpModalTitle: '\u00bfC\u00f3mo usar el campo de b\u00fasqueda?',
+            pageTitle: 'Buscador de enlaces de v\u00eddeo y audio', listOfSources: 'Lista de fuentes', lectureTopics: 'Transcripciones por tema', recommendations: 'Recomendaciones', recommendationsTitle: 'Conferencias recomendadas:', latest20Files: '\u00daltimos 20 archivos', latest20Transcripts: '20 transcripciones m\u00e1s recientes', allTranscriptsByDate: 'Todas las transcripciones por fecha', searchPlaceholder: 'Buscar sabidur\u00eda entre {count} enlaces', searchButton: 'Buscar', searchTime: 'B\u00fasqueda del lado del cliente \u2014 resultados instant\u00e1neos.', enterSearchTerms: 'Introduce palabras de b\u00fasqueda para ver resultados', filesFound: 'archivos encontrados', showingResults: 'Mostrando resultados', noResultsFound: 'No se encontraron resultados', elapsedTime: 'Tiempo transcurrido:', seconds: 'segundos', searching: 'Buscando...', page: 'p\u00e1gina', pages: 'p\u00e1ginas', previous: 'Anterior', next: 'Siguiente', sources: 'Fuentes:', topics: 'Temas con transcripciones:', transcriptsTitle: 'Transcripciones / Traducciones', transcriptsHint: '. Todas las transcripciones', clickWord: 'Haz clic', colDate: 'Fecha', colType: 'Tipo', colOriginalFileName: 'Nombre del archivo', colCountry: 'Pa\u00eds', colLang: 'Idioma', colLinks: 'Enlaces', colDwnld: 'Desc.', colLength: 'Duraci\u00f3n', helpButton: '\u00bfC\u00f3mo buscar?', helpModalTitle: '\u00bfC\u00f3mo usar el campo de b\u00fasqueda?',
             helpContent: '<div class="help-section-title">B\u00fasqueda b\u00e1sica</div>Escribe letras/n\u00fameros y haz clic en <strong>Search</strong>. El Finder revisa cada celda de la tabla y muestra las filas donde al menos un campo contiene los s\u00edmbolos introducidos. Las coincidencias se resaltan (normalmente en amarillo).<div class="help-section-title">Diacr\u00edticos</div>El Finder maneja diacr\u00edticos: al buscar <code>babaji</code> tambi\u00e9n encuentra <strong>B\u0101b\u0101j\u012b</strong> (las coincidencias con diacr\u00edticos pueden aparecer con un fondo azulado).<div class="help-section-title">Distintas graf\u00edas ("o")</div>Usa <code>//</code> para indicar OR ("o"): <code>goswami//gosvami</code>, <code>saraswati//sarasvati</code>.<div class="help-section-title">3 principios para una b\u00fasqueda eficaz</div>Usa punto y coma <code>;</code> = AND ("y", filtra): <code>guru; tattva; youtube; 2020</code><br><strong>Importante:</strong> no dejes <code>;</code> despu\u00e9s de la \u00faltima palabra.<br>Acorta las palabras (no hace falta escribir la palabra completa): <code>bhaktis; avir</code><br>Combina AND + OR: <code>rupa; goswami//gosvami; disap</code>',
             installBannerText: 'Instala esta aplicaci\u00f3n en tu dispositivo', installBtn: 'Mu\u00e9strame c\u00f3mo',
             iosStep1: 'Toca el bot\u00f3n <b>Compartir</b> <span style="font-size:20px">\u23CE</span>', iosStep2: 'Despl\u00e1zate hacia abajo. Si no ves <b>"A\u00f1adir a la pantalla de inicio"</b>, toca primero <b>"M\u00e1s"</b>', iosStep3: 'Toca <b>"A\u00f1adir a la pantalla de inicio"</b>', iosStep4: 'Toca <b>"A\u00f1adir"</b> en la esquina superior derecha', iosGotIt: '\u00a1Entendido!',
             androidStep1: 'Abre el enlace en <b>Chrome</b> (si se abri\u00f3 en otra app, toca <b>\u22ee</b> \u2192 <b>"Abrir en el navegador"</b>)', androidStep2: 'En Chrome, toca el men\u00fa <b>\u22ee</b> en la esquina superior derecha', androidStep3: 'Toca <b>"A\u00f1adir a la pantalla de inicio"</b>', androidStep4: 'Toca <b>"A\u00f1adir"</b>',
             searchTranscripts: 'Buscar en transcripciones', loadingTranscripts: 'Cargando transcripciones...', transcriptResults: 'Resultados en transcripciones', noTranscriptResults: 'Sin resultados en transcripciones',
-            searchModeMetadata: 'Archivos Mp3', searchModeCitations: 'Citas (todas)', searchModeCitationsTop: 'Citas (Top 108)', quotesSearchHint: 'Para buscar manualmente pulsa \u00abArchivos Mp3\u00bb', citationResults: 'citas de versos encontradas', noCitationResults: 'No se encontraron citas de versos', loadingDB: 'Cargando base de datos...', dbLoaded: 'Base de datos cargada',
+            searchModeMetadata: 'Archivos Mp3', searchModeCitations: 'Versos (todos)', searchModeCitationsTop: 'Versos (Top 108)', quotesSearchHint: 'Para buscar manualmente pulsa \u00abArchivos Mp3\u00bb', citationResults: 'citas de versos encontradas', noCitationResults: 'No se encontraron citas de versos', loadingDB: 'Cargando base de datos...', dbLoaded: 'Base de datos cargada',
             verseCopiedToast: '"{ref}" copiado al portapapeles \u2014 pulsa Ctrl+F y pega para encontrar el verso',
             favorites: 'Favoritos',
             noFavorites: 'No hay favoritos guardados. Haga clic en la estrella \u2605 para guardar una lecci\u00f3n.',
@@ -242,7 +245,7 @@ PPP.i18n = (function () {
             newCollection: 'Nueva colecci\u00f3n',
             collectionName: 'Nombre de la colecci\u00f3n',
             allSaved: 'Todos los guardados',
-            shareQuote: 'Compartir cita'
+            shareQuote: 'Compartir verso'
         }
     };
 
