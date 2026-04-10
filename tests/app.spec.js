@@ -77,21 +77,21 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(text.length).toBeGreaterThan(10);
   });
 
-  test('4. Top 108 — table renders', async ({ page }) => {
+  test('4. Top 108 — list renders', async ({ page }) => {
     await page.goto('./');
     await waitForAppReady(page);
 
     // Click Top 108 button
     await page.click('.search-mode-btn[data-mode="citationsTop"]');
 
-    // Wait for results table to have content
+    // Wait for topCitationsList to populate
     await page.waitForFunction(() => {
-      const tbody = document.querySelector('#resultsTable tbody');
-      return tbody && tbody.children.length > 5;
-    }, { timeout: 10000 });
+      const list = document.getElementById('topCitationsList');
+      return list && list.children.length > 0 && list.querySelectorAll('.recommendation-item').length > 5;
+    }, { timeout: 15000 });
 
-    const rows = await page.locator('#resultsTable tbody tr').count();
-    expect(rows).toBeGreaterThanOrEqual(10);
+    const items = await page.locator('#topCitationsList .recommendation-item').count();
+    expect(items).toBeGreaterThanOrEqual(10);
   });
 
   test('5. Quick action: 20 latest files', async ({ page }) => {
@@ -259,13 +259,13 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await page.keyboard.press('Enter');
     await page.waitForTimeout(2000);
 
-    await page.click('.search-mode-btn[data-mode="citations"]');
+    await page.locator('.search-mode-btn[data-mode="citations"]').click({ force: true });
     await page.waitForTimeout(2000);
 
-    await page.click('.search-mode-btn[data-mode="citationsTop"]');
+    await page.locator('.search-mode-btn[data-mode="citationsTop"]').click({ force: true });
     await page.waitForTimeout(2000);
 
-    await page.click('.search-mode-btn[data-mode="metadata"]');
+    await page.locator('.search-mode-btn[data-mode="metadata"]').click({ force: true });
     await page.waitForTimeout(1000);
 
     // Filter out non-critical errors

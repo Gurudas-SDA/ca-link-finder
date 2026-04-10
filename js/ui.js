@@ -93,7 +93,7 @@ PPP.ui = (function () {
                 var bdBtn = document.createElement('button');
                 bdBtn.setAttribute('data-i18n', 'byDate');
                 bdBtn.textContent = t('byDate');
-                bdBtn.style.cssText = 'background:linear-gradient(135deg,#cf7020,#e8842c);color:#fff;border:none;padding:6px 14px;cursor:pointer;font-weight:700;border-radius:20px 0 0 20px;font-size:11px;transition:all 0.2s;letter-spacing:0.2px;';
+                bdBtn.style.cssText = 'background:linear-gradient(135deg,#e8842c,#f4a54b);color:#fff;border:none;padding:6px 14px;cursor:pointer;font-weight:700;border-radius:20px 0 0 20px;font-size:11px;transition:all 0.2s;letter-spacing:0.2px;';
                 bdBtn.onclick = function () { if (PPP.app && PPP.app.showAllTranscriptsByDate) PPP.app.showAllTranscriptsByDate(); };
 
                 var btBtn = document.createElement('button');
@@ -105,7 +105,7 @@ PPP.ui = (function () {
                 var nBtn = document.createElement('button');
                 nBtn.setAttribute('data-i18n', 'latest20Transcripts');
                 nBtn.textContent = t('latest20Transcripts');
-                nBtn.style.cssText = 'background:linear-gradient(135deg,#8b6914,#b8860b);color:#fff;border:none;padding:6px 14px;cursor:pointer;font-weight:700;border-radius:0 20px 20px 0;font-size:11px;transition:all 0.2s;letter-spacing:0.2px;';
+                nBtn.style.cssText = 'background:linear-gradient(135deg,#b8860b,#d4a843);color:#fff;border:none;padding:6px 14px;cursor:pointer;font-weight:700;border-radius:0 20px 20px 0;font-size:11px;transition:all 0.2s;letter-spacing:0.2px;';
                 nBtn.onclick = function () { if (PPP.app && PPP.app.showLatestTranscripts) PPP.app.showLatestTranscripts(); };
 
                 btnWrap.appendChild(bdBtn);
