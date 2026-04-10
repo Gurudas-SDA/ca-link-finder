@@ -27,7 +27,7 @@ PPP.ui = (function () {
     /**
      * Build the multi-row table header (same structure as original).
      */
-    function buildHeader(thead) {
+    function buildHeader(thead, totalCount) {
         var row0 = thead.insertRow();
         // Extra spacer for star + share columns
         var starSpacer = document.createElement('th');
@@ -83,7 +83,8 @@ PPP.ui = (function () {
 
                 var ttLabel = document.createElement('div');
                 ttLabel.setAttribute('data-i18n', 'transcriptsAndTranslations');
-                ttLabel.textContent = t('transcriptsAndTranslations');
+                var countStr = (typeof totalCount === 'number' && totalCount > 0) ? (totalCount.toLocaleString() + ' ') : '';
+                ttLabel.textContent = countStr + t('transcriptsAndTranslations');
                 ttLabel.style.cssText = 'font-weight:700;font-size:14px;color:#1a3a6b;margin-bottom:6px;text-transform:none;text-align:center;letter-spacing:0.3px;';
                 comboContainer.appendChild(ttLabel);
 
@@ -141,7 +142,7 @@ PPP.ui = (function () {
         var table = document.getElementById('resultsTable');
         table.innerHTML = '';
         var thead = table.createTHead();
-        buildHeader(thead);
+        buildHeader(thead, rows ? rows.length : 0);
         var tbody = table.createTBody();
 
         if (rows.length === 0) {

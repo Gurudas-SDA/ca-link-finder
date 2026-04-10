@@ -846,7 +846,7 @@ PPP.app = (function () {
                 document.getElementById('searchTerm').value = i18n.t('latest20Transcripts');
                 document.getElementById('timer').textContent = '';
                 displayResults();
-                setComboDisplay(i18n.t('latest20Transcripts'));
+                setComboDisplay(i18n.t('newestTranscriptsDisplay'));
             }).catch(function (e) {
                 console.warn('SQLite latest transcripts failed, falling back:', e);
                 showLatestTranscriptsFallback();
@@ -877,7 +877,7 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = i18n.t('latest20Transcripts');
         document.getElementById('timer').textContent = '';
         displayResults();
-        setComboDisplay(i18n.t('latest20Transcripts'));
+        setComboDisplay(i18n.t('newestTranscriptsDisplay'));
     }
 
     // ===== ALL TRANSCRIPTS BY DATE =====
@@ -905,7 +905,7 @@ PPP.app = (function () {
                 document.getElementById('searchTerm').value = i18n.t('allTranscriptsByDate');
                 document.getElementById('timer').textContent = '';
                 displayResults();
-                setComboDisplay(i18n.t('byDate'));
+                setComboDisplay(i18n.t('transcriptsByDateDisplay'));
             }).catch(function (e) {
                 console.warn('SQLite all transcripts by date failed, falling back:', e);
                 showAllTranscriptsByDateFallback();
@@ -943,7 +943,7 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = i18n.t('allTranscriptsByDate');
         document.getElementById('timer').textContent = '';
         displayResults();
-        setComboDisplay(i18n.t('byDate'));
+        setComboDisplay(i18n.t('transcriptsByDateDisplay'));
     }
 
     // ===== FAVORITES =====
@@ -1241,12 +1241,12 @@ PPP.app = (function () {
                 html += '</div>';
                 div.innerHTML = html;
                 div.style.display = 'block';
-                setComboDisplay(i18n.t('lectureTopics'));
+                setComboDisplay(i18n.t('transcriptsByTopicDisplay'));
             }).catch(function (e) {
                 console.warn('SQLite topics failed, falling back:', e);
                 ui.renderTopics(DB, div);
                 div.style.display = 'block';
-                setComboDisplay(i18n.t('lectureTopics'));
+                setComboDisplay(i18n.t('transcriptsByTopicDisplay'));
             });
             return;
         }
@@ -1254,7 +1254,7 @@ PPP.app = (function () {
         // Fallback: in-memory
         ui.renderTopics(DB, div);
         div.style.display = 'block';
-        setComboDisplay(i18n.t('lectureTopics'));
+        setComboDisplay(i18n.t('transcriptsByTopicDisplay'));
     }
 
     function showSources() {
