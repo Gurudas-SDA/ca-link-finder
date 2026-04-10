@@ -59,6 +59,15 @@ PPP.app = (function () {
     var installMode = 'ios';
     var totalLectures = 0;
 
+    // ===== PANEL HELPERS =====
+    function closeAllPanels() {
+        var ids = ['recommendationsList', 'topicsList', 'verseSourcesList', 'verseList', 'topCitationsList'];
+        ids.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+    }
+
     // ===== PWA =====
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(function () {});
@@ -643,6 +652,7 @@ PPP.app = (function () {
 
     // ===== SEARCH MODE TOGGLE =====
     function setSearchMode(mode) {
+        closeAllPanels();
         var prevMode = searchMode;
         searchMode = mode || 'metadata';
         if (prevMode !== mode) {
@@ -692,6 +702,7 @@ PPP.app = (function () {
 
     function showLatestFiles() {
         if (!dataLoaded) return;
+        closeAllPanels();
         track('quick-action', { action: 'latest-files' });
         setSearchMode('metadata');
 
@@ -742,6 +753,7 @@ PPP.app = (function () {
 
     function showBy2026() {
         if (!dataLoaded) return;
+        closeAllPanels();
         track('quick-action', { action: 'by-2026' });
         setSearchMode('metadata');
 
@@ -904,6 +916,9 @@ PPP.app = (function () {
 
     function showFavorites() {
         if (!dataLoaded) return;
+        closeAllPanels();
+        var _rt = document.getElementById('resultsTable');
+        if (_rt) _rt.style.display = '';
         track('quick-action', { action: 'favorites' });
 
         var cols = PPP.favorites ? PPP.favorites.getCollections() : [];
@@ -1095,7 +1110,7 @@ PPP.app = (function () {
             if (resultsTable) resultsTable.style.display = '';
             return;
         }
-        document.getElementById('topicsList').style.display = 'none';
+        closeAllPanels();
         if (!dataLoaded) return;
         if (resultsTable) resultsTable.style.display = 'none';
 
@@ -1777,6 +1792,7 @@ PPP.app = (function () {
             return;
         }
 
+        closeAllPanels();
         var div = document.getElementById('topCitationsList');
         var resultsTable = document.getElementById('resultsTable');
         if (resultsTable) resultsTable.style.display = 'none';

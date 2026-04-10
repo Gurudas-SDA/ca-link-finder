@@ -1500,3 +1500,57 @@ body.dark .transcript-deep-highlight {
 @keyframes swipeHintFadeOut {
     to { opacity: 0; transform: translate(-50%, 10px); }
 }
+
+/* ===== MOBILE PORTRAIT — combo 2x3 split + compact search ===== */
+@media (max-width: 600px) and (orientation: portrait) {
+    /* Top combo wraps into 2 rows of 3 */
+    .search-quick-buttons.main-button-row {
+        flex-wrap: wrap !important;
+        max-width: 100%;
+        border-radius: 22px;
+    }
+    .search-quick-buttons .combo-btn {
+        flex: 1 1 33.333% !important;
+        min-width: 0;
+        padding: 9px 4px !important;
+        font-size: 11px !important;
+        letter-spacing: 0.3px !important;
+    }
+    /* Row 1 (positions 1, 2, 3) — top corners on outer ends */
+    .search-quick-buttons .combo-btn-1 {
+        border-radius: 22px 0 0 0 !important;
+    }
+    .search-quick-buttons .combo-btn-2 {
+        border-radius: 0 !important;
+    }
+    .search-quick-buttons .combo-btn-3 {
+        border-radius: 0 22px 0 0 !important;
+    }
+    /* Row 2 (positions 4, 5, 6) — bottom corners on outer ends */
+    .search-quick-buttons .combo-btn-4 {
+        border-radius: 0 0 0 22px !important;
+    }
+    .search-quick-buttons .combo-btn-5 {
+        border-radius: 0 !important;
+    }
+    .search-quick-buttons .combo-btn-6 {
+        border-radius: 0 0 22px 0 !important;
+    }
+
+    /* Search pill — compact input */
+    .search-row {
+        flex-wrap: nowrap;
+    }
+    .keywords-search-btn {
+        padding: 8px 10px !important;
+        font-size: 11px !important;
+    }
+    .search-bar input {
+        font-size: 12px !important;
+        padding: 8px 8px !important;
+    }
+    .search-bar button.search-button {
+        padding: 8px 12px !important;
+        font-size: 11px !important;
+    }
+}
