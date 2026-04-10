@@ -59,6 +59,24 @@ PPP.app = (function () {
     var installMode = 'ios';
     var totalLectures = 0;
 
+    // ===== COMBO DISPLAY HELPERS =====
+    function setComboDisplay(label) {
+        var si = document.getElementById('searchTerm');
+        if (!si) return;
+        si.value = label;
+        si.disabled = true;
+        si.classList.add('combo-display');
+        si.title = i18n.t('comboDisplayTooltip');
+    }
+    function clearComboDisplay() {
+        var si = document.getElementById('searchTerm');
+        if (!si) return;
+        si.value = '';
+        si.disabled = false;
+        si.classList.remove('combo-display');
+        si.removeAttribute('title');
+    }
+
     // ===== PANEL HELPERS =====
     function closeAllPanels() {
         var ids = ['recommendationsList', 'topicsList', 'verseSourcesList', 'verseList', 'topCitationsList'];
@@ -66,6 +84,9 @@ PPP.app = (function () {
             var el = document.getElementById(id);
             if (el) el.style.display = 'none';
         });
+        // Re-show results table (Top 108 and similar may have hidden it)
+        var rt = document.getElementById('resultsTable');
+        if (rt) rt.style.display = '';
     }
 
     // ===== PWA =====
@@ -684,13 +705,16 @@ PPP.app = (function () {
         }
         // Update search placeholder based on mode
         var searchInput = document.getElementById('searchTerm');
-        if (mode === 'citations' || mode === 'citationsTop') {
+        if (mode === 'citations') {
             searchInput.placeholder = i18n.t('quotesSearchHint');
-            searchInput.disabled = true;
+            setComboDisplay(i18n.t('searchModeCitations'));
+        } else if (mode === 'citationsTop') {
+            searchInput.placeholder = i18n.t('quotesSearchHint');
+            setComboDisplay(i18n.t('searchModeCitationsTop'));
         } else {
             var count = totalLectures || 0;
             searchInput.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
-            searchInput.disabled = false;
+            clearComboDisplay();
         }
         // Immediately show top 108 when that mode is selected
         if (mode === 'citationsTop') {
@@ -720,6 +744,7 @@ PPP.app = (function () {
                 document.getElementById('searchTerm').value = i18n.t('latest20Files');
                 document.getElementById('timer').textContent = '';
                 displayResults();
+                setComboDisplay(i18n.t('latest20Files'));
             }).catch(function (e) {
                 console.warn('SQLite latest files failed, falling back:', e);
                 showLatestFilesFallback();
@@ -749,6 +774,7 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = i18n.t('latest20Files');
         document.getElementById('timer').textContent = '';
         displayResults();
+        setComboDisplay(i18n.t('latest20Files'));
     }
 
     function showBy2026() {
@@ -771,6 +797,7 @@ PPP.app = (function () {
                 document.getElementById('searchTerm').value = '2026';
                 document.getElementById('timer').textContent = '';
                 displayResults();
+                setComboDisplay('By 2026');
             }).catch(function (e) {
                 console.warn('SQLite by-2026 failed, falling back:', e);
                 showBy2026Fallback();
@@ -796,6 +823,7 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = '2026';
         document.getElementById('timer').textContent = '';
         displayResults();
+        setComboDisplay('By 2026');
     }
 
     function showLatestTranscripts() {
@@ -1025,6 +1053,7 @@ PPP.app = (function () {
             document.getElementById('searchTerm').value = label;
             document.getElementById('timer').textContent = '';
             displayResults();
+            setComboDisplay(i18n.t('favoritesBtn') || '\u2605 Favorites');
             var tbody = document.querySelector('#resultsTable tbody');
             if (tbody) {
                 var row = tbody.querySelector('tr');
@@ -1048,6 +1077,7 @@ PPP.app = (function () {
                 document.getElementById('searchTerm').value = label;
                 document.getElementById('timer').textContent = '';
                 displayResults();
+                setComboDisplay(i18n.t('favoritesBtn') || '\u2605 Favorites');
             });
             return;
         }
@@ -1064,6 +1094,7 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = label;
         document.getElementById('timer').textContent = '';
         displayResults();
+        setComboDisplay(i18n.t('favoritesBtn') || '\u2605 Favorites');
     }
 
     var _activeCollectionName = null;
@@ -1113,6 +1144,7 @@ PPP.app = (function () {
         closeAllPanels();
         if (!dataLoaded) return;
         if (resultsTable) resultsTable.style.display = 'none';
+        setComboDisplay(i18n.t('recommendations'));
 
         if (usingSqlite) {
             Promise.all([
