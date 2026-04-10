@@ -1362,11 +1362,10 @@ body.dark .transcript-deep-highlight {
         align-items: center;
         justify-content: center;
         gap: 10px;
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 24px;
-        margin: 0 auto;
+        position: absolute;
+        left: 50%;
+        top: 80px;
+        transform: translateX(-50%);
         max-width: 90%;
         width: max-content;
         padding: 12px 20px;
@@ -1378,7 +1377,7 @@ body.dark .transcript-deep-highlight {
         font-size: 15px;
         font-weight: 700;
         letter-spacing: 0.3px;
-        z-index: 9999;
+        z-index: 100;
         pointer-events: none;
         animation: swipeHintPulse 1.4s ease-in-out infinite;
     }
@@ -1391,8 +1390,8 @@ body.dark .transcript-deep-highlight {
 }
 
 @keyframes swipeHintPulse {
-    0%, 100% { transform: translateY(0); opacity: 1; }
-    50% { transform: translateY(-3px); opacity: 0.9; }
+    0%, 100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+    50% { transform: translateX(-50%) translateY(-3px); opacity: 0.9; }
 }
 
 @keyframes swipeHintArrow {
@@ -1405,5 +1404,5 @@ body.dark .transcript-deep-highlight {
 }
 
 @keyframes swipeHintFadeOut {
-    to { opacity: 0; transform: translateY(10px); }
+    to { opacity: 0; transform: translateX(-50%) translateY(10px); }
 }

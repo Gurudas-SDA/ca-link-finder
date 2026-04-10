@@ -42,7 +42,7 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="e50b4fd4-578a-4674-944d-4fefcb6999e1"></script>
 
     <!-- Application CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=d0cf30c6">
+    <link rel="stylesheet" href="css/styles.css?v=e3000703">
 </head>
 <body>
 
@@ -149,6 +149,11 @@
     <!-- ===== RESULTS ===== -->
     <div class="results-container">
         <div style="position: relative;">
+            <!-- Mobile swipe hint (portrait only, first visit) -->
+            <div id="swipeHintMobile" aria-hidden="true">
+                <span class="swipe-hint-arrow">&larr;</span>
+                <span class="swipe-hint-text" data-i18n="swipeHintText">Swipe to see the transcripts</span>
+            </div>
             <div id="recommendationsList" style="display: none;"></div>
             <div id="topicsList" style="display: none;"></div>
             <div id="verseSourcesList" style="display: none;"></div>
@@ -163,12 +168,6 @@
             </table>
             <div id="pagination"></div>
         </div>
-    </div>
-
-    <!-- Mobile swipe hint (portrait only, first visit) -->
-    <div id="swipeHintMobile" aria-hidden="true">
-        <span class="swipe-hint-arrow">&larr;</span>
-        <span class="swipe-hint-text" data-i18n="swipeHintText">Swipe to see the transcripts</span>
     </div>
 
     <!-- ===== HELP MODAL ===== -->
