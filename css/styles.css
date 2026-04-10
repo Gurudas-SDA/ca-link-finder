@@ -1350,3 +1350,60 @@ body.dark .transcript-deep-highlight {
     margin-left: 4px;
     vertical-align: middle;
 }
+
+/* ===== MOBILE PORTRAIT SWIPE HINT ===== */
+#swipeHintMobile {
+    display: none;
+}
+
+@media (max-width: 640px) and (orientation: portrait) {
+    #swipeHintMobile.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 24px;
+        margin: 0 auto;
+        max-width: 90%;
+        width: max-content;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, var(--accent), #2a4f8a);
+        color: #fff;
+        border-radius: 999px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        z-index: 9999;
+        pointer-events: none;
+        animation: swipeHintPulse 1.4s ease-in-out infinite;
+    }
+    #swipeHintMobile.active .swipe-hint-arrow {
+        display: inline-block;
+        font-size: 22px;
+        line-height: 1;
+        animation: swipeHintArrow 1.4s ease-in-out infinite;
+    }
+}
+
+@keyframes swipeHintPulse {
+    0%, 100% { transform: translateY(0); opacity: 1; }
+    50% { transform: translateY(-3px); opacity: 0.9; }
+}
+
+@keyframes swipeHintArrow {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-8px); }
+}
+
+#swipeHintMobile.hiding {
+    animation: swipeHintFadeOut 0.35s ease-out forwards !important;
+}
+
+@keyframes swipeHintFadeOut {
+    to { opacity: 0; transform: translateY(10px); }
+}

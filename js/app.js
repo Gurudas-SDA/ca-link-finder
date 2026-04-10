@@ -127,6 +127,50 @@ PPP.app = (function () {
             var isAndroid = /android/i.test(navigator.userAgent);
             showInstallBanner(isAndroid ? 'android' : 'ios');
         }, 2000);
+
+        initMobileSwipeHint();
+    }
+
+    function initMobileSwipeHint() {
+        try {
+            if (localStorage.getItem('swipeHintDismissed') === '1') return;
+        } catch (e) { /* ignore */ }
+
+        var isPortrait = window.matchMedia('(max-width: 640px) and (orientation: portrait)').matches;
+        if (!isPortrait) return;
+
+        var hint = document.getElementById('swipeHintMobile');
+        if (!hint) return;
+        hint.classList.add('active');
+
+        var container = document.querySelector('.results-container');
+        if (!container) return;
+
+        function dismiss() {
+            hint.classList.remove('active');
+            hint.classList.add('hiding');
+            setTimeout(function () {
+                hint.classList.remove('hiding');
+                hint.style.display = 'none';
+            }, 400);
+            try { localStorage.setItem('swipeHintDismissed', '1'); } catch (e) { /* ignore */ }
+            container.removeEventListener('scroll', onScroll);
+        }
+
+        function onScroll() {
+            if (container.scrollLeft > 30) {
+                dismiss();
+            }
+        }
+
+        container.addEventListener('scroll', onScroll, { passive: true });
+
+        // Auto-dismiss after 10 seconds even if user didn't swipe
+        setTimeout(function () {
+            if (hint.classList.contains('active')) {
+                dismiss();
+            }
+        }, 10000);
     }
 
     // ===== DATA LOADING =====
