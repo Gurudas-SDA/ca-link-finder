@@ -970,9 +970,15 @@ PPP.app = (function () {
     function showRecommendations() {
         track('quick-action', { action: 'recommendations' });
         var div = document.getElementById('recommendationsList');
-        if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
+        var resultsTable = document.getElementById('resultsTable');
+        if (div.style.display !== 'none' && div.style.display !== '') {
+            div.style.display = 'none';
+            if (resultsTable) resultsTable.style.display = '';
+            return;
+        }
         document.getElementById('topicsList').style.display = 'none';
         if (!dataLoaded) return;
+        if (resultsTable) resultsTable.style.display = 'none';
 
         if (usingSqlite) {
             Promise.all([
@@ -1005,7 +1011,7 @@ PPP.app = (function () {
     function renderRecommendationsHTML(div, langCounts, subjCounts) {
         var esc = utils.escapeHtml;
         var enc = utils.encodeForAttr;
-        var html = '<div id="recommendationsListTitle">' + i18n.t('recommendationsTitle') + '</div><div id="recommendationsListContent">';
+        var html = '<button id="recommendationsHideBtn" class="recommendations-hide-btn" onclick="PPP.app.showRecommendations()">' + utils.escapeHtml(i18n.t('hideRecommendationsBtn')) + '</button><div id="recommendationsListContent">';
         Object.entries(langCounts).sort(function (a, b) { return a[0].localeCompare(b[0]); }).forEach(function (entry) {
             var name = entry[0], count = entry[1];
             html += '<div class="recommendation-item"><span class="recommendation-name">' + esc(name) +
@@ -1035,9 +1041,15 @@ PPP.app = (function () {
 
     function showTopics() {
         var div = document.getElementById('topicsList');
-        if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
+        var resultsTable = document.getElementById('resultsTable');
+        if (div.style.display !== 'none' && div.style.display !== '') {
+            div.style.display = 'none';
+            if (resultsTable) resultsTable.style.display = '';
+            return;
+        }
         document.getElementById('recommendationsList').style.display = 'none';
         if (!dataLoaded) return;
+        if (resultsTable) resultsTable.style.display = 'none';
 
         if (usingSqlite) {
             db.queryMetaAsync(
@@ -1047,7 +1059,7 @@ PPP.app = (function () {
             ).then(function (topicRows) {
                 var esc = utils.escapeHtml;
                 var enc = utils.encodeForAttr;
-                var html = '<div id="topicsListTitle">' + i18n.t('topics') + '</div><div id="topicsListContent">';
+                var html = '<button id="topicsHideBtn" class="recommendations-hide-btn" onclick="PPP.app.showTopics()">' + utils.escapeHtml(i18n.t('hideTopicsBtn')) + '</button><div id="topicsListContent">';
                 topicRows.forEach(function (r) {
                     html += '<div class="topic-item"><span class="topic-name">' + esc(r.subject) +
                         ' <span style="color:var(--primary-dark);font-weight:700;">(' + r.cnt + ')</span></span>' +
@@ -1111,15 +1123,25 @@ PPP.app = (function () {
     function hideVersePanels() {
         document.getElementById('verseSourcesList').style.display = 'none';
         document.getElementById('verseList').style.display = 'none';
+        var tc = document.getElementById('topCitationsList');
+        if (tc) tc.style.display = 'none';
+        var resultsTable = document.getElementById('resultsTable');
+        if (resultsTable) resultsTable.style.display = '';
     }
 
     function showVerseSources() {
         var div = document.getElementById('verseSourcesList');
+        var resultsTable = document.getElementById('resultsTable');
         // Toggle off if already open
-        if (div.style.display !== 'none' && div.style.display !== '') { hideVersePanels(); return; }
+        if (div.style.display !== 'none' && div.style.display !== '') {
+            hideVersePanels();
+            if (resultsTable) resultsTable.style.display = '';
+            return;
+        }
         document.getElementById('verseList').style.display = 'none';
         document.getElementById('recommendationsList').style.display = 'none';
         document.getElementById('topicsList').style.display = 'none';
+        if (resultsTable) resultsTable.style.display = 'none';
         if (!usingSqlite) return;
 
         var esc = utils.escapeHtml;
@@ -1145,8 +1167,8 @@ PPP.app = (function () {
             topRows.forEach(function (r) { topNames[r.source_canonical] = true; });
             var otherRows = allRows.filter(function (r) { return !topNames[r.source_canonical]; });
 
-            var html = '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;color:var(--primary-dark);font-size:14px;font-weight:600;padding:10px 14px;letter-spacing:1px;border-bottom:2px solid var(--border);">' +
-                'Scripture Sources (' + allRows.length + ')</div>' +
+            var html = '<button class="verse-sources-hide-btn" onclick="PPP.app.showVerseSources()">' +
+                utils.escapeHtml(i18n.t('hideVerseSourcesBtn')) + ' (' + allRows.length + ')</button>' +
                 '<div style="padding:6px 14px 14px;overflow-y:auto;max-height:60vh;">';
 
             html += '<div style="font-size:11px;color:var(--primary-dark);font-weight:600;padding:8px 0 4px;border-bottom:1px solid var(--border-light);letter-spacing:0.5px;">TOP 30</div>';
@@ -1167,7 +1189,9 @@ PPP.app = (function () {
 
     function showVerseList(sourceName) {
         var div = document.getElementById('verseList');
+        var resultsTable = document.getElementById('resultsTable');
         document.getElementById('verseSourcesList').style.display = 'none';
+        if (resultsTable) resultsTable.style.display = 'none';
         if (!usingSqlite) return;
 
         db.queryMetaAsync(
@@ -1180,9 +1204,8 @@ PPP.app = (function () {
         ).then(function (rows) {
             var esc = utils.escapeHtml;
             var enc = utils.encodeForAttr;
-            var html = '<div style="font-family:\'Cormorant Garamond\',Georgia,serif;color:var(--primary-dark);font-size:14px;font-weight:600;padding:10px 14px;letter-spacing:1px;border-bottom:2px solid var(--border);">' +
-                '<span onclick="PPP.app.showVerseSources()" style="cursor:pointer;margin-right:8px;">&larr;</span>' +
-                esc(sourceName) + ' (' + rows.length + ' verses)</div>' +
+            var html = '<button class="verse-sources-hide-btn" onclick="PPP.app.showVerseSources()">' +
+                '&larr; ' + esc(sourceName) + ' (' + rows.length + ' verses)</button>' +
                 '<div style="padding:6px 14px 14px;overflow-y:auto;max-height:60vh;">';
 
             rows.forEach(function (row) {
@@ -1635,6 +1658,10 @@ PPP.app = (function () {
             return;
         }
 
+        var div = document.getElementById('topCitationsList');
+        var resultsTable = document.getElementById('resultsTable');
+        if (resultsTable) resultsTable.style.display = 'none';
+
         db.queryMetaAsync(
             "SELECT reference, COUNT(*) as lecture_count " +
             "FROM verse_citations " +
@@ -1646,31 +1673,39 @@ PPP.app = (function () {
             resultsInfo.innerHTML = '<strong>' + i18n.t('searchModeCitationsTop') + '</strong>';
             document.getElementById('timer').textContent = '';
 
-            var table = document.getElementById('resultsTable');
-            var tbody = table.querySelector('tbody') || table;
-            tbody.innerHTML = '';
-
             var esc = utils.escapeHtml;
             var enc = utils.encodeForAttr;
-            var html = '';
+            var html = '<button class="verse-sources-hide-btn" onclick="PPP.app.hideTopCitations()">' +
+                utils.escapeHtml(i18n.t('hideTopCitationsBtn')) + '</button>' +
+                '<div style="padding:6px 14px 14px;overflow-y:auto;max-height:60vh;">';
             rows.forEach(function (row, idx) {
                 var ref = row.reference || '';
                 var cnt = row.lecture_count || 0;
-                html += '<tr>' +
-                    '<td style="width:40px;text-align:center;color:var(--primary-dark);font-weight:600;">' + (idx + 1) + '</td>' +
-                    '<td style="font-family:\'Cormorant Garamond\',Georgia,serif;font-size:16px;font-weight:600;color:var(--primary-dark);">' +
-                    esc(ref) + ' <span style="color:var(--text-muted);font-size:13px;font-weight:400;">(' + cnt + ' lectures)</span></td>' +
-                    '<td style="width:60px;text-align:center;">' +
-                    '<button class="recommendation-search-btn" onclick="PPP.app.showVerseLectures(decodeURIComponent(\'' + enc(ref) + '\'))" style="padding:4px 12px;">Yes</button>' +
-                    '</td></tr>';
+                html += '<div class="recommendation-item">' +
+                    '<span class="recommendation-name">' +
+                    '<span style="color:var(--primary-dark);font-weight:600;margin-right:6px;">' + (idx + 1) + '.</span>' +
+                    esc(ref) +
+                    ' <span style="color:var(--primary-dark);font-weight:700;">(' + cnt + ')</span>' +
+                    '</span>' +
+                    '<button class="recommendation-search-btn" onclick="PPP.app.showVerseLectures(decodeURIComponent(\'' + enc(ref) + '\'))">Yes</button>' +
+                    '</div>';
             });
+            html += '</div>';
 
-            tbody.innerHTML = html;
+            div.innerHTML = html;
+            div.style.display = 'block';
             document.getElementById('pagination').innerHTML = '';
         }).catch(function (err) {
             console.error('Top citations error:', err);
             document.getElementById('resultsInfo').innerHTML = '<strong>Error: ' + utils.escapeHtml(err.message) + '</strong>';
         });
+    }
+
+    function hideTopCitations() {
+        var div = document.getElementById('topCitationsList');
+        var resultsTable = document.getElementById('resultsTable');
+        if (div) div.style.display = 'none';
+        if (resultsTable) resultsTable.style.display = '';
     }
 
     // ===== FILTER HELPERS =====
@@ -1687,6 +1722,7 @@ PPP.app = (function () {
         currentPage = 1;
         document.getElementById('topicsList').style.display = 'none';
         document.getElementById('recommendationsList').style.display = 'none';
+        var _rt = document.getElementById('resultsTable'); if (_rt) _rt.style.display = '';
         performSearch();
     }
 
@@ -1695,6 +1731,7 @@ PPP.app = (function () {
         lastSearchTerm = 'lang:' + lang;
         currentPage = 1;
         document.getElementById('recommendationsList').style.display = 'none';
+        var _rt = document.getElementById('resultsTable'); if (_rt) _rt.style.display = '';
         performSearch();
     }
 
@@ -1829,6 +1866,7 @@ PPP.app = (function () {
         showVerseList: showVerseList,
         showVerseLectures: showVerseLectures,
         showTopCitations: showTopCitations,
+        hideTopCitations: hideTopCitations,
         openTranscriptAtVerse: openTranscriptAtVerse,
         openHtmlTranscriptViewer: openHtmlTranscriptViewer,
         closeTranscriptModal: closeTranscriptModal,

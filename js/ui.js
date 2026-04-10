@@ -60,7 +60,7 @@ PPP.ui = (function () {
         var tBtn = document.createElement('button');
         tBtn.setAttribute('data-i18n', 'lectureTopics');
         tBtn.textContent = t('lectureTopics');
-        tBtn.style.cssText = 'background:linear-gradient(135deg,#e8842c,#f4a54b);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
+        tBtn.style.cssText = 'background:linear-gradient(135deg,#1a3a6b,#2a4f8a);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
         tBtn.onclick = function () { if (PPP.app && PPP.app.showTopics) PPP.app.showTopics(); };
         tCell.appendChild(tBtn);
         row0.appendChild(tCell);
@@ -102,7 +102,7 @@ PPP.ui = (function () {
                 var atBtn = document.createElement('button');
                 atBtn.setAttribute('data-i18n', 'allTranscriptsByDate');
                 atBtn.textContent = t('allTranscriptsByDate');
-                atBtn.style.cssText = 'background:linear-gradient(135deg,#1a3a6b,#2a4f8a);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
+                atBtn.style.cssText = 'background:linear-gradient(135deg,#e8842c,#f4a54b);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
                 atBtn.onclick = function () { if (PPP.app && PPP.app.showAllTranscriptsByDate) PPP.app.showAllTranscriptsByDate(); };
                 thBlock.appendChild(atBtn);
                 row1.appendChild(thBlock);
@@ -377,7 +377,7 @@ PPP.ui = (function () {
             if (s) counts[s] = (counts[s] || 0) + 1;
         });
 
-        var html = '<div id="topicsListTitle">' + t('topics') + '</div><div id="topicsListContent">';
+        var html = '<button id="topicsHideBtn" class="recommendations-hide-btn" onclick="PPP.app.showTopics()">' + utils.escapeHtml(t('hideTopicsBtn')) + '</button><div id="topicsListContent">';
         Object.entries(counts).sort(function (a, b) { return a[0].localeCompare(b[0]); }).forEach(function (entry) {
             var name = entry[0], count = entry[1];
             var nameSafe = utils.encodeForAttr(name);
