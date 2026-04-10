@@ -1364,8 +1364,8 @@ body.dark .transcript-deep-highlight {
         gap: 10px;
         position: fixed;
         left: 50%;
-        top: 45%;
-        transform: translate(-50%, -50%);
+        top: 50%;
+        transform: translate(-50%, 0);
         max-width: 90%;
         width: max-content;
         padding: 12px 20px;
@@ -1390,8 +1390,8 @@ body.dark .transcript-deep-highlight {
 }
 
 @keyframes swipeHintPulse {
-    0%, 100% { transform: translate(-50%, -50%); opacity: 1; }
-    50% { transform: translate(-50%, calc(-50% - 3px)); opacity: 0.9; }
+    0%, 100% { transform: translate(-50%, 0); opacity: 1; }
+    50% { transform: translate(-50%, -3px); opacity: 0.9; }
 }
 
 @keyframes swipeHintArrow {
@@ -1404,5 +1404,5 @@ body.dark .transcript-deep-highlight {
 }
 
 @keyframes swipeHintFadeOut {
-    to { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
+    to { opacity: 0; transform: translate(-50%, 10px); }
 }

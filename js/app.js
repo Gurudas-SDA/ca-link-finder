@@ -144,9 +144,34 @@ PPP.app = (function () {
         var container = document.querySelector('.results-container');
         var dismissed = false;
 
+        // Position the hint vertically so it overlays the
+        // "Enter search terms to see results" empty-state message.
+        function positionHint() {
+            var target = document.querySelector('.empty-result-message');
+            var rect;
+            if (target && target.offsetHeight > 0) {
+                rect = target.getBoundingClientRect();
+                var top = rect.top + (rect.height / 2) - (hint.offsetHeight / 2);
+                var minTop = 20;
+                var maxTop = window.innerHeight - hint.offsetHeight - 20;
+                if (top < minTop) top = minTop;
+                if (top > maxTop) top = maxTop;
+                hint.style.top = top + 'px';
+            } else if (container) {
+                // Fallback: 30px below the top of the results container
+                rect = container.getBoundingClientRect();
+                hint.style.top = (rect.top + 30) + 'px';
+            }
+        }
+        // Run now and also after a short delay in case layout is still settling
+        positionHint();
+        setTimeout(positionHint, 100);
+        window.addEventListener('resize', positionHint);
+
         function dismiss() {
             if (dismissed) return;
             dismissed = true;
+            window.removeEventListener('resize', positionHint);
             hint.classList.remove('active');
             hint.classList.add('hiding');
             setTimeout(function () {
