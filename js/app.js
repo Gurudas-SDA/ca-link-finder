@@ -707,10 +707,10 @@ PPP.app = (function () {
         var searchInput = document.getElementById('searchTerm');
         if (mode === 'citations') {
             searchInput.placeholder = i18n.t('quotesSearchHint');
-            setComboDisplay(i18n.t('searchModeCitations'));
+            setComboDisplay(i18n.t('byCitedVersesDisplay'));
         } else if (mode === 'citationsTop') {
             searchInput.placeholder = i18n.t('quotesSearchHint');
-            setComboDisplay(i18n.t('searchModeCitationsTop'));
+            setComboDisplay(i18n.t('mostCitedVersesDisplay'));
         } else {
             var count = totalLectures || 0;
             searchInput.placeholder = i18n.t('searchPlaceholder').replace('{count}', count.toLocaleString());
@@ -744,7 +744,7 @@ PPP.app = (function () {
                 document.getElementById('searchTerm').value = i18n.t('latest20Files');
                 document.getElementById('timer').textContent = '';
                 displayResults();
-                setComboDisplay(i18n.t('latest20Files'));
+                setComboDisplay(i18n.t('addedDateDisplay'));
             }).catch(function (e) {
                 console.warn('SQLite latest files failed, falling back:', e);
                 showLatestFilesFallback();
@@ -774,7 +774,7 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = i18n.t('latest20Files');
         document.getElementById('timer').textContent = '';
         displayResults();
-        setComboDisplay(i18n.t('latest20Files'));
+        setComboDisplay(i18n.t('addedDateDisplay'));
     }
 
     function showBy2026() {
@@ -797,7 +797,7 @@ PPP.app = (function () {
                 document.getElementById('searchTerm').value = '2026';
                 document.getElementById('timer').textContent = '';
                 displayResults();
-                setComboDisplay(i18n.t('by2026'));
+                setComboDisplay(i18n.t('entries2026Display'));
             }).catch(function (e) {
                 console.warn('SQLite by-2026 failed, falling back:', e);
                 showBy2026Fallback();
@@ -823,7 +823,7 @@ PPP.app = (function () {
         document.getElementById('searchTerm').value = '2026';
         document.getElementById('timer').textContent = '';
         displayResults();
-        setComboDisplay(i18n.t('by2026'));
+        setComboDisplay(i18n.t('entries2026Display'));
     }
 
     function showLatestTranscripts() {
