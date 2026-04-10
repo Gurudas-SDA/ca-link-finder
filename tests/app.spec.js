@@ -278,4 +278,73 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(critical).toHaveLength(0);
   });
 
+  test('14. Top combo row has 6 buttons in single row', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    const buttons = page.locator('.search-quick-buttons.main-button-row .combo-btn');
+    await expect(buttons).toHaveCount(6);
+
+    const texts = await buttons.allTextContents();
+    const joined = texts.join(' | ');
+    for (const needle of ['By 2026', 'By Added', 'Top Searches', 'By Verses', 'Verses (Top)', 'Favorites']) {
+      expect(joined).toContain(needle);
+    }
+
+    const flexWrap = await page.locator('.search-quick-buttons.main-button-row').evaluate(el => getComputedStyle(el).flexWrap);
+    expect(flexWrap).toBe('nowrap');
+  });
+
+  test('15. By 2026 button exists and is clickable', async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    const btn = page.locator('.search-quick-buttons.main-button-row .combo-btn', { hasText: 'By 2026' });
+    await expect(btn).toBeVisible();
+    await btn.click();
+    await page.waitForTimeout(500);
+
+    const critical = errors.filter(e =>
+      !e.includes('favicon') && !e.includes('umami') && !e.includes('service-worker')
+    );
+    expect(critical).toHaveLength(0);
+
+    const isFn = await page.evaluate(() => typeof window.PPP?.app?.showBy2026 === 'function');
+    expect(isFn).toBe(true);
+  });
+
+  test('16. Key Words button is to the left of search input', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    await expect(page.locator('.keywords-search-btn')).toBeVisible();
+
+    const kwBox = await page.locator('.keywords-search-btn').boundingBox();
+    const inputBox = await page.locator('#searchTerm').boundingBox();
+    expect(kwBox.x).toBeLessThan(inputBox.x);
+  });
+
+  test('17. Transcripts & Translations label and 3-button combo present', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    const block = page.locator('.transcripts-block');
+    await expect(block).toBeVisible();
+
+    await expect(block).toContainText('Transcripts & Translations');
+
+    const btns = await page.locator('.transcripts-block button').all();
+    expect(btns).toHaveLength(3);
+
+    const btnTexts = [];
+    for (const b of btns) {
+      btnTexts.push((await b.textContent()) || '');
+    }
+    const joined = btnTexts.join(' | ');
+    for (const needle of ['By Date', 'By Topic', 'Newest']) {
+      expect(joined).toContain(needle);
+    }
+  });
+
 });

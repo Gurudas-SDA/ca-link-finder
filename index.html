@@ -42,7 +42,7 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="e50b4fd4-578a-4674-944d-4fefcb6999e1"></script>
 
     <!-- Application CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=6c9baf99">
+    <link rel="stylesheet" href="css/styles.css?v=4017bccd">
 </head>
 <body>
 
@@ -112,26 +112,24 @@
     <!-- ===== SEARCH SECTION ===== -->
     <div class="search-section">
         <div class="search-card">
-            <div class="search-quick-buttons">
-                <button class="latest-files-btn" onclick="PPP.app.showLatestFiles()" data-i18n="latest20Files">20 latest files</button>
-                <button class="recommendations-btn" onclick="PPP.app.showRecommendations()" data-i18n="recommendations">Recommendations</button>
-                <button class="favorites-btn" id="favoritesBtn" onclick="PPP.app.showFavorites()">&#9733; Favorites <span id="favCount" class="fav-count-badge" style="display:none"></span></button>
-            </div>
-            <!-- Search mode toggle: Mp3 files | Verses (all) | Verses (Top 108) -->
-            <div class="search-mode-toggle">
-                <button class="search-mode-btn active" data-mode="metadata" data-i18n="searchModeMetadata">Mp3 files</button>
-                <button class="search-mode-btn" data-mode="citations" data-i18n="searchModeCitations">Verses (all)</button>
-                <button class="search-mode-btn" data-mode="citationsTop" data-i18n="searchModeCitationsTop">Verses (Top 108)</button>
+            <!-- Unified button row: Key words | 20 latest by date | Top Searches | Verses (all) | Verses (Top) -->
+            <div class="search-quick-buttons main-button-row">
+                <button class="combo-btn combo-btn-1" onclick="PPP.app.showBy2026()" data-i18n="by2026">By 2026</button>
+                <button class="combo-btn combo-btn-2" onclick="PPP.app.showLatestFiles()" data-i18n="latest20Files">By Added</button>
+                <button class="combo-btn combo-btn-3" onclick="PPP.app.showRecommendations()" data-i18n="recommendations">Top Searches</button>
+                <button class="combo-btn combo-btn-4 search-mode-btn" data-mode="citations" data-i18n="searchModeCitations">By Verses</button>
+                <button class="combo-btn combo-btn-5 search-mode-btn" data-mode="citationsTop" data-i18n="searchModeCitationsTop">Verses (Top)</button>
+                <button class="combo-btn combo-btn-6" id="favoritesBtn" onclick="PPP.app.showFavorites()">&#9733; Favorites <span id="favCount" class="fav-count-badge" style="display:none"></span></button>
             </div>
             <div class="search-row">
-                <button class="help-search-btn" onclick="PPP.app.openHelpModal()" data-i18n="helpButton">How to use search?</button>
+                <button class="search-mode-btn active keywords-search-btn" data-mode="metadata" data-i18n="searchModeMetadata">Key words</button>
                 <div class="search-bar" style="flex:1;">
                     <input type="text" id="searchTerm" placeholder="Loading..." disabled>
                     <button class="search-button" onclick="PPP.app.search()" data-i18n="searchButton">Search</button>
                 </div>
             </div>
             <div class="search-time">
-                <span data-i18n="searchTime">Client-side search — instant results.</span>
+                <button class="help-search-btn help-search-btn-small" onclick="PPP.app.openHelpModal()" data-i18n="helpButton">How to use search?</button>
                 <span id="timer" class="timer"></span>
             </div>
             <div id="resultsInfo"></div>
@@ -195,12 +193,12 @@
     <!-- ===== APPLICATION SCRIPTS ===== -->
     <!-- Load order matters: utils first, then i18n, db, search, ui, app last -->
     <script src="js/utils.js?v=dcd92397"></script>
-    <script src="js/i18n.js?v=cbb3b3e9"></script>
+    <script src="js/i18n.js?v=2a2010bb"></script>
     <script src="js/db.js?v=5a8d28b1"></script>
     <script src="js/search.js?v=dd27dfbf"></script>
-    <script src="js/ui.js?v=413d2ccc"></script>
+    <script src="js/ui.js?v=413d2cd6"></script>
     <script src="js/favorites.js?v=1"></script>
-    <script src="js/app.js?v=c3e815c6"></script>
+    <script src="js/app.js?v=c3e815c8"></script>
 
 </body>
 </html>

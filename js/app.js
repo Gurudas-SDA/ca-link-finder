@@ -740,6 +740,52 @@ PPP.app = (function () {
         displayResults();
     }
 
+    function showBy2026() {
+        if (!dataLoaded) return;
+        track('quick-action', { action: 'by-2026' });
+        setSearchMode('metadata');
+
+        if (usingSqlite) {
+            db.queryMetaAsync(
+                "SELECT * FROM lectures WHERE date LIKE '2026%' AND nr != '' ORDER BY date DESC"
+            ).then(function (rows) {
+                var uiRows = rows.map(mapSqlRowToUI);
+                uiRows.sort(utils.compareDates);
+                lastSearchTerm = '2026';
+                allResults = uiRows;
+                totalResults = uiRows.length;
+                currentPage = 1;
+                matchHints = new Map();
+                document.getElementById('searchTerm').value = '2026';
+                document.getElementById('timer').textContent = '';
+                displayResults();
+            }).catch(function (e) {
+                console.warn('SQLite by-2026 failed, falling back:', e);
+                showBy2026Fallback();
+            });
+            return;
+        }
+
+        showBy2026Fallback();
+    }
+
+    function showBy2026Fallback() {
+        var rows = DB.filter(function (r) {
+            var d = (r['Date'] || '').toString().trim();
+            var nr = (r['Nr.'] || '').toString().trim();
+            return d.indexOf('2026') === 0 && nr !== '';
+        });
+        rows.sort(utils.compareDates);
+        lastSearchTerm = '2026';
+        allResults = rows;
+        totalResults = rows.length;
+        currentPage = 1;
+        matchHints = new Map();
+        document.getElementById('searchTerm').value = '2026';
+        document.getElementById('timer').textContent = '';
+        displayResults();
+    }
+
     function showLatestTranscripts() {
         if (!dataLoaded) return;
         track('quick-action', { action: 'latest-transcripts' });
@@ -1743,7 +1789,7 @@ PPP.app = (function () {
             "LIMIT 108"
         ).then(function (rows) {
             var resultsInfo = document.getElementById('resultsInfo');
-            resultsInfo.innerHTML = '<strong>' + i18n.t('searchModeCitationsTop') + '</strong>';
+            resultsInfo.innerHTML = '';
             document.getElementById('timer').textContent = '';
 
             var esc = utils.escapeHtml;
@@ -1919,6 +1965,7 @@ PPP.app = (function () {
         search: doSearch,
         setLanguage: setLanguage,
         showLatestFiles: showLatestFiles,
+        showBy2026: showBy2026,
         showLatestTranscripts: showLatestTranscripts,
         showAllTranscriptsByDate: showAllTranscriptsByDate,
         showRecommendations: showRecommendations,

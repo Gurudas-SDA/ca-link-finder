@@ -35,35 +35,12 @@ PPP.ui = (function () {
         starSpacer.style.border = 'none';
         starSpacer.style.backgroundColor = 'transparent';
         row0.appendChild(starSpacer);
-        for (var i = 0; i < 5; i++) {
+        for (var i = 0; i < 11; i++) {
             var c = document.createElement('th');
             c.style.border = 'none';
             c.style.backgroundColor = 'transparent';
             row0.appendChild(c);
         }
-
-        var ltCell = document.createElement('th');
-        ltCell.colSpan = 3; ltCell.style.textAlign = 'center'; ltCell.style.border = 'none';
-        ltCell.style.backgroundColor = 'transparent'; ltCell.style.paddingBottom = '5px';
-        var ltBtn = document.createElement('button');
-        ltBtn.setAttribute('data-i18n', 'latest20Transcripts');
-        ltBtn.textContent = t('latest20Transcripts');
-        ltBtn.style.cssText = 'background:linear-gradient(135deg,#e8842c,#f4a54b);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
-        ltBtn.onclick = function () { if (PPP.app && PPP.app.showLatestTranscripts) PPP.app.showLatestTranscripts(); };
-        ltCell.appendChild(ltBtn);
-        row0.appendChild(ltCell);
-
-        var tCell = document.createElement('th');
-        tCell.colSpan = 3; tCell.style.textAlign = 'center'; tCell.style.border = 'none';
-        tCell.style.backgroundColor = 'transparent'; tCell.style.paddingBottom = '5px';
-        tCell.style.position = 'relative';
-        var tBtn = document.createElement('button');
-        tBtn.setAttribute('data-i18n', 'lectureTopics');
-        tBtn.textContent = t('lectureTopics');
-        tBtn.style.cssText = 'background:linear-gradient(135deg,#1a3a6b,#2a4f8a);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
-        tBtn.onclick = function () { if (PPP.app && PPP.app.showTopics) PPP.app.showTopics(); };
-        tCell.appendChild(tBtn);
-        row0.appendChild(tCell);
 
         var row1 = thead.insertRow();
         var row2 = thead.insertRow();
@@ -98,13 +75,44 @@ PPP.ui = (function () {
             if (h === 'Script_EN') {
                 var thBlock = document.createElement('th');
                 thBlock.colSpan = 3; thBlock.rowSpan = 2; thBlock.className = 'transcripts-block';
-                thBlock.style.textAlign = 'center'; thBlock.style.verticalAlign = 'middle';
-                var atBtn = document.createElement('button');
-                atBtn.setAttribute('data-i18n', 'allTranscriptsByDate');
-                atBtn.textContent = t('allTranscriptsByDate');
-                atBtn.style.cssText = 'background:linear-gradient(135deg,#e8842c,#f4a54b);color:#fff;border:none;padding:6px 10px;cursor:pointer;font-weight:700;border-radius:20px;font-size:11px;width:100%;box-sizing:border-box;transition:all 0.2s;letter-spacing:0.2px;';
-                atBtn.onclick = function () { if (PPP.app && PPP.app.showAllTranscriptsByDate) PPP.app.showAllTranscriptsByDate(); };
-                thBlock.appendChild(atBtn);
+                thBlock.style.textAlign = 'left'; thBlock.style.verticalAlign = 'middle';
+
+                var comboContainer = document.createElement('div');
+                comboContainer.style.cssText = 'display:inline-block;';
+                thBlock.appendChild(comboContainer);
+
+                var ttLabel = document.createElement('div');
+                ttLabel.setAttribute('data-i18n', 'transcriptsAndTranslations');
+                ttLabel.textContent = t('transcriptsAndTranslations');
+                ttLabel.style.cssText = 'font-weight:700;font-size:14px;color:#1a3a6b;margin-bottom:6px;text-transform:none;text-align:center;letter-spacing:0.3px;';
+                comboContainer.appendChild(ttLabel);
+
+                var btnWrap = document.createElement('div');
+                btnWrap.style.cssText = 'display:inline-flex;gap:0;justify-content:flex-start;align-items:center;';
+
+                var bdBtn = document.createElement('button');
+                bdBtn.setAttribute('data-i18n', 'byDate');
+                bdBtn.textContent = t('byDate');
+                bdBtn.style.cssText = 'background:linear-gradient(135deg,#cf7020,#e8842c);color:#fff;border:none;padding:6px 14px;cursor:pointer;font-weight:700;border-radius:20px 0 0 20px;font-size:11px;transition:all 0.2s;letter-spacing:0.2px;';
+                bdBtn.onclick = function () { if (PPP.app && PPP.app.showAllTranscriptsByDate) PPP.app.showAllTranscriptsByDate(); };
+
+                var btBtn = document.createElement('button');
+                btBtn.setAttribute('data-i18n', 'lectureTopics');
+                btBtn.textContent = t('lectureTopics');
+                btBtn.style.cssText = 'background:linear-gradient(135deg,#1a3a6b,#2a4f8a);color:#fff;border:none;padding:6px 14px;cursor:pointer;font-weight:700;border-radius:0;font-size:11px;transition:all 0.2s;letter-spacing:0.2px;';
+                btBtn.onclick = function () { if (PPP.app && PPP.app.showTopics) PPP.app.showTopics(); };
+
+                var nBtn = document.createElement('button');
+                nBtn.setAttribute('data-i18n', 'latest20Transcripts');
+                nBtn.textContent = t('latest20Transcripts');
+                nBtn.style.cssText = 'background:linear-gradient(135deg,#8b6914,#b8860b);color:#fff;border:none;padding:6px 14px;cursor:pointer;font-weight:700;border-radius:0 20px 20px 0;font-size:11px;transition:all 0.2s;letter-spacing:0.2px;';
+                nBtn.onclick = function () { if (PPP.app && PPP.app.showLatestTranscripts) PPP.app.showLatestTranscripts(); };
+
+                btnWrap.appendChild(bdBtn);
+                btnWrap.appendChild(btBtn);
+                btnWrap.appendChild(nBtn);
+                comboContainer.appendChild(btnWrap);
+
                 row1.appendChild(thBlock);
                 ['EN', 'LV', 'RU'].forEach(function (lang) {
                     var thL = document.createElement('th');
