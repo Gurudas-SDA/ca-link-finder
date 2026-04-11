@@ -291,6 +291,7 @@ PPP.app = (function () {
                 var d = dateRows[0].last_update.replace(/\./g, '-');
                 var el = document.getElementById('dbLastUpdate');
                 if (el) {
+                    el.setAttribute('data-last-update', d);
                     el.textContent = (i18n.t('lastUpdate') || 'Last update') + ': ' + d;
                     el.style.display = '';
                 }
@@ -1942,6 +1943,10 @@ PPP.app = (function () {
             var val = i18n.t(key);
             if (val !== key) el.textContent = val;
         });
+        var luEl = document.getElementById('dbLastUpdate');
+        if (luEl && luEl.getAttribute('data-last-update')) {
+            luEl.textContent = (i18n.t('lastUpdate') || 'Last update') + ': ' + luEl.getAttribute('data-last-update');
+        }
         document.querySelector('h1').textContent = i18n.t('pageTitle');
         if (dataLoaded) {
             var inp = document.getElementById('searchTerm');
