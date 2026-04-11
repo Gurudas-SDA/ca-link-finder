@@ -209,12 +209,8 @@ button, input, select, textarea, table {
     color: #fff;
     letter-spacing: 1px;
 }
-.logo-title .accent {
-    background: linear-gradient(to bottom, #d0342c 0%, #d0342c 27%, #f0c75e 27%, #f0c75e 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
+.logo-title .accent { color: #f0c75e; }
+.logo-title .accent-mark { color: #d0342c; }
 .logo-subtitle {
     font-family: 'Montserrat', 'Inter', Arial, sans-serif;
     font-weight: 400;
