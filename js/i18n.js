@@ -91,7 +91,7 @@ PPP.i18n = (function () {
             newCollection: 'New collection',
             collectionName: 'Collection name',
             allSaved: 'All saved',
-            shareQuote: 'Share verse',
+            shareQuote: 'Share quote',
             lastUpdate: 'Last update'
         },
         ru: {
@@ -168,7 +168,7 @@ PPP.i18n = (function () {
             newCollection: '\u041d\u043e\u0432\u0430\u044f \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u044f',
             collectionName: '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438',
             allSaved: '\u0412\u0441\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435',
-            shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0441\u0442\u0438\u0445\u043e\u043c',
+            shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0446\u0438\u0442\u0430\u0442\u043e\u0439',
             lastUpdate: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e'
         },
         lv: {
@@ -244,7 +244,7 @@ PPP.i18n = (function () {
             newCollection: 'Jauna kolekcija',
             collectionName: 'Kolekcijas nosaukums',
             allSaved: 'Visi saglab\u0101tie',
-            shareQuote: 'Dal\u012bties ar pantu',
+            shareQuote: 'Koplietot cit\u0101tu',
             lastUpdate: 'Atjaunots'
         },
         it: {
@@ -263,7 +263,7 @@ PPP.i18n = (function () {
             newCollection: 'Nuova collezione',
             collectionName: 'Nome della collezione',
             allSaved: 'Tutti i salvati',
-            shareQuote: 'Condividi versetto',
+            shareQuote: 'Condividi citazione',
             lastUpdate: 'Aggiornato'
         },
         fr: {
@@ -282,7 +282,7 @@ PPP.i18n = (function () {
             newCollection: 'Nouvelle collection',
             collectionName: 'Nom de la collection',
             allSaved: 'Tous les enregistr\u00e9s',
-            shareQuote: 'Partager le verset',
+            shareQuote: 'Partager la citation',
             lastUpdate: 'Mis \u00e0 jour'
         },
         es: {
@@ -301,7 +301,7 @@ PPP.i18n = (function () {
             newCollection: 'Nueva colecci\u00f3n',
             collectionName: 'Nombre de la colecci\u00f3n',
             allSaved: 'Todos los guardados',
-            shareQuote: 'Compartir verso',
+            shareQuote: 'Compartir cita',
             lastUpdate: 'Actualizado'
         }
     };

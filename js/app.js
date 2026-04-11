@@ -1033,7 +1033,8 @@ PPP.app = (function () {
         cols.forEach(function (col) {
             var item = document.createElement('div');
             item.className = 'collections-picker-item';
-            item.innerHTML = '<span class="cpi-name">' + _escHtml(col.name) + '</span><span class="cpi-count">' + col.count + '</span>';
+            var dispName = (col.name === 'Favorites') ? (i18n.t('favorites') || col.name) : col.name;
+            item.innerHTML = '<span class="cpi-name">' + _escHtml(dispName) + '</span><span class="cpi-count">' + col.count + '</span>';
             item.onclick = function () {
                 popup.remove();
                 document.removeEventListener('click', onDocClick);

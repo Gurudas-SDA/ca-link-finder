@@ -637,7 +637,7 @@ PPP.ui = (function () {
             };
             var nameSpan = document.createElement('span');
             nameSpan.className = 'save-to-name';
-            nameSpan.textContent = col.name;
+            nameSpan.textContent = (col.name === 'Favorites') ? (t('favorites') || col.name) : col.name;
             var countSpan = document.createElement('span');
             countSpan.className = 'save-to-count';
             countSpan.textContent = col.count;
