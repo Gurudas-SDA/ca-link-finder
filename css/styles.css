@@ -1518,14 +1518,23 @@ body.dark .transcript-deep-highlight {
     .search-quick-buttons.main-button-row {
         flex-wrap: wrap !important;
         max-width: 100%;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
         border-radius: 22px;
+        box-sizing: border-box;
     }
     .search-quick-buttons .combo-btn {
         flex: 1 1 33.333% !important;
         min-width: 0;
+        max-width: 33.333%;
         padding: 9px 4px !important;
         font-size: 11px !important;
-        letter-spacing: 0.3px !important;
+        letter-spacing: 0.2px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
     }
     /* Row 1 (positions 1, 2, 3) — top corners on outer ends */
     .search-quick-buttons .combo-btn-1 {
