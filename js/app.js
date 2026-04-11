@@ -123,6 +123,17 @@ PPP.app = (function () {
         var savedLang = localStorage.getItem('preferredLanguage') || 'en';
         setLanguage(savedLang);
 
+        // Close List of Sources dropdown on any other button click
+        document.addEventListener('click', function (e) {
+            var sourcesList = document.getElementById('sourcesList');
+            if (!sourcesList || sourcesList.style.display === 'none' || sourcesList.style.display === '') return;
+            var btn = e.target.closest('button');
+            if (!btn) return;
+            if (btn.closest('.top-left-buttons')) return;
+            if (sourcesList.contains(btn)) return;
+            sourcesList.style.display = 'none';
+        }, true);
+
         // Wire search input
         var searchInput = document.getElementById('searchTerm');
         searchInput.addEventListener('keydown', function (e) {
