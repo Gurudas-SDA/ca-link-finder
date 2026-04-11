@@ -1516,18 +1516,21 @@ body.dark .transcript-deep-highlight {
 @media (max-width: 600px) and (orientation: portrait) {
     /* Top combo wraps into 2 rows of 3 */
     .search-quick-buttons.main-button-row {
-        flex-wrap: wrap !important;
-        max-width: 100%;
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-rows: auto auto;
+        gap: 0;
         width: 100%;
-        margin-left: auto;
-        margin-right: auto;
-        border-radius: 22px;
+        max-width: 100%;
         box-sizing: border-box;
+        border-radius: 22px;
+        flex-wrap: unset !important;
     }
     .search-quick-buttons .combo-btn {
-        flex: 1 1 33.333% !important;
+        flex: none !important;
+        width: 100%;
         min-width: 0;
-        max-width: 33.333%;
+        max-width: none;
         padding: 9px 4px !important;
         font-size: 11px !important;
         letter-spacing: 0.2px !important;
@@ -1535,6 +1538,7 @@ body.dark .transcript-deep-highlight {
         overflow: hidden;
         text-overflow: ellipsis;
         text-align: center;
+        box-sizing: border-box;
     }
     /* Row 1 (positions 1, 2, 3) — top corners on outer ends */
     .search-quick-buttons .combo-btn-1 {
@@ -1576,7 +1580,7 @@ body.dark .transcript-deep-highlight {
     /* Search card grid layout for mobile */
     .search-card {
         display: grid !important;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
         grid-template-areas:
             "combo combo combo"
             "input input input"
@@ -1584,6 +1588,9 @@ body.dark .transcript-deep-highlight {
             "info info info";
         gap: 6px !important;
         align-items: center;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
     }
     .search-quick-buttons.main-button-row {
         grid-area: combo;
@@ -1594,7 +1601,26 @@ body.dark .transcript-deep-highlight {
     .search-row .keywords-search-btn {
         grid-area: keywords;
         border-radius: 22px !important;
-        padding: 8px 14px !important;
+        padding: 8px 12px !important;
+        min-width: 0;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .search-row .search-bar button.search-button {
+        min-width: 0;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .search-time .help-search-btn-small {
+        min-width: 0;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .search-row .search-bar {
         display: contents !important;
