@@ -285,6 +285,16 @@ PPP.app = (function () {
             return db.queryMetaAsync('SELECT * FROM lectures');
         }).then(function (allRows) {
             DB = allRows.map(mapSqlRowToUI);
+            return db.queryMetaAsync('SELECT MAX(added) AS last_update FROM lectures');
+        }).then(function (dateRows) {
+            if (dateRows && dateRows.length && dateRows[0].last_update) {
+                var d = dateRows[0].last_update.replace(/\./g, '-');
+                var el = document.getElementById('dbLastUpdate');
+                if (el) {
+                    el.textContent = (i18n.t('lastUpdate') || 'Last update') + ': ' + d;
+                    el.style.display = '';
+                }
+            }
         });
     }
 

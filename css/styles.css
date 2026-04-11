@@ -759,6 +759,14 @@ h1 {
     gap: 6px;
     z-index: 100;
 }
+#dbLastUpdate {
+    font-size: 9px;
+    color: rgba(255,255,255,0.65);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    padding: 2px 4px;
+    line-height: 1.4;
+}
 .top-left-buttons button {
     background: rgba(255,255,255,0.15);
     backdrop-filter: blur(8px);
