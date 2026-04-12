@@ -92,6 +92,7 @@ PPP.i18n = (function () {
             collectionName: 'Collection name',
             allSaved: 'All saved',
             shareQuote: 'Share quote',
+            downloadTranscript: 'Download transcript',
             lastUpdate: 'Last update',
             featuresBtn: 'Features'
         },
@@ -170,6 +171,7 @@ PPP.i18n = (function () {
             collectionName: '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438',
             allSaved: '\u0412\u0441\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435',
             shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0446\u0438\u0442\u0430\u0442\u043e\u0439',
+            downloadTranscript: '\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442',
             lastUpdate: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e',
             featuresBtn: '\u0424\u0443\u043d\u043a\u0446\u0438\u0438'
         },
@@ -247,6 +249,7 @@ PPP.i18n = (function () {
             collectionName: 'Kolekcijas nosaukums',
             allSaved: 'Visi saglab\u0101tie',
             shareQuote: 'Koplietot cit\u0101tu',
+            downloadTranscript: 'Lejupiel\u0101d\u0113t transkriptu',
             lastUpdate: 'Atjaunots',
             featuresBtn: 'Funkcijas'
         },
@@ -267,6 +270,7 @@ PPP.i18n = (function () {
             collectionName: 'Nome della collezione',
             allSaved: 'Tutti i salvati',
             shareQuote: 'Condividi citazione',
+            downloadTranscript: 'Scarica trascrizione',
             lastUpdate: 'Aggiornato',
             featuresBtn: 'Funzioni'
         },
@@ -287,6 +291,7 @@ PPP.i18n = (function () {
             collectionName: 'Nom de la collection',
             allSaved: 'Tous les enregistr\u00e9s',
             shareQuote: 'Partager la citation',
+            downloadTranscript: 'T\u00e9l\u00e9charger la transcription',
             lastUpdate: 'Mis \u00e0 jour',
             featuresBtn: 'Fonctions'
         },
@@ -307,6 +312,7 @@ PPP.i18n = (function () {
             collectionName: 'Nombre de la colecci\u00f3n',
             allSaved: 'Todos los guardados',
             shareQuote: 'Compartir cita',
+            downloadTranscript: 'Descargar transcripci\u00f3n',
             lastUpdate: 'Actualizado',
             featuresBtn: 'Funciones'
         }

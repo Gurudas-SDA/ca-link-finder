@@ -668,6 +668,23 @@ h1 {
     flex: 1;
     margin-right: 12px;
 }
+.transcript-download-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    line-height: 1;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+.transcript-download-btn:hover {
+    color: var(--saffron);
+    background: rgba(0,0,0,0.05);
+}
 .transcript-modal-body {
     position: relative;
     padding: 20px;

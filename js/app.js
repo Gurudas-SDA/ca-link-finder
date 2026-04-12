@@ -1561,11 +1561,22 @@ PPP.app = (function () {
      * Open HTML transcript viewer in modal, scroll to block-N anchor.
      * lang: 'en', 'lv', 'ru'
      */
-    function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference) {
+    function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference, driveUrl) {
         track('transcript-open', { nr: String(lectureNr), lang: lang, block: blockIndex || 0 });
         var overlay = document.getElementById('transcriptModalOverlay');
         var body = document.getElementById('transcriptModalBody');
         var title = document.getElementById('transcriptModalTitle');
+
+        var dlBtn = document.getElementById('transcriptDownloadBtn');
+        if (dlBtn) {
+            if (driveUrl) {
+                dlBtn.href = driveUrl;
+                dlBtn.title = i18n.t('downloadTranscript');
+                dlBtn.style.display = '';
+            } else {
+                dlBtn.style.display = 'none';
+            }
+        }
 
         var alreadyLoaded = db.isHtmlLoaded(lang);
         title.textContent = 'Loading ' + lang.toUpperCase() + ' transcript...';
@@ -1609,13 +1620,18 @@ PPP.app = (function () {
         }).then(function (rows) {
             if (rows.length === 0) {
                 title.textContent = 'Transcript not found';
-                body.textContent = 'No ' + lang.toUpperCase() + ' transcript for lecture Nr.' + lectureNr;
+                if (driveUrl) {
+                    body.innerHTML = '<p>No ' + lang.toUpperCase() + ' HTML transcript for lecture Nr.' + lectureNr +
+                        '.</p><p><a href="' + driveUrl + '" target="_blank" rel="noopener" style="color:var(--saffron)">Open in Google Drive \u2197</a></p>';
+                } else {
+                    body.textContent = 'No ' + lang.toUpperCase() + ' transcript for lecture Nr.' + lectureNr;
+                }
                 return;
             }
 
             // Get title from meta DB
             return db.queryMetaAsync(
-                "SELECT original_file_name FROM lectures WHERE nr = $nr LIMIT 1",
+                "SELECT original_file_name, script_en_url, script_lv_url, script_ru_url FROM lectures WHERE nr = $nr LIMIT 1",
                 { $nr: String(lectureNr) }
             ).then(function (meta) {
                 if (meta.length > 0) {
@@ -1623,6 +1639,16 @@ PPP.app = (function () {
                         (reference ? ' — ' + reference : '');
                 } else {
                     title.textContent = 'Nr.' + lectureNr + (reference ? ' — ' + reference : '');
+                }
+                // If driveUrl was not passed, try to get it from meta
+                if (!driveUrl && meta.length > 0 && dlBtn) {
+                    var urlCol = 'script_' + lang + '_url';
+                    var metaDriveUrl = meta[0][urlCol];
+                    if (metaDriveUrl) {
+                        dlBtn.href = metaDriveUrl;
+                        dlBtn.title = i18n.t('downloadTranscript');
+                        dlBtn.style.display = '';
+                    }
                 }
             }).catch(function () {
                 title.textContent = 'Nr.' + lectureNr + (reference ? ' — ' + reference : '');
@@ -1816,6 +1842,8 @@ PPP.app = (function () {
     function closeTranscriptModal(event) {
         if (!event || event.target === document.getElementById('transcriptModalOverlay')) {
             document.getElementById('transcriptModalOverlay').classList.remove('active');
+            var dlBtn = document.getElementById('transcriptDownloadBtn');
+            if (dlBtn) dlBtn.style.display = 'none';
         }
     }
 

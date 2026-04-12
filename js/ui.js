@@ -234,11 +234,43 @@ PPP.ui = (function () {
                             };
                             td.appendChild(viewBtn);
                         }
+                    } else if (isScriptCol) {
+                        // NON-VERSE MODE: open in-app modal for script columns
+                        var scriptDriveUrl = row[col + '_url'] || utils.extractUrl(val);
+                        if (scriptDriveUrl && !scriptDriveUrl.startsWith('http')) scriptDriveUrl = null;
+                        var hasScript = val && val !== 'N/A' && val !== '0' && val !== '';
+                        if (hasScript) {
+                            var langLabel = col.split('_')[1];
+                            var langCode = langLabel.toLowerCase();
+                            var lectNr = (row['Nr.'] || '').toString().trim();
+                            var viewBtn = document.createElement('a');
+                            viewBtn.href = '#';
+                            viewBtn.textContent = langLabel;
+                            viewBtn.title = 'Open transcript';
+                            viewBtn.style.cssText = 'color:var(--saffron);font-weight:700;text-decoration:underline;cursor:pointer;';
+                            viewBtn.setAttribute('data-nr', lectNr);
+                            viewBtn.setAttribute('data-lang', langCode);
+                            viewBtn.setAttribute('data-drive-url', scriptDriveUrl || '');
+                            viewBtn.onclick = function (e) {
+                                e.preventDefault();
+                                var el = e.currentTarget;
+                                var nr = el.getAttribute('data-nr');
+                                var lang = el.getAttribute('data-lang');
+                                var dUrl = el.getAttribute('data-drive-url') || undefined;
+                                if (nr) {
+                                    PPP.app.openHtmlTranscriptViewer(nr, lang, null, null, dUrl);
+                                } else if (dUrl) {
+                                    window.open(dUrl, '_blank');
+                                }
+                            };
+                            td.appendChild(viewBtn);
+                        }
                     } else {
+                        // Links and Dwnld. columns — keep existing behavior (external links)
                         var url = row[col + '_url'] || utils.extractUrl(val);
                         if (!url && col === 'Links') url = row['Direct URL_url'] || (row['Direct URL'] || '').toString().trim() || null;
                         if (url && !url.startsWith('http')) url = null;
-                        var label = col.startsWith('Script_') ? col.split('_')[1] : (col === 'Dwnld.' ? 'Mp3' : (val || 'Link'));
+                        var label = col === 'Dwnld.' ? 'Mp3' : (val || 'Link');
                         if (url) {
                             var a = document.createElement('a');
                             a.href = url;
