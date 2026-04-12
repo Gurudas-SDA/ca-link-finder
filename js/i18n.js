@@ -92,7 +92,8 @@ PPP.i18n = (function () {
             collectionName: 'Collection name',
             allSaved: 'All saved',
             shareQuote: 'Share quote',
-            lastUpdate: 'Last update'
+            lastUpdate: 'Last update',
+            featuresBtn: 'Features'
         },
         ru: {
             pageTitle: '\u041f\u043e\u0438\u0441\u043a \u0430\u0443\u0434\u0438\u043e, \u0432\u0438\u0434\u0435\u043e \u0438 \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442\u043e\u0432',
@@ -245,7 +246,8 @@ PPP.i18n = (function () {
             collectionName: 'Kolekcijas nosaukums',
             allSaved: 'Visi saglab\u0101tie',
             shareQuote: 'Koplietot cit\u0101tu',
-            lastUpdate: 'Atjaunots'
+            lastUpdate: 'Atjaunots',
+            featuresBtn: 'Funkcijas'
         },
         it: {
             pageTitle: 'Ricerca di audio, video e trascrizioni', listOfSources: 'Elenco fonti', lectureTopics: 'Per argomento', transcriptsByLabel: 'Cerca trascrizioni e traduzioni', recommendations: 'Ricerche principali', recommendationsTitle: 'Lezioni consigliate:', hideRecommendationsBtn: 'Clicca per nascondere le ricerche principali', hideTopicsBtn: 'Clicca per nascondere le trascrizioni per argomento', hideVerseSourcesBtn: 'Clicca per nascondere le fonti scritturali', hideTopCitationsBtn: 'Clicca per nascondere i Top 108 versetti', swipeHintText: 'Scorri per vedere le trascrizioni', latest20Files: 'Per aggiunta', by2026: 'Del 2026', addedDateDisplay: 'Per data di aggiunta', entries2026Display: 'Voci del 2026', latest20Transcripts: 'Pi\u00f9 recenti', newestTranscriptsDisplay: 'Trascrizioni pi\u00f9 recenti', transcriptsByDateDisplay: 'Trascrizioni per data', transcriptsByTopicDisplay: 'Trascrizioni per argomento', transcriptsAndTranslations: 'Trascrizioni e traduzioni', byDate: 'Per data', allTranscriptsByDate: 'Tutte le trascrizioni per data', searchPlaceholder: 'Cercare saggezza tra {count} link', searchButton: 'Cerca', searchTime: 'Ricerca lato client \u2014 risultati istantanei.', enterSearchTerms: 'Inserisci parole di ricerca per vedere i risultati', filesFound: 'file trovati', showingResults: 'Mostra risultati', noResultsFound: 'Nessun risultato trovato', elapsedTime: 'Tempo trascorso:', seconds: 'secondi', searching: 'Ricerca...', page: 'pagina', pages: 'pagine', previous: 'Precedente', next: 'Successiva', sources: 'Fonti:', topics: 'Argomenti con trascrizioni:', transcriptsTitle: 'Trascrizioni / Traduzioni', transcriptsHint: '. Tutte le trascrizioni', clickWord: 'Clicca', colDate: 'Data', colType: 'Tipo', colOriginalFileName: 'Nome file', colCountry: 'Paese', colLang: 'Lingua', colLinks: 'Link', colDwnld: 'Scarica', colLength: 'Durata', helpButton: 'Come cercare per parole chiave?', helpModalTitle: 'Come usare il campo di ricerca?',
@@ -264,7 +266,8 @@ PPP.i18n = (function () {
             collectionName: 'Nome della collezione',
             allSaved: 'Tutti i salvati',
             shareQuote: 'Condividi citazione',
-            lastUpdate: 'Aggiornato'
+            lastUpdate: 'Aggiornato',
+            featuresBtn: 'Funzioni'
         },
         fr: {
             pageTitle: 'Recherche d\u2019audio, vid\u00e9o et transcriptions', listOfSources: 'Liste des sources', lectureTopics: 'Par sujet', transcriptsByLabel: 'Recherche de transcriptions et traductions', recommendations: 'Recherches populaires', recommendationsTitle: 'Conf\u00e9rences recommand\u00e9es :', hideRecommendationsBtn: 'Cliquez pour masquer les recherches populaires', hideTopicsBtn: 'Cliquez pour masquer les transcriptions par sujet', hideVerseSourcesBtn: 'Cliquez pour masquer les sources scripturales', hideTopCitationsBtn: 'Cliquez pour masquer les 108 versets les plus cit\u00e9s', swipeHintText: 'Glissez pour voir les transcriptions', latest20Files: 'Par ajout', by2026: 'De 2026', addedDateDisplay: 'Par date d\'ajout', entries2026Display: 'Entr\u00e9es de 2026', latest20Transcripts: 'Plus r\u00e9cents', newestTranscriptsDisplay: 'Transcriptions les plus r\u00e9centes', transcriptsByDateDisplay: 'Transcriptions par date', transcriptsByTopicDisplay: 'Transcriptions par sujet', transcriptsAndTranslations: 'Transcriptions et traductions', byDate: 'Par date', allTranscriptsByDate: 'Toutes les transcriptions par date', searchPlaceholder: 'Chercher la sagesse parmi {count} liens', searchButton: 'Rechercher', searchTime: 'Recherche c\u00f4t\u00e9 client \u2014 r\u00e9sultats instantan\u00e9s.', enterSearchTerms: 'Saisissez des mots de recherche pour voir les r\u00e9sultats', filesFound: 'fichiers trouv\u00e9s', showingResults: 'Affiche les r\u00e9sultats', noResultsFound: 'Aucun r\u00e9sultat trouv\u00e9', elapsedTime: 'Temps \u00e9coul\u00e9 :', seconds: 'secondes', searching: 'Recherche...', page: 'page', pages: 'pages', previous: 'Pr\u00e9c\u00e9dente', next: 'Suivante', sources: 'Sources :', topics: 'Sujets avec transcriptions :', transcriptsTitle: 'Transcriptions / Traductions', transcriptsHint: '. Toutes les transcriptions', clickWord: 'Cliquez', colDate: 'Date', colType: 'Type', colOriginalFileName: 'Nom du fichier', colCountry: 'Pays', colLang: 'Langue', colLinks: 'Liens', colDwnld: 'T\u00e9l\u00e9ch.', colLength: 'Dur\u00e9e', helpButton: 'Comment rechercher par mots-cl\u00e9s ?', helpModalTitle: 'Comment utiliser le champ de recherche ?',
@@ -302,7 +305,8 @@ PPP.i18n = (function () {
             collectionName: 'Nombre de la colecci\u00f3n',
             allSaved: 'Todos los guardados',
             shareQuote: 'Compartir cita',
-            lastUpdate: 'Actualizado'
+            lastUpdate: 'Actualizado',
+            featuresBtn: 'Funciones'
         }
     };
 

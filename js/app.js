@@ -2079,7 +2079,11 @@ PPP.app = (function () {
         updateFavoritesCount: updateFavoritesCount,
         copyShareLink: copyShareLink,
         buildShareUrl: buildShareUrl,
-        toggleTheme: toggleTheme
+        toggleTheme: toggleTheme,
+        openGuide: function () {
+            var lang = localStorage.getItem('preferredLanguage') || 'en';
+            window.open('guide/' + lang + '/', '_blank');
+        }
     };
 })();
 
