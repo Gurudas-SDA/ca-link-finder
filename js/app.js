@@ -696,6 +696,7 @@ PPP.app = (function () {
     // ===== SEARCH MODE TOGGLE =====
     function setSearchMode(mode) {
         closeAllPanels();
+        setActiveCollection(null);
         var prevMode = searchMode;
         searchMode = mode || 'metadata';
         if (prevMode !== mode) {
@@ -1066,8 +1067,8 @@ PPP.app = (function () {
     }
 
     function _showCollectionLectures(colId, label) {
-        setActiveCollection(label);
         setSearchMode('metadata');
+        setActiveCollection(label);
 
         var nrs = colId !== null
             ? PPP.favorites.getCollectionLectures(colId)
