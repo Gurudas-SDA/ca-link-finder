@@ -1561,6 +1561,13 @@ PPP.app = (function () {
      * Open HTML transcript viewer in modal, scroll to block-N anchor.
      * lang: 'en', 'lv', 'ru'
      */
+    function _toDirectDownload(url) {
+        if (!url) return url;
+        var m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+        if (m) return 'https://drive.google.com/uc?export=download&id=' + m[1];
+        return url;
+    }
+
     function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference, driveUrl) {
         track('transcript-open', { nr: String(lectureNr), lang: lang, block: blockIndex || 0 });
         var overlay = document.getElementById('transcriptModalOverlay');
@@ -1570,7 +1577,7 @@ PPP.app = (function () {
         var dlBtn = document.getElementById('transcriptDownloadBtn');
         if (dlBtn) {
             if (driveUrl) {
-                dlBtn.href = driveUrl;
+                dlBtn.href = _toDirectDownload(driveUrl);
                 dlBtn.title = i18n.t('downloadTranscript');
                 dlBtn.style.display = '';
             } else {
@@ -1645,7 +1652,7 @@ PPP.app = (function () {
                     var urlCol = 'script_' + lang + '_url';
                     var metaDriveUrl = meta[0][urlCol];
                     if (metaDriveUrl) {
-                        dlBtn.href = metaDriveUrl;
+                        dlBtn.href = _toDirectDownload(metaDriveUrl);
                         dlBtn.title = i18n.t('downloadTranscript');
                         dlBtn.style.display = '';
                     }
