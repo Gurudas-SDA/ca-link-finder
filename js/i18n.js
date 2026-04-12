@@ -170,7 +170,8 @@ PPP.i18n = (function () {
             collectionName: '\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043a\u043e\u043b\u043b\u0435\u043a\u0446\u0438\u0438',
             allSaved: '\u0412\u0441\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435',
             shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0446\u0438\u0442\u0430\u0442\u043e\u0439',
-            lastUpdate: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e'
+            lastUpdate: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e',
+            featuresBtn: '\u0424\u0443\u043d\u043a\u0446\u0438\u0438'
         },
         lv: {
             pageTitle: 'Audio, video un transkriptu mekl\u0113t\u0101js',
@@ -286,7 +287,8 @@ PPP.i18n = (function () {
             collectionName: 'Nom de la collection',
             allSaved: 'Tous les enregistr\u00e9s',
             shareQuote: 'Partager la citation',
-            lastUpdate: 'Mis \u00e0 jour'
+            lastUpdate: 'Mis \u00e0 jour',
+            featuresBtn: 'Fonctions'
         },
         es: {
             pageTitle: 'Buscador de audio, v\u00eddeo y transcripciones', listOfSources: 'Lista de fuentes', lectureTopics: 'Por tema', transcriptsByLabel: 'Buscador de transcripciones y traducciones', recommendations: 'B\u00fasquedas principales', recommendationsTitle: 'Conferencias recomendadas:', hideRecommendationsBtn: 'Haz clic para ocultar las b\u00fasquedas principales', hideTopicsBtn: 'Haz clic para ocultar las transcripciones por tema', hideVerseSourcesBtn: 'Haz clic para ocultar las fuentes escriturales', hideTopCitationsBtn: 'Haz clic para ocultar los 108 vers\u00edculos m\u00e1s citados', swipeHintText: 'Desliza para ver las transcripciones', latest20Files: 'Por adici\u00f3n', by2026: 'De 2026', addedDateDisplay: 'Por fecha de adici\u00f3n', entries2026Display: 'Entradas de 2026', latest20Transcripts: 'M\u00e1s recientes', newestTranscriptsDisplay: 'Transcripciones m\u00e1s recientes', transcriptsByDateDisplay: 'Transcripciones por fecha', transcriptsByTopicDisplay: 'Transcripciones por tema', transcriptsAndTranslations: 'Transcripciones y traducciones', byDate: 'Por fecha', allTranscriptsByDate: 'Todas las transcripciones por fecha', searchPlaceholder: 'Buscar sabidur\u00eda entre {count} enlaces', searchButton: 'Buscar', searchTime: 'B\u00fasqueda del lado del cliente \u2014 resultados instant\u00e1neos.', enterSearchTerms: 'Introduce palabras de b\u00fasqueda para ver resultados', filesFound: 'archivos encontrados', showingResults: 'Mostrando resultados', noResultsFound: 'No se encontraron resultados', elapsedTime: 'Tiempo transcurrido:', seconds: 'segundos', searching: 'Buscando...', page: 'p\u00e1gina', pages: 'p\u00e1ginas', previous: 'Anterior', next: 'Siguiente', sources: 'Fuentes:', topics: 'Temas con transcripciones:', transcriptsTitle: 'Transcripciones / Traducciones', transcriptsHint: '. Todas las transcripciones', clickWord: 'Haz clic', colDate: 'Fecha', colType: 'Tipo', colOriginalFileName: 'Nombre del archivo', colCountry: 'Pa\u00eds', colLang: 'Idioma', colLinks: 'Enlaces', colDwnld: 'Desc.', colLength: 'Duraci\u00f3n', helpButton: '\u00bfC\u00f3mo buscar por palabras clave?', helpModalTitle: '\u00bfC\u00f3mo usar el campo de b\u00fasqueda?',
