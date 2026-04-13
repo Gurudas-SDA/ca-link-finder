@@ -1251,7 +1251,7 @@ PPP.app = (function () {
         if (usingSqlite) {
             db.queryMetaAsync(
                 "SELECT subject, COUNT(*) as cnt FROM lectures " +
-                "WHERE subject != '' AND script_en != '' AND script_en != 'N/A' AND script_en != '0' " +
+                "WHERE subject LIKE '.%' AND script_en != '' AND script_en != 'N/A' AND script_en != '0' " +
                 "GROUP BY subject ORDER BY subject"
             ).then(function (topicRows) {
                 var esc = utils.escapeHtml;
