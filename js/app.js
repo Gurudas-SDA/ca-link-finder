@@ -296,7 +296,7 @@ PPP.app = (function () {
             return db.queryMetaAsync('SELECT * FROM lectures');
         }).then(function (allRows) {
             DB = allRows.map(mapSqlRowToUI);
-            return db.queryMetaAsync('SELECT MAX(added) AS last_update FROM lectures');
+            return db.queryMetaAsync("SELECT value AS last_update FROM stats WHERE key = 'db_updated'");
         }).then(function (dateRows) {
             if (dateRows && dateRows.length && dateRows[0].last_update) {
                 var d = dateRows[0].last_update.replace(/\./g, '-');
