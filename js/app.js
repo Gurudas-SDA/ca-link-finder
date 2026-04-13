@@ -1184,12 +1184,20 @@ PPP.app = (function () {
                     "GROUP BY lang ORDER BY lang"
                 ),
                 db.queryMetaAsync(
-                    "SELECT subject, COUNT(*) as cnt FROM lectures WHERE subject LIKE '.%' GROUP BY subject ORDER BY subject"
+                    "SELECT subject FROM lectures WHERE subject LIKE '.%'"
                 )
             ]).then(function (results) {
                 var langCounts = {}, subjCounts = {};
                 results[0].forEach(function (r) { langCounts[r.lang] = parseInt(r.cnt, 10); });
-                results[1].forEach(function (r) { subjCounts[r.subject] = parseInt(r.cnt, 10); });
+                results[1].forEach(function (r) {
+                    var parts = (r.subject || '').split(';');
+                    parts.forEach(function (p) {
+                        var t = p.trim();
+                        if (t.charAt(0) === '.') {
+                            subjCounts[t] = (subjCounts[t] || 0) + 1;
+                        }
+                    });
+                });
                 renderRecommendationsHTML(div, langCounts, subjCounts);
             }).catch(function (e) {
                 console.warn('SQLite recommendations failed, falling back:', e);
@@ -1250,17 +1258,27 @@ PPP.app = (function () {
 
         if (usingSqlite) {
             db.queryMetaAsync(
-                "SELECT subject, COUNT(*) as cnt FROM lectures " +
-                "WHERE subject LIKE '.%' AND script_en != '' AND script_en != 'N/A' AND script_en != '0' " +
-                "GROUP BY subject ORDER BY subject"
-            ).then(function (topicRows) {
+                "SELECT subject FROM lectures " +
+                "WHERE subject LIKE '.%' AND script_en != '' AND script_en != 'N/A' AND script_en != '0'"
+            ).then(function (rows) {
+                var topicCounts = {};
+                rows.forEach(function (r) {
+                    var parts = (r.subject || '').split(';');
+                    parts.forEach(function (p) {
+                        var t = p.trim();
+                        if (t.charAt(0) === '.') {
+                            topicCounts[t] = (topicCounts[t] || 0) + 1;
+                        }
+                    });
+                });
+                var sorted = Object.keys(topicCounts).sort();
                 var esc = utils.escapeHtml;
                 var enc = utils.encodeForAttr;
                 var html = '<button id="topicsHideBtn" class="recommendations-hide-btn" onclick="PPP.app.showTopics()">' + utils.escapeHtml(i18n.t('hideTopicsBtn')) + '</button><div id="topicsListContent">';
-                topicRows.forEach(function (r) {
-                    html += '<div class="topic-item"><span class="topic-name">' + esc(r.subject) +
-                        ' <span style="color:var(--primary-dark);font-weight:700;">(' + r.cnt + ')</span></span>' +
-                        '<button class="topic-search-btn" onclick="PPP.app.applySubjectFilter(decodeURIComponent(\'' + enc(r.subject) + '\'))">Yes</button></div>';
+                sorted.forEach(function (name) {
+                    html += '<div class="topic-item"><span class="topic-name">' + esc(name) +
+                        ' <span style="color:var(--primary-dark);font-weight:700;">(' + topicCounts[name] + ')</span></span>' +
+                        '<button class="topic-search-btn" onclick="PPP.app.applySubjectFilter(decodeURIComponent(\'' + enc(name) + '\'))">Yes</button></div>';
                 });
                 html += '</div>';
                 div.innerHTML = html;
