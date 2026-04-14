@@ -700,9 +700,8 @@ h1 {
 }
 /* HTML transcript formatting */
 .transcript-modal-body p { margin: 0.4em 0; }
-.transcript-modal-body table { border-collapse: collapse; margin: 0.5em 0; width: 100%; }
-.transcript-modal-body td, .transcript-modal-body th { padding: 4px 8px; vertical-align: top; }
-.transcript-modal-body td:first-child { white-space: nowrap; }
+.transcript-modal-body table { border-collapse: collapse; margin: 0.5em 0; width: 100%; table-layout: fixed; }
+.transcript-modal-body td, .transcript-modal-body th { padding: 4px 8px; vertical-align: top; word-wrap: break-word; }
 .transcript-modal-body em { font-style: italic; }
 .transcript-modal-body strong { font-weight: 700; }
 .transcript-highlight {
