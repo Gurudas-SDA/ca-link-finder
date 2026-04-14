@@ -287,7 +287,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
 
     const texts = await buttons.allTextContents();
     const joined = texts.join(' | ');
-    for (const needle of ['By 2026', 'By Added', 'Top Searches', 'By Verses', 'Verses (Top)', 'Favorites']) {
+    for (const needle of ['By 2026', 'By Added', 'Top Searches', 'By Verse', 'Verses (Top)', 'Favorites']) {
       expect(joined).toContain(needle);
     }
 
