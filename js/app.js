@@ -1642,7 +1642,29 @@ PPP.app = (function () {
             return db.queryHtmlAsync(lang,
                 "SELECT html_content FROM transcripts_html WHERE nr = $nr LIMIT 1",
                 { $nr: String(lectureNr) }
-            );
+            ).then(function (rows) {
+                if (rows.length > 0) return rows;
+                // Fallback: this might be a duplicate lecture. Look up its URL,
+                // find the original lecture (same URL), and fetch its HTML.
+                var urlCol = 'script_' + lang + '_url';
+                return db.queryMetaAsync(
+                    "SELECT " + urlCol + " AS url FROM lectures WHERE nr = $nr LIMIT 1",
+                    { $nr: String(lectureNr) }
+                ).then(function (urlRows) {
+                    if (urlRows.length === 0 || !urlRows[0].url) return [];
+                    var url = urlRows[0].url;
+                    return db.queryMetaAsync(
+                        "SELECT nr FROM lectures WHERE " + urlCol + " = $url AND nr != $nr LIMIT 1",
+                        { $url: url, $nr: String(lectureNr) }
+                    );
+                }).then(function (origRows) {
+                    if (origRows.length === 0) return [];
+                    return db.queryHtmlAsync(lang,
+                        "SELECT html_content FROM transcripts_html WHERE nr = $nr LIMIT 1",
+                        { $nr: String(origRows[0].nr) }
+                    );
+                });
+            });
         }).then(function (rows) {
             if (rows.length === 0) {
                 title.textContent = 'Transcript not found';
