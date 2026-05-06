@@ -251,13 +251,19 @@ PPP.ui = (function () {
                             // If the cell value is a duplicate label, show it; otherwise show EN/LV/RU
                             var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
                             var cellTrim = (val || '').toString().trim();
-                            var langLabel = DUP_LABELS[cellTrim] ? cellTrim : defaultLangLabel;
+                            var isDuplicate = !!DUP_LABELS[cellTrim];
+                            var langLabel = isDuplicate ? cellTrim : defaultLangLabel;
                             var lectNr = (row['Nr.'] || '').toString().trim();
                             var viewBtn = document.createElement('a');
                             viewBtn.href = '#';
                             viewBtn.textContent = langLabel;
                             viewBtn.title = 'Open transcript';
-                            viewBtn.style.cssText = 'color:var(--saffron);font-weight:700;text-decoration:underline;cursor:pointer;';
+                            if (isDuplicate) {
+                                // Duplicate label: blue, 11px, same as Essence
+                                viewBtn.style.cssText = 'color:#1a4fa8;font-weight:600;font-size:11px;text-decoration:underline;cursor:pointer;';
+                            } else {
+                                viewBtn.style.cssText = 'color:var(--saffron);font-weight:700;text-decoration:underline;cursor:pointer;';
+                            }
                             viewBtn.setAttribute('data-nr', lectNr);
                             viewBtn.setAttribute('data-lang', langCode);
                             viewBtn.setAttribute('data-drive-url', scriptDriveUrl || '');
