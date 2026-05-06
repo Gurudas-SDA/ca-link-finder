@@ -284,18 +284,46 @@ PPP.ui = (function () {
                     }
                 } else if (col === 'Length') {
                     td.textContent = utils.formatLength(val);
-                } else {
-                    td.innerHTML = highlightSearchTerms(val, searchTerms);
-                    // Add hidden column match hint
-                    if (col === 'Original file name' && matchHints) {
-                        var hints = matchHints.get(row);
-                        if (hints && hints.length > 0) {
-                            var span = document.createElement('span');
-                            span.className = 'match-hint';
-                            span.textContent = hints.join('; ');
-                            td.appendChild(span);
+                } else if (col === 'Original file name') {
+                    var lectureHasSummary = nr && hasSummary(nr);
+                    if (lectureHasSummary) {
+                        var link = document.createElement('a');
+                        link.href = '#';
+                        link.innerHTML = highlightSearchTerms(val, searchTerms);
+                        link.style.cssText = 'color:inherit;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;';
+                        link.setAttribute('data-nr', nr);
+                        link.setAttribute('data-name', val);
+                        link.onclick = function (e) {
+                            e.preventDefault();
+                            var el = e.currentTarget;
+                            openSummaryModal(el.getAttribute('data-name'), el.getAttribute('data-nr'));
+                        };
+                        td.appendChild(link);
+                    } else {
+                        td.innerHTML = highlightSearchTerms(val, searchTerms);
+                    }
+                    // Tulkotais nosaukums zem oriģināla (tumši zils) — tikai non-EN valodās
+                    var langPref = localStorage.getItem('preferredLanguage') || 'en';
+                    if (langPref !== 'en' && nr) {
+                        var translatedTitle = getTitleTranslation(nr, langPref);
+                        if (translatedTitle) {
+                            var titleSpan = document.createElement('span');
+                            titleSpan.className = 'match-hint translated-title';
+                            titleSpan.textContent = translatedTitle;
+                            td.appendChild(titleSpan);
                         }
                     }
+                    // Essence zem nosaukuma (sarkans, prefiksu lokalizē LV/RU)
+                    var essenceText = nr ? getEssence(nr) : '';
+                    if (essenceText) {
+                        var prefix = (langPref === 'lv') ? 'Būtība: ' : (langPref === 'ru') ? 'Суть: ' : 'Essence: ';
+                        var essSpan = document.createElement('span');
+                        essSpan.className = 'match-hint essence-hint';
+                        essSpan.textContent = prefix + essenceText;
+                        td.appendChild(essSpan);
+                    }
+                } else {
+                    td.innerHTML = highlightSearchTerms(val, searchTerms);
                 }
             }
         }
@@ -333,7 +361,21 @@ PPP.ui = (function () {
             tdDate.textContent = row.date || row.Date || '';
 
             var tdName = tr.insertCell();
-            tdName.textContent = row.original_file_name || row['Original file name'] || '';
+            var lectureName = row.original_file_name || row['Original file name'] || '';
+            var lectureNr = row.nr || row['Nr.'] || '';
+            if (lectureNr && hasSummary(lectureNr)) {
+                var link = document.createElement('a');
+                link.href = '#';
+                link.textContent = lectureName;
+                link.style.cssText = 'color:inherit;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;';
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    PPP.ui.openSummaryModal(lectureName, lectureNr);
+                });
+                tdName.appendChild(link);
+            } else {
+                tdName.textContent = lectureName;
+            }
 
             var tdSnippet = tr.insertCell();
             var text = row.text_content || row.text || row.content || '';
@@ -753,6 +795,91 @@ PPP.ui = (function () {
         stars.forEach(function (s) { s.classList.toggle('active', isFav); });
     }
 
+    var _extrasCache = null;
+    var _extrasLoading = null;
+
+    function loadExtras() {
+        if (_extrasCache) return Promise.resolve(_extrasCache);
+        if (_extrasLoading) return _extrasLoading;
+        _extrasLoading = fetch('data/ppp_lecture_extras.json?v=e9add6d9')
+            .then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (data) {
+                _extrasCache = data || {};
+                _extrasLoading = null;
+                return _extrasCache;
+            })
+            .catch(function () {
+                _extrasCache = {};
+                _extrasLoading = null;
+                return _extrasCache;
+            });
+        return _extrasLoading;
+    }
+
+    function getExtras(nr) {
+        if (!_extrasCache || !nr) return null;
+        return _extrasCache[String(nr)] || null;
+    }
+
+    function hasSummary(nr) {
+        var e = getExtras(nr);
+        return !!(e && e.s);
+    }
+
+    function getEssence(nr) {
+        var ex = getExtras(nr);
+        if (!ex) return '';
+        var lang = localStorage.getItem('preferredLanguage') || 'en';
+        if (lang === 'lv' && ex.elv) return ex.elv;
+        if (lang === 'ru' && ex.eru) return ex.eru;
+        return ex.e || '';
+    }
+
+    function getTitleTranslation(nr, lang) {
+        var ex = getExtras(nr);
+        if (!ex || !lang || lang === 'en') return '';
+        return ex['t' + lang] || '';
+    }
+
+    function getSummary(nr, lang) {
+        var ex = getExtras(nr);
+        if (!ex) return '';
+        if (lang && lang !== 'en') {
+            var key = 's' + lang;
+            if (ex[key]) return ex[key];
+        }
+        return ex.s || '';
+    }
+
+    // Pre-load early (fire & forget)
+    loadExtras();
+
+    function openSummaryModal(title, lectureNr) {
+        var overlay = document.getElementById('summaryModalOverlay');
+        var titleEl = document.getElementById('summaryModalTitle');
+        var bodyEl = document.getElementById('summaryModalBody');
+        if (!overlay) return;
+        titleEl.textContent = title;
+        bodyEl.textContent = '…';
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        loadExtras().then(function () {
+            var lang = localStorage.getItem('preferredLanguage') || 'en';
+            var summaryText = getSummary(lectureNr, lang);
+            bodyEl.textContent = summaryText || '(nav kopsavilkuma)';
+        }).catch(function () {
+            bodyEl.textContent = '(kļūda ielādējot kopsavilkumu)';
+        });
+    }
+
+    function closeSummaryModal(e) {
+        var overlay = document.getElementById('summaryModalOverlay');
+        if (!overlay) return;
+        if (e && e.target !== overlay) return;
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
     return {
         renderResults: renderResults,
         renderTranscriptResults: renderTranscriptResults,
@@ -768,6 +895,8 @@ PPP.ui = (function () {
         hideLoading: hideLoading,
         updateProgress: updateProgress,
         getColumnHeader: getColumnHeader,
-        columnHeaders: columnHeaders
+        columnHeaders: columnHeaders,
+        openSummaryModal: openSummaryModal,
+        closeSummaryModal: closeSummaryModal
     };
 })();

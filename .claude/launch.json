@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ca-link-finder",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8091", "-d", "C:/Users/gurud/OneDrive/Dators/Claude code testi/CA-Web/deploy"],
+      "port": 8091
+    }
+  ]
+}

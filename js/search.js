@@ -96,12 +96,19 @@ PPP.search = (function () {
             conditions.push('(' + srcConds.join(' OR ') + ')');
         }
 
-        // subject: filter (OR, case-sensitive exact match)
+        // subject: filter (OR, case-sensitive — matches exact or as one of `;`-separated tags)
         if (parsed.filters.subject.length > 0) {
             var subjConds = parsed.filters.subject.map(function (t) {
-                var key = '$subj' + (paramIdx++);
-                params[key] = t.slice(8).trim();
-                return "l.subject = " + key;
+                var v = t.slice(8).trim();
+                var kE = '$subjE' + (paramIdx++);
+                var kS = '$subjS' + (paramIdx++);
+                var kM = '$subjM' + (paramIdx++);
+                var kT = '$subjT' + (paramIdx++);
+                params[kE] = v;             // exact
+                params[kS] = v + ';%';      // starts: "tag; ..."
+                params[kM] = '%; ' + v + ';%'; // middle: "...; tag; ..."
+                params[kT] = '%; ' + v;     // tail:  "...; tag"
+                return "(l.subject = " + kE + " OR l.subject LIKE " + kS + " OR l.subject LIKE " + kM + " OR l.subject LIKE " + kT + ")";
             });
             conditions.push('(' + subjConds.join(' OR ') + ')');
         }
@@ -268,10 +275,14 @@ PPP.search = (function () {
                 if (!parsed.filters.source.some(function (t) { return rowSource.includes(t.slice(1).toLowerCase()); })) return false;
             }
 
-            // subject: case-SENSITIVE exact match, OR
+            // subject: case-SENSITIVE — match exact or as one of `;`-separated tags
             if (parsed.filters.subject.length > 0) {
                 var rowSubject = (row['Subject'] || '').trim();
-                if (!parsed.filters.subject.some(function (t) { return rowSubject === t.slice(8).trim(); })) return false;
+                var rowSubjectTags = rowSubject.split(/\s*;\s*/);
+                if (!parsed.filters.subject.some(function (t) {
+                    var v = t.slice(8).trim();
+                    return rowSubject === v || rowSubjectTags.indexOf(v) !== -1;
+                })) return false;
             }
 
             // lang: exact or starts-with + ";", OR
