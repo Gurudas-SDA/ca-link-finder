@@ -119,13 +119,17 @@ PPP.search = (function () {
             conditions.push('(' + langConds.join(' OR ') + ')');
         }
 
-        // has: filter (AND, check non-empty columns)
+        // has: filter (AND, check non-empty columns; excludes duplicate-labeled transcripts)
         parsed.filters.has.forEach(function (t) {
             var colName = utils.normalizeHasColumn(t.slice(4));
             // Map column names to SQLite column names (lowercase, underscored)
             var sqlCol = columnToSqlName(colName);
             if (sqlCol) {
-                conditions.push("(l." + sqlCol + " IS NOT NULL AND l." + sqlCol + " != '' AND l." + sqlCol + " != 'N/A' AND l." + sqlCol + " != '0')");
+                var cond = "(l." + sqlCol + " IS NOT NULL AND l." + sqlCol + " != '' AND l." + sqlCol + " != 'N/A' AND l." + sqlCol + " != '0')";
+                if (colName === 'Script_EN' || colName === 'Script_LV' || colName === 'Script_RU') {
+                    cond += " AND l." + sqlCol + " NOT IN ('Duplicate', 'Dublikāts', 'Дубликат')";
+                }
+                conditions.push(cond);
             }
         });
 
@@ -301,7 +305,7 @@ PPP.search = (function () {
             if (parsed.filters.has.length > 0) {
                 if (!parsed.filters.has.every(function (t) {
                     var colName = utils.normalizeHasColumn(t.slice(4));
-                    return utils.cellHasLink(row[colName], colName, row);
+                    return utils.cellHasOriginalLink(row[colName], colName, row);
                 })) return false;
             }
 
