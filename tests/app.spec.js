@@ -34,7 +34,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
 
     // Search input should have placeholder with lecture count
     const placeholder = await page.locator('#searchTerm').getAttribute('placeholder');
-    expect(placeholder).toMatch(/9[,.]?\d{3}/);  // ~9,901 lectures
+    expect(placeholder).toMatch(/1?\d[,.]?\d{3}/);  // ~10,019 lectures (or 9,xxx historic)
 
     // No critical JS errors
     const criticalErrors = errors.filter(e =>
