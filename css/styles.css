@@ -1332,6 +1332,13 @@ th.transcripts-block {
     .top-left-buttons button { padding: 5px 12px; font-size: 10px; }
     #dbLastUpdate { font-size: 9px; }
     .results-container { padding: 0 4px 30px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Mobile: dropdown lists stick to viewport (not centered in scrollable 800px+ area) */
+    #topicsList, #recommendationsList, #verseSourcesList, #verseList, #topCitationsList {
+        position: sticky;
+        left: 4px;
+        max-width: calc(100vw - 16px);
+        margin: 0 0 20px 0;
+    }
     #resultsTable { font-size: 11px; min-width: 800px; }
     #resultsTable thead th { padding: 6px 6px; font-size: 10px; }
     #resultsTable tbody td { padding: 6px 6px; font-size: 11px; }
