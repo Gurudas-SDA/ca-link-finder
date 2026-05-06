@@ -246,8 +246,12 @@ PPP.ui = (function () {
                         if (scriptDriveUrl && !scriptDriveUrl.startsWith('http')) scriptDriveUrl = null;
                         var hasScript = val && val !== 'N/A' && val !== '0' && val !== '';
                         if (hasScript) {
-                            var langLabel = col.split('_')[1];
-                            var langCode = langLabel.toLowerCase();
+                            var defaultLangLabel = col.split('_')[1];
+                            var langCode = defaultLangLabel.toLowerCase();
+                            // If the cell value is a duplicate label, show it; otherwise show EN/LV/RU
+                            var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
+                            var cellTrim = (val || '').toString().trim();
+                            var langLabel = DUP_LABELS[cellTrim] ? cellTrim : defaultLangLabel;
                             var lectNr = (row['Nr.'] || '').toString().trim();
                             var viewBtn = document.createElement('a');
                             viewBtn.href = '#';
