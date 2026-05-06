@@ -801,7 +801,7 @@ PPP.ui = (function () {
     function loadExtras() {
         if (_extrasCache) return Promise.resolve(_extrasCache);
         if (_extrasLoading) return _extrasLoading;
-        _extrasLoading = fetch('data/ppp_lecture_extras.json?v=e9add6d9')
+        _extrasLoading = fetch('data/ppp_lecture_extras.json?v=bf256312')
             .then(function (r) { return r.ok ? r.json() : {}; })
             .then(function (data) {
                 _extrasCache = data || {};
