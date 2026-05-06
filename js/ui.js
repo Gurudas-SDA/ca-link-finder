@@ -142,11 +142,14 @@ PPP.ui = (function () {
         var table = document.getElementById('resultsTable');
         table.innerHTML = '';
         var thead = table.createTHead();
-        // Count: only originals (exclude duplicate-labeled Script_EN/LV/RU rows)
+        // Count: only lectures with at least one ORIGINAL transcript (EN/LV/RU non-duplicate)
         var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
+        function isOrig(v) {
+            v = (v || '').toString().trim();
+            return v !== '' && v !== 'N/A' && v !== '0' && !DUP_LABELS[v];
+        }
         var origCount = rows ? rows.filter(function (r) {
-            var s = (r['Script_EN'] || '').toString().trim();
-            return !DUP_LABELS[s];
+            return isOrig(r['Script_EN']) || isOrig(r['Script_LV']) || isOrig(r['Script_RU']);
         }).length : 0;
         buildHeader(thead, origCount);
         var tbody = table.createTBody();
