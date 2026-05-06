@@ -142,7 +142,13 @@ PPP.ui = (function () {
         var table = document.getElementById('resultsTable');
         table.innerHTML = '';
         var thead = table.createTHead();
-        buildHeader(thead, rows ? rows.length : 0);
+        // Count: only originals (exclude duplicate-labeled Script_EN/LV/RU rows)
+        var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
+        var origCount = rows ? rows.filter(function (r) {
+            var s = (r['Script_EN'] || '').toString().trim();
+            return !DUP_LABELS[s];
+        }).length : 0;
+        buildHeader(thead, origCount);
         var tbody = table.createTBody();
 
         if (rows.length === 0) {
