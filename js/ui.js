@@ -471,7 +471,11 @@ PPP.ui = (function () {
     function renderTopics(DB, container) {
         var counts = {};
         DB.forEach(function (r) {
-            if (!utils.cellHasLink(r['Script_EN'], 'Script_EN', r)) return;
+            // Count only lectures with at least one ORIGINAL transcript (EN/LV/RU)
+            var hasOrig = utils.cellHasOriginalLink(r['Script_EN'], 'Script_EN', r) ||
+                utils.cellHasOriginalLink(r['Script_LV'], 'Script_LV', r) ||
+                utils.cellHasOriginalLink(r['Script_RU'], 'Script_RU', r);
+            if (!hasOrig) return;
             var s = (r['Subject'] || '').trim();
             if (s) counts[s] = (counts[s] || 0) + 1;
         });

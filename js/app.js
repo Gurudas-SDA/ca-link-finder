@@ -1258,9 +1258,14 @@ PPP.app = (function () {
         if (resultsTable) resultsTable.style.display = 'none';
 
         if (usingSqlite) {
+            // Count only ORIGINAL transcripts (any of script_en/lv/ru with non-duplicate label)
             db.queryMetaAsync(
                 "SELECT subject FROM lectures " +
-                "WHERE subject LIKE '.%' AND script_en != '' AND script_en != 'N/A' AND script_en != '0'"
+                "WHERE subject LIKE '.%' AND (" +
+                "  (script_en NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат')) OR " +
+                "  (script_lv NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат')) OR " +
+                "  (script_ru NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат'))" +
+                ")"
             ).then(function (rows) {
                 var topicCounts = {};
                 rows.forEach(function (r) {
