@@ -1608,19 +1608,13 @@ PPP.app = (function () {
         });
     }
 
-    function downloadTranscript() {
-        var ctx = _currentTranscriptCtx;
-        if (!ctx || !ctx.html) return;
-        var titleText = ctx.title || ('Nr_' + ctx.nr);
-        var fileName = _sanitizeFilename(titleText) + '_' + ctx.lang + '.html';
-        var doc = '<!DOCTYPE html>\n<html lang="' + _escapeHtmlAttr(ctx.lang) + '">\n<head>\n' +
-            '<meta charset="utf-8">\n' +
-            '<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
-            '<title>' + _escapeHtmlAttr(titleText) + '</title>\n' +
-            '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;max-width:820px;margin:1.5em auto;padding:0 1em;line-height:1.55;color:#222;background:#fff}h1,h2,h3{color:#7a1f00}a{color:#c97a00}p{margin:0.6em 0}</style>\n' +
-            '</head>\n<body>\n<h1>' + _escapeHtmlAttr(titleText) + '</h1>\n' +
-            ctx.html + '\n</body>\n</html>';
-        var blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
+    function _driveIdFromUrl(url) {
+        if (!url) return null;
+        var m = url.match(/\/file\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
+        return m ? m[1] : null;
+    }
+
+    function _triggerBlobDownload(blob, fileName) {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         a.href = url;
@@ -1629,7 +1623,48 @@ PPP.app = (function () {
         a.click();
         document.body.removeChild(a);
         setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
-        track('transcript-download', { nr: String(ctx.nr), lang: ctx.lang });
+    }
+
+    function _buildHtmlDoc(ctx) {
+        var titleText = ctx.title || ('Nr_' + ctx.nr);
+        return '<!DOCTYPE html>\n<html lang="' + _escapeHtmlAttr(ctx.lang) + '">\n<head>\n' +
+            '<meta charset="utf-8">\n' +
+            '<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
+            '<title>' + _escapeHtmlAttr(titleText) + '</title>\n' +
+            '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;max-width:820px;margin:1.5em auto;padding:0 1em;line-height:1.55;color:#222;background:#fff}h1,h2,h3{color:#7a1f00}a{color:#c97a00}p{margin:0.6em 0}</style>\n' +
+            '</head>\n<body>\n<h1>' + _escapeHtmlAttr(titleText) + '</h1>\n' +
+            ctx.html + '\n</body>\n</html>';
+    }
+
+    function downloadTranscript() {
+        var ctx = _currentTranscriptCtx;
+        if (!ctx) return;
+        var driveId = _driveIdFromUrl(ctx.driveUrl);
+
+        // Preferred path: navigate to drive.usercontent.google.com which sends
+        // Content-Disposition: attachment. Chrome saves the original DOCX without
+        // leaving the page. drive.usercontent.google.com is NOT registered for the
+        // Android Drive app intent filter, so the file lands directly in Downloads.
+        if (driveId) {
+            var dlUrl = 'https://drive.usercontent.google.com/download?id=' + encodeURIComponent(driveId) + '&export=download';
+            var a = document.createElement('a');
+            a.href = dlUrl;
+            a.rel = 'noopener';
+            // Note: cross-origin <a download> attribute is ignored by Chrome, but
+            // the server's Content-Disposition: attachment header takes effect.
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            track('transcript-download', { nr: String(ctx.nr), lang: ctx.lang, format: 'docx' });
+            return;
+        }
+
+        // Fallback (no Drive URL): client-side HTML
+        if (ctx.html) {
+            var fileName = _sanitizeFilename(ctx.title || ('Nr_' + ctx.nr)) + '_' + ctx.lang + '.html';
+            _triggerBlobDownload(new Blob([_buildHtmlDoc(ctx)], { type: 'text/html;charset=utf-8' }), fileName);
+            track('transcript-download', { nr: String(ctx.nr), lang: ctx.lang, format: 'html' });
+        }
     }
 
     function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference, driveUrl) {
@@ -1716,29 +1751,32 @@ PPP.app = (function () {
                 return;
             }
 
-            // Get title from meta DB
+            // Get title and Drive URL from meta DB
             return db.queryMetaAsync(
-                "SELECT original_file_name FROM lectures WHERE nr = $nr LIMIT 1",
+                "SELECT original_file_name, script_en_url, script_lv_url, script_ru_url FROM lectures WHERE nr = $nr LIMIT 1",
                 { $nr: String(lectureNr) }
             ).then(function (meta) {
-                var origName = (meta.length > 0 && meta[0].original_file_name) || ('Nr.' + lectureNr);
+                var row = meta[0] || {};
+                var origName = row.original_file_name || ('Nr.' + lectureNr);
                 title.textContent = origName + (reference ? ' — ' + reference : '');
-                return origName;
+                var resolvedDriveUrl = driveUrl || row['script_' + lang + '_url'] || '';
+                return { origName: origName, driveUrl: resolvedDriveUrl };
             }).catch(function () {
                 title.textContent = 'Nr.' + lectureNr + (reference ? ' — ' + reference : '');
-                return 'Nr_' + lectureNr;
-            }).then(function (origName) {
+                return { origName: 'Nr_' + lectureNr, driveUrl: driveUrl || '' };
+            }).then(function (info) {
                 // Insert HTML content
                 var htmlContent = rows[0].html_content || '';
                 body.innerHTML = htmlContent;
 
-                // Enable client-side download button (any lecture, no Drive dependency)
-                if (htmlContent && dlBtn) {
+                // Enable download button (DOCX from Drive if available, else client-side HTML)
+                if ((htmlContent || info.driveUrl) && dlBtn) {
                     _currentTranscriptCtx = {
                         nr: lectureNr,
                         lang: lang,
-                        title: origName,
-                        html: htmlContent
+                        title: info.origName,
+                        html: htmlContent,
+                        driveUrl: info.driveUrl
                     };
                     dlBtn.title = (i18n.t && i18n.t('downloadTranscript')) || 'Download';
                     dlBtn.style.display = '';

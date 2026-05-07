@@ -374,7 +374,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(sampleEssence.essence.length).toBeGreaterThan(0);
   });
 
-  test('19. Download button generates client-side HTML file (no Drive dependency)', async ({ page }) => {
+  test('19. Download button targets drive.usercontent for DOCX (Android intent bypass)', async ({ page }) => {
     test.setTimeout(180000);  // Loading the per-language HTML DB (~50MB) on first visit takes >60s default
     await page.goto('./');
     await page.waitForFunction(() => window.PPP && window.PPP.app && typeof window.PPP.app.downloadTranscript === 'function', { timeout: 30000 });
@@ -383,96 +383,74 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await waitForAppReady(page);
 
     const result = await page.evaluate(async () => {
-      // Belt-and-braces: also wait until meta DB responds without throwing
       const deadlineDb = Date.now() + 30000;
       while (Date.now() < deadlineDb) {
-        try {
-          await window.PPP.db.queryMetaAsync('SELECT 1 AS ok', {});
-          break;
-        } catch (e) {
-          await new Promise(r => setTimeout(r, 250));
-        }
+        try { await window.PPP.db.queryMetaAsync('SELECT 1 AS ok', {}); break; }
+        catch (e) { await new Promise(r => setTimeout(r, 250)); }
       }
-      while (!window.PPP.ui.extrasReady()) {
-        await new Promise(r => setTimeout(r, 200));
-      }
-      // Open a known lecture to lazy-load the HTML DB
-      // Pick any lecture by its meta nr (we'll override with HTML-DB nr below)
-      const metaRow = await window.PPP.db.queryMetaAsync(
+      while (!window.PPP.ui.extrasReady()) await new Promise(r => setTimeout(r, 200));
+
+      // Pick a lecture nr that exists in the EN HTML DB AND has a Drive URL.
+      // First nudge the HTML DB to load by opening any lecture.
+      const seed = await window.PPP.db.queryMetaAsync(
         "SELECT nr FROM lectures LIMIT 1", {}
       );
-      if (!metaRow.length) return { skip: 'no lectures' };
-      window.PPP.app.openHtmlTranscriptViewer(String(metaRow[0].nr), 'en', 0, '', '');
-
-      // Wait for HTML DB to load and for the modal to populate (may take 60+s on first load)
-      const deadline = Date.now() + 90000;
-      while (Date.now() < deadline) {
-        const body = document.getElementById('transcriptModalBody');
-        const btn = document.getElementById('transcriptDownloadBtn');
-        if (body && body.innerHTML && body.innerHTML.length > 200 && btn.style.display !== 'none') break;
+      if (!seed.length) return { skip: 'no lectures' };
+      window.PPP.app.openHtmlTranscriptViewer(String(seed[0].nr), 'en', 0, '', '');
+      const seedDeadline = Date.now() + 120000;
+      while (Date.now() < seedDeadline) {
+        try {
+          const probe = await window.PPP.db.queryHtmlAsync('en', 'SELECT nr FROM transcripts_html LIMIT 1', {});
+          if (probe.length) break;
+        } catch (e) { /* HTML DB still loading */ }
         await new Promise(r => setTimeout(r, 500));
       }
 
-      // The first nr may not have HTML — pick a nr that exists in HTML DB
-      const htmlRows = await window.PPP.db.queryHtmlAsync('en', 'SELECT nr FROM transcripts_html LIMIT 1', {});
-      if (!htmlRows.length) return { skip: 'no transcripts_html rows' };
+      // Now find a nr that has both an HTML row AND a Drive URL
+      const htmlNrs = await window.PPP.db.queryHtmlAsync('en', 'SELECT nr FROM transcripts_html LIMIT 500', {});
+      let target = null;
+      for (const r of htmlNrs) {
+        const m = await window.PPP.db.queryMetaAsync(
+          "SELECT script_en_url FROM lectures WHERE nr = $nr LIMIT 1", { $nr: String(r.nr) }
+        );
+        if (m.length && m[0].script_en_url) { target = String(r.nr); break; }
+      }
+      if (!target) return { skip: 'no lecture has both HTML and EN Drive URL in first 500 rows' };
+
       window.PPP.app.closeTranscriptModal();
       await new Promise(r => setTimeout(r, 200));
-      window.PPP.app.openHtmlTranscriptViewer(String(htmlRows[0].nr), 'en', 0, '', '');
-      const dl2 = Date.now() + 30000;
-      while (Date.now() < dl2) {
+      window.PPP.app.openHtmlTranscriptViewer(target, 'en', 0, '', '');
+      const renderDeadline = Date.now() + 30000;
+      while (Date.now() < renderDeadline) {
         const body = document.getElementById('transcriptModalBody');
         const btn = document.getElementById('transcriptDownloadBtn');
-        if (body && body.innerHTML.length > 200 && btn.style.display !== 'none') break;
+        if (body && body.innerHTML.length > 200 && !body.querySelector('.transcript-loading') && btn.style.display !== 'none') break;
         await new Promise(r => setTimeout(r, 300));
       }
 
-      // Intercept the download
+      // Intercept the dynamically created <a> click without navigating
       let captured = null;
       const origCreate = document.createElement.bind(document);
       document.createElement = function (tag) {
         const el = origCreate(tag);
         if (tag.toLowerCase() === 'a') {
-          const origClick = el.click;
           el.click = function () {
-            if (this.download && this.href.startsWith('blob:')) {
-              captured = { fileName: this.download, href: this.href };
-            } else {
-              origClick.call(this);
-            }
+            captured = { href: this.href, target: this.target || '_self', rel: this.rel || '' };
           };
         }
         return el;
       };
       window.PPP.app.downloadTranscript();
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 300));
       document.createElement = origCreate;
-      if (!captured) return { failed: 'no download triggered' };
-      const resp = await fetch(captured.href);
-      const text = await resp.text();
-      return {
-        fileName: captured.fileName,
-        size: text.length,
-        hasDoctype: text.startsWith('<!DOCTYPE html>'),
-        hasMetaCharset: text.includes('charset="utf-8"'),
-        hasViewport: text.includes('width=device-width'),
-        hasH1: /<h1>/i.test(text),
-        endsWithBody: text.trim().endsWith('</html>')
-      };
+      if (!captured) return { failed: 'no download triggered for nr=' + target };
+      return captured;
     });
 
-    if (result.skip) {
-      test.skip(true, result.skip);
-      return;
-    }
+    if (result.skip) { test.skip(true, result.skip); return; }
     expect(result.failed).toBeUndefined();
-    expect(result.fileName).toMatch(/\.html$/);
-    expect(result.size).toBeGreaterThan(500);
-    expect(result.hasDoctype).toBe(true);
-    expect(result.hasMetaCharset).toBe(true);
-    expect(result.hasViewport).toBe(true);
-    expect(result.hasH1).toBe(true);
-    expect(result.endsWithBody).toBe(true);
+    expect(result.href).toMatch(/^https:\/\/drive\.usercontent\.google\.com\/download\?id=[^&]+&export=download$/);
+    expect(result.rel).toBe('noopener');
   });
 
   test('17. Transcripts & Translations label and 3-button combo present', async ({ page }) => {
