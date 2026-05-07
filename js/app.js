@@ -1678,68 +1678,42 @@ PPP.app = (function () {
         var dlBtn = document.getElementById('transcriptDownloadBtn');
         if (dlBtn) dlBtn.style.display = 'none';
 
-        var alreadyLoaded = db.isHtmlLoaded(lang);
         title.textContent = 'Loading ' + lang.toUpperCase() + ' transcript...';
-        body.innerHTML = alreadyLoaded
-            ? '<div class="transcript-loading"><div class="transcript-spinner"></div><span>Opening transcript...</span></div>'
-            : '<div class="transcript-loading"><div class="transcript-spinner"></div><span>Loading database...</span><span class="transcript-timer"></span></div>';
+        body.innerHTML = '<div class="transcript-loading"><div class="transcript-spinner"></div><span>Opening transcript...</span></div>';
         overlay.classList.add('active');
 
-        var loadingMsg = body.querySelector('.transcript-loading span');
-        var timerEl = body.querySelector('.transcript-timer');
-        var timerStart = Date.now();
-        var timerInterval = null;
-        if (!alreadyLoaded && timerEl) {
-            timerInterval = setInterval(function () {
-                var sec = Math.floor((Date.now() - timerStart) / 1000);
-                timerEl.textContent = sec + 's — may take up to 1 min on first load';
-            }, 1000);
+        // Phase 2: fetch a single per-lecture HTML file instead of loading the whole
+        // language SQLite DB. Falls back via duplicate detection (meta DB → original
+        // nr → fetch that file) when the requested nr has no own HTML file.
+        function fetchTranscriptFile(nr) {
+            return fetch('transcripts/' + lang + '/' + encodeURIComponent(String(nr)) + '.html')
+                .then(function (r) { return r.ok ? r.text() : ''; })
+                .catch(function () { return ''; });
         }
 
-        var loadPromise = alreadyLoaded
-            ? Promise.resolve()
-            : db.loadHtmlDB(lang, function (progress) {
-                var pct = Math.round(progress * 100);
-                if (pct >= 100) {
-                    title.textContent = 'Opening all ' + lang.toUpperCase() + ' transcripts...';
-                    if (loadingMsg) loadingMsg.textContent = 'Preparing transcripts (first time only)...';
-                } else {
-                    title.textContent = 'Loading all ' + lang.toUpperCase() + ' transcripts... ' + pct + '%';
-                    if (loadingMsg) loadingMsg.textContent = pct + '% downloaded';
-                }
-            });
-
-        loadPromise.then(function () {
-            if (timerInterval) clearInterval(timerInterval);
-            title.textContent = 'Opening ' + lang.toUpperCase() + ' transcript...';
-            if (loadingMsg) loadingMsg.textContent = 'Preparing transcripts...';
-            return db.queryHtmlAsync(lang,
-                "SELECT html_content FROM transcripts_html WHERE nr = $nr LIMIT 1",
+        var firstFetch = fetchTranscriptFile(lectureNr).then(function (html) {
+            if (html) return [{ html_content: html }];
+            // Duplicate-lecture fallback (matches the prior SQLite logic via meta DB)
+            var urlCol = 'script_' + lang + '_url';
+            return db.queryMetaAsync(
+                "SELECT " + urlCol + " AS url FROM lectures WHERE nr = $nr LIMIT 1",
                 { $nr: String(lectureNr) }
-            ).then(function (rows) {
-                if (rows.length > 0) return rows;
-                // Fallback: this might be a duplicate lecture. Look up its URL,
-                // find the original lecture (same URL), and fetch its HTML.
-                var urlCol = 'script_' + lang + '_url';
+            ).then(function (urlRows) {
+                if (urlRows.length === 0 || !urlRows[0].url) return [];
+                var url = urlRows[0].url;
                 return db.queryMetaAsync(
-                    "SELECT " + urlCol + " AS url FROM lectures WHERE nr = $nr LIMIT 1",
-                    { $nr: String(lectureNr) }
-                ).then(function (urlRows) {
-                    if (urlRows.length === 0 || !urlRows[0].url) return [];
-                    var url = urlRows[0].url;
-                    return db.queryMetaAsync(
-                        "SELECT nr FROM lectures WHERE " + urlCol + " = $url AND nr != $nr LIMIT 1",
-                        { $url: url, $nr: String(lectureNr) }
-                    );
-                }).then(function (origRows) {
-                    if (origRows.length === 0) return [];
-                    return db.queryHtmlAsync(lang,
-                        "SELECT html_content FROM transcripts_html WHERE nr = $nr LIMIT 1",
-                        { $nr: String(origRows[0].nr) }
-                    );
+                    "SELECT nr FROM lectures WHERE " + urlCol + " = $url AND nr != $nr LIMIT 1",
+                    { $url: url, $nr: String(lectureNr) }
+                );
+            }).then(function (origRows) {
+                if (origRows.length === 0) return [];
+                return fetchTranscriptFile(origRows[0].nr).then(function (h) {
+                    return h ? [{ html_content: h }] : [];
                 });
             });
-        }).then(function (rows) {
+        });
+
+        firstFetch.then(function (rows) {
             if (rows.length === 0) {
                 title.textContent = 'Transcript not found';
                 if (driveUrl) {

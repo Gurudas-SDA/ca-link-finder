@@ -390,35 +390,18 @@ test.describe('CA Link Finder — Daily Health Check', () => {
       }
       while (!window.PPP.ui.extrasReady()) await new Promise(r => setTimeout(r, 200));
 
-      // Pick a lecture nr that exists in the EN HTML DB AND has a Drive URL.
-      // First nudge the HTML DB to load by opening any lecture.
-      const seed = await window.PPP.db.queryMetaAsync(
-        "SELECT nr FROM lectures LIMIT 1", {}
+      // Phase 2: pick a nr that has both an EN Drive URL (in meta) and a per-lecture HTML file
+      // (HEAD-probe the static file). No big SQLite DB load needed.
+      const candidates = await window.PPP.db.queryMetaAsync(
+        "SELECT nr FROM lectures WHERE script_en_url IS NOT NULL AND script_en_url != '' LIMIT 30", {}
       );
-      if (!seed.length) return { skip: 'no lectures' };
-      window.PPP.app.openHtmlTranscriptViewer(String(seed[0].nr), 'en', 0, '', '');
-      const seedDeadline = Date.now() + 120000;
-      while (Date.now() < seedDeadline) {
-        try {
-          const probe = await window.PPP.db.queryHtmlAsync('en', 'SELECT nr FROM transcripts_html LIMIT 1', {});
-          if (probe.length) break;
-        } catch (e) { /* HTML DB still loading */ }
-        await new Promise(r => setTimeout(r, 500));
-      }
-
-      // Now find a nr that has both an HTML row AND a Drive URL
-      const htmlNrs = await window.PPP.db.queryHtmlAsync('en', 'SELECT nr FROM transcripts_html LIMIT 500', {});
       let target = null;
-      for (const r of htmlNrs) {
-        const m = await window.PPP.db.queryMetaAsync(
-          "SELECT script_en_url FROM lectures WHERE nr = $nr LIMIT 1", { $nr: String(r.nr) }
-        );
-        if (m.length && m[0].script_en_url) { target = String(r.nr); break; }
+      for (const r of candidates) {
+        const probe = await fetch('transcripts/en/' + r.nr + '.html', { method: 'HEAD' });
+        if (probe.ok) { target = String(r.nr); break; }
       }
-      if (!target) return { skip: 'no lecture has both HTML and EN Drive URL in first 500 rows' };
+      if (!target) return { skip: 'no lecture has both EN Drive URL and HTML file' };
 
-      window.PPP.app.closeTranscriptModal();
-      await new Promise(r => setTimeout(r, 200));
       window.PPP.app.openHtmlTranscriptViewer(target, 'en', 0, '', '');
       const renderDeadline = Date.now() + 30000;
       while (Date.now() < renderDeadline) {
@@ -451,6 +434,64 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(result.failed).toBeUndefined();
     expect(result.href).toMatch(/^https:\/\/drive\.usercontent\.google\.com\/download\?id=[^&]+&export=download$/);
     expect(result.rel).toBe('noopener');
+  });
+
+  test('20. Opening a transcript fetches one per-lecture file (no big SQLite DB)', async ({ page }) => {
+    test.setTimeout(60000);
+    const dbRequests = [];
+    const transcriptFileRequests = [];
+    page.on('request', (req) => {
+      const url = req.url();
+      if (/ppp_transcripts_html_[a-z]+\.db/.test(url)) dbRequests.push(url);
+      if (/\/transcripts\/[a-z]+\/\d+\.html/.test(url)) transcriptFileRequests.push(url);
+    });
+
+    await page.goto('./');
+    // Wait for app to be ready (DB+extras both loaded so meta queries work)
+    await page.waitForFunction(() => {
+      const input = document.getElementById('searchTerm');
+      const ready = window.PPP && window.PPP.ui && typeof window.PPP.ui.extrasReady === 'function' && window.PPP.ui.extrasReady();
+      return input && !input.disabled && ready;
+    }, { timeout: 120000 });
+
+    // Pick a lecture nr that has an EN transcript file. Use the meta DB:
+    // any nr with an EN URL almost certainly has a file; we verify via fetch.
+    const targetNr = await page.evaluate(async () => {
+      // Belt-and-braces: ensure meta DB worker has the DB attached
+      const deadline = Date.now() + 30000;
+      while (Date.now() < deadline) {
+        try { await window.PPP.db.queryMetaAsync('SELECT 1 AS ok', {}); break; }
+        catch (e) { await new Promise(r => setTimeout(r, 250)); }
+      }
+      const rows = await window.PPP.db.queryMetaAsync(
+        "SELECT nr FROM lectures WHERE script_en_url IS NOT NULL AND script_en_url != '' LIMIT 30", {}
+      );
+      for (const r of rows) {
+        const probe = await fetch('transcripts/en/' + r.nr + '.html', { method: 'HEAD' });
+        if (probe.ok) return String(r.nr);
+      }
+      return null;
+    });
+    if (!targetNr) { test.skip(true, 'no lecture with both meta URL and HTML file'); return; }
+
+    // Reset trackers AFTER initial page load (we only care about transcript-open traffic)
+    dbRequests.length = 0;
+    transcriptFileRequests.length = 0;
+
+    await page.evaluate((nr) => {
+      window.PPP.app.openHtmlTranscriptViewer(String(nr), 'en', 0, '', '');
+    }, targetNr);
+    await page.waitForFunction(() => {
+      const body = document.getElementById('transcriptModalBody');
+      return body && body.innerHTML.length > 200 && !body.querySelector('.transcript-loading');
+    }, { timeout: 15000 });
+
+    expect(dbRequests).toEqual([]);  // no big SQLite request triggered
+    expect(transcriptFileRequests.length).toBeGreaterThanOrEqual(1);
+    expect(transcriptFileRequests[0]).toMatch(new RegExp('/transcripts/en/' + targetNr + '\\.html$'));
+
+    const bodyLen = await page.locator('#transcriptModalBody').evaluate(el => el.innerHTML.length);
+    expect(bodyLen).toBeGreaterThan(500);
   });
 
   test('17. Transcripts & Translations label and 3-button combo present', async ({ page }) => {
