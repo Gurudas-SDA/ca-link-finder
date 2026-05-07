@@ -268,8 +268,18 @@ PPP.app = (function () {
         // Show progress bar
         ui.showLoading(i18n.t('loadingDB'));
 
-        // Try SQLite first
-        loadSqlite().then(function () {
+        var sqlitePromise = loadSqlite();
+
+        // When DB is ready but extras are still loading, switch indicator text
+        sqlitePromise.then(function () {
+            if (ui.extrasReady && !ui.extrasReady()) {
+                ui.setLoadingText(i18n.t('loadingExtras'));
+            }
+        }, function () { /* swallow — handled below */ });
+
+        var extrasPromise = (ui.loadExtras ? ui.loadExtras() : Promise.resolve());
+
+        Promise.all([sqlitePromise, extrasPromise]).then(function () {
             ui.hideLoading();
             usingSqlite = true;
             onDataLoaded();

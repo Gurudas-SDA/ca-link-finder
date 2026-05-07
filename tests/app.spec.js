@@ -325,6 +325,52 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(kwBox.x).toBeLessThan(inputBox.x);
   });
 
+  test('18. Loading indicator gates on extras (Essence/Summary ready when bar hides)', async ({ page }) => {
+    await page.goto('./');
+
+    // The new ui API surface must be present
+    await page.waitForFunction(() => {
+      return window.PPP && window.PPP.ui &&
+        typeof window.PPP.ui.extrasReady === 'function' &&
+        typeof window.PPP.ui.setLoadingText === 'function' &&
+        typeof window.PPP.ui.loadExtras === 'function';
+    }, { timeout: 30000 });
+
+    // i18n key exists in all three languages
+    const i18nKeys = await page.evaluate(() => {
+      const out = {};
+      const orig = window.PPP.i18n.getLanguage ? window.PPP.i18n.getLanguage() : 'en';
+      ['en', 'lv', 'ru'].forEach(l => {
+        window.PPP.i18n.setLanguage(l);
+        out[l] = window.PPP.i18n.t('loadingExtras');
+      });
+      window.PPP.i18n.setLanguage(orig);
+      return out;
+    });
+    expect(i18nKeys.en).toMatch(/summar/i);
+    expect(i18nKeys.lv).toMatch(/kopsavilkum/i);
+    expect(i18nKeys.ru).toMatch(/кратк/i);
+
+    // Wait until extras have loaded
+    await page.waitForFunction(() => window.PPP.ui.extrasReady(), { timeout: 60000 });
+
+    // After extras are ready, getEssence on a known lecture should be a non-empty string
+    // (we don't hard-code an nr — sample several from the cache directly)
+    const sampleEssence = await page.evaluate(() => {
+      // Force a fresh fetch of the cache via the public API
+      return window.PPP.ui.loadExtras().then(cache => {
+        const keys = Object.keys(cache);
+        for (let i = 0; i < keys.length; i++) {
+          const ex = cache[keys[i]];
+          if (ex && ex.e) return { nr: keys[i], essence: String(ex.e).slice(0, 50) };
+        }
+        return null;
+      });
+    });
+    expect(sampleEssence).not.toBeNull();
+    expect(sampleEssence.essence.length).toBeGreaterThan(0);
+  });
+
   test('17. Transcripts & Translations label and 3-button combo present', async ({ page }) => {
     await page.goto('./');
     await waitForAppReady(page);

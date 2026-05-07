@@ -595,6 +595,17 @@ PPP.ui = (function () {
         }
     }
 
+    function setLoadingText(message) {
+        var bar = document.getElementById('progressBar');
+        if (!bar) return;
+        var label = bar.querySelector('.progress-label');
+        if (label && message) label.textContent = message;
+    }
+
+    function extrasReady() {
+        return _extrasCache !== null;
+    }
+
     /**
      * Hide loading message.
      */
@@ -916,7 +927,10 @@ PPP.ui = (function () {
         getSnippet: getSnippet,
         showLoading: showLoading,
         hideLoading: hideLoading,
+        setLoadingText: setLoadingText,
         updateProgress: updateProgress,
+        loadExtras: loadExtras,
+        extrasReady: extrasReady,
         getColumnHeader: getColumnHeader,
         columnHeaders: columnHeaders,
         openSummaryModal: openSummaryModal,
