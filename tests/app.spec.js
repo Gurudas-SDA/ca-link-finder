@@ -374,6 +374,106 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(sampleEssence.essence.length).toBeGreaterThan(0);
   });
 
+  test('19. Download button generates client-side HTML file (no Drive dependency)', async ({ page }) => {
+    await page.goto('./');
+    await page.waitForFunction(() => window.PPP && window.PPP.app && typeof window.PPP.app.downloadTranscript === 'function', { timeout: 30000 });
+
+    // Use the established helper which gates on placeholder population (proxy for full load)
+    await waitForAppReady(page);
+
+    const result = await page.evaluate(async () => {
+      // Belt-and-braces: also wait until meta DB responds without throwing
+      const deadlineDb = Date.now() + 30000;
+      while (Date.now() < deadlineDb) {
+        try {
+          await window.PPP.db.queryMetaAsync('SELECT 1 AS ok', {});
+          break;
+        } catch (e) {
+          await new Promise(r => setTimeout(r, 250));
+        }
+      }
+      while (!window.PPP.ui.extrasReady()) {
+        await new Promise(r => setTimeout(r, 200));
+      }
+      // Open a known lecture to lazy-load the HTML DB
+      // Pick any lecture by its meta nr (we'll override with HTML-DB nr below)
+      const metaRow = await window.PPP.db.queryMetaAsync(
+        "SELECT nr FROM lectures LIMIT 1", {}
+      );
+      if (!metaRow.length) return { skip: 'no lectures' };
+      window.PPP.app.openHtmlTranscriptViewer(String(metaRow[0].nr), 'en', 0, '', '');
+
+      // Wait for HTML DB to load and for the modal to populate (may take 60+s on first load)
+      const deadline = Date.now() + 90000;
+      while (Date.now() < deadline) {
+        const body = document.getElementById('transcriptModalBody');
+        const btn = document.getElementById('transcriptDownloadBtn');
+        if (body && body.innerHTML && body.innerHTML.length > 200 && btn.style.display !== 'none') break;
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      // The first nr may not have HTML — pick a nr that exists in HTML DB
+      const htmlRows = await window.PPP.db.queryHtmlAsync('en', 'SELECT nr FROM transcripts_html LIMIT 1', {});
+      if (!htmlRows.length) return { skip: 'no transcripts_html rows' };
+      window.PPP.app.closeTranscriptModal();
+      await new Promise(r => setTimeout(r, 200));
+      window.PPP.app.openHtmlTranscriptViewer(String(htmlRows[0].nr), 'en', 0, '', '');
+      const dl2 = Date.now() + 30000;
+      while (Date.now() < dl2) {
+        const body = document.getElementById('transcriptModalBody');
+        const btn = document.getElementById('transcriptDownloadBtn');
+        if (body && body.innerHTML.length > 200 && btn.style.display !== 'none') break;
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      // Intercept the download
+      let captured = null;
+      const origCreate = document.createElement.bind(document);
+      document.createElement = function (tag) {
+        const el = origCreate(tag);
+        if (tag.toLowerCase() === 'a') {
+          const origClick = el.click;
+          el.click = function () {
+            if (this.download && this.href.startsWith('blob:')) {
+              captured = { fileName: this.download, href: this.href };
+            } else {
+              origClick.call(this);
+            }
+          };
+        }
+        return el;
+      };
+      window.PPP.app.downloadTranscript();
+      await new Promise(r => setTimeout(r, 400));
+      document.createElement = origCreate;
+      if (!captured) return { failed: 'no download triggered' };
+      const resp = await fetch(captured.href);
+      const text = await resp.text();
+      return {
+        fileName: captured.fileName,
+        size: text.length,
+        hasDoctype: text.startsWith('<!DOCTYPE html>'),
+        hasMetaCharset: text.includes('charset="utf-8"'),
+        hasViewport: text.includes('width=device-width'),
+        hasH1: /<h1>/i.test(text),
+        endsWithBody: text.trim().endsWith('</html>')
+      };
+    });
+
+    if (result.skip) {
+      test.skip(true, result.skip);
+      return;
+    }
+    expect(result.failed).toBeUndefined();
+    expect(result.fileName).toMatch(/\.html$/);
+    expect(result.size).toBeGreaterThan(500);
+    expect(result.hasDoctype).toBe(true);
+    expect(result.hasMetaCharset).toBe(true);
+    expect(result.hasViewport).toBe(true);
+    expect(result.hasH1).toBe(true);
+    expect(result.endsWithBody).toBe(true);
+  });
+
   test('17. Transcripts & Translations label and 3-button combo present', async ({ page }) => {
     await page.goto('./');
     await waitForAppReady(page);

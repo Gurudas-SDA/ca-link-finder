@@ -186,7 +186,7 @@
         <div class="transcript-modal" onclick="event.stopPropagation()">
             <div class="transcript-modal-header">
                 <h2 id="transcriptModalTitle">Transcript</h2>
-                <a id="transcriptDownloadBtn" class="transcript-download-btn" href="#" target="_blank" rel="noopener" style="display:none;" title="Download">&#8615; Download</a>
+                <button type="button" id="transcriptDownloadBtn" class="transcript-download-btn" style="display:none;" title="Download" onclick="PPP.app.downloadTranscript()">&#8615; Download</button>
                 <button class="help-modal-close" onclick="PPP.app.closeTranscriptModal()">&times;</button>
             </div>
             <div class="transcript-modal-body" id="transcriptModalBody"></div>
@@ -212,7 +212,7 @@
     <script src="js/search.js?v=f57ebe43"></script>
     <script src="js/ui.js?v=308ed89b"></script>
     <script src="js/favorites.js?v=1"></script>
-    <script src="js/app.js?v=e8835b77"></script>
+    <script src="js/app.js?v=338540bb"></script>
 
 </body>
 </html>

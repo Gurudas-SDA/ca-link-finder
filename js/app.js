@@ -1596,11 +1596,40 @@ PPP.app = (function () {
      * Open HTML transcript viewer in modal, scroll to block-N anchor.
      * lang: 'en', 'lv', 'ru'
      */
-    function _toDirectDownload(url) {
-        if (!url) return url;
-        var m = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-        if (m) return 'https://drive.google.com/uc?export=download&id=' + m[1];
-        return url;
+    var _currentTranscriptCtx = null;
+
+    function _sanitizeFilename(s) {
+        return String(s || '').replace(/[<>:"/\\|?* -]/g, '_').replace(/\s+/g, '_').slice(0, 120) || 'transcript';
+    }
+
+    function _escapeHtmlAttr(s) {
+        return String(s || '').replace(/[<>&"']/g, function (c) {
+            return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function downloadTranscript() {
+        var ctx = _currentTranscriptCtx;
+        if (!ctx || !ctx.html) return;
+        var titleText = ctx.title || ('Nr_' + ctx.nr);
+        var fileName = _sanitizeFilename(titleText) + '_' + ctx.lang + '.html';
+        var doc = '<!DOCTYPE html>\n<html lang="' + _escapeHtmlAttr(ctx.lang) + '">\n<head>\n' +
+            '<meta charset="utf-8">\n' +
+            '<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
+            '<title>' + _escapeHtmlAttr(titleText) + '</title>\n' +
+            '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;max-width:820px;margin:1.5em auto;padding:0 1em;line-height:1.55;color:#222;background:#fff}h1,h2,h3{color:#7a1f00}a{color:#c97a00}p{margin:0.6em 0}</style>\n' +
+            '</head>\n<body>\n<h1>' + _escapeHtmlAttr(titleText) + '</h1>\n' +
+            ctx.html + '\n</body>\n</html>';
+        var blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+        track('transcript-download', { nr: String(ctx.nr), lang: ctx.lang });
     }
 
     function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference, driveUrl) {
@@ -1609,16 +1638,10 @@ PPP.app = (function () {
         var body = document.getElementById('transcriptModalBody');
         var title = document.getElementById('transcriptModalTitle');
 
+        // Reset download context — only enable button after content loads
+        _currentTranscriptCtx = null;
         var dlBtn = document.getElementById('transcriptDownloadBtn');
-        if (dlBtn) {
-            if (driveUrl) {
-                dlBtn.href = _toDirectDownload(driveUrl);
-                dlBtn.title = i18n.t('downloadTranscript');
-                dlBtn.style.display = '';
-            } else {
-                dlBtn.style.display = 'none';
-            }
-        }
+        if (dlBtn) dlBtn.style.display = 'none';
 
         var alreadyLoaded = db.isHtmlLoaded(lang);
         title.textContent = 'Loading ' + lang.toUpperCase() + ' transcript...';
@@ -1695,30 +1718,31 @@ PPP.app = (function () {
 
             // Get title from meta DB
             return db.queryMetaAsync(
-                "SELECT original_file_name, script_en_url, script_lv_url, script_ru_url FROM lectures WHERE nr = $nr LIMIT 1",
+                "SELECT original_file_name FROM lectures WHERE nr = $nr LIMIT 1",
                 { $nr: String(lectureNr) }
             ).then(function (meta) {
-                if (meta.length > 0) {
-                    title.textContent = (meta[0].original_file_name || 'Nr.' + lectureNr) +
-                        (reference ? ' — ' + reference : '');
-                } else {
-                    title.textContent = 'Nr.' + lectureNr + (reference ? ' — ' + reference : '');
-                }
-                // If driveUrl was not passed, try to get it from meta
-                if (!driveUrl && meta.length > 0 && dlBtn) {
-                    var urlCol = 'script_' + lang + '_url';
-                    var metaDriveUrl = meta[0][urlCol];
-                    if (metaDriveUrl) {
-                        dlBtn.href = _toDirectDownload(metaDriveUrl);
-                        dlBtn.title = i18n.t('downloadTranscript');
-                        dlBtn.style.display = '';
-                    }
-                }
+                var origName = (meta.length > 0 && meta[0].original_file_name) || ('Nr.' + lectureNr);
+                title.textContent = origName + (reference ? ' — ' + reference : '');
+                return origName;
             }).catch(function () {
                 title.textContent = 'Nr.' + lectureNr + (reference ? ' — ' + reference : '');
-            }).then(function () {
+                return 'Nr_' + lectureNr;
+            }).then(function (origName) {
                 // Insert HTML content
-                body.innerHTML = rows[0].html_content || '';
+                var htmlContent = rows[0].html_content || '';
+                body.innerHTML = htmlContent;
+
+                // Enable client-side download button (any lecture, no Drive dependency)
+                if (htmlContent && dlBtn) {
+                    _currentTranscriptCtx = {
+                        nr: lectureNr,
+                        lang: lang,
+                        title: origName,
+                        html: htmlContent
+                    };
+                    dlBtn.title = (i18n.t && i18n.t('downloadTranscript')) || 'Download';
+                    dlBtn.style.display = '';
+                }
 
                 // Attach selection share handler
                 _attachTranscriptSelectionShare(body, lectureNr, lang);
@@ -1908,6 +1932,7 @@ PPP.app = (function () {
             document.getElementById('transcriptModalOverlay').classList.remove('active');
             var dlBtn = document.getElementById('transcriptDownloadBtn');
             if (dlBtn) dlBtn.style.display = 'none';
+            _currentTranscriptCtx = null;
         }
     }
 
@@ -2167,6 +2192,7 @@ PPP.app = (function () {
         openTranscriptAtVerse: openTranscriptAtVerse,
         openHtmlTranscriptViewer: openHtmlTranscriptViewer,
         closeTranscriptModal: closeTranscriptModal,
+        downloadTranscript: downloadTranscript,
         showFavorites: showFavorites,
         updateFavoritesCount: updateFavoritesCount,
         copyShareLink: copyShareLink,
