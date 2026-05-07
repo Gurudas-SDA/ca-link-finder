@@ -3,10 +3,13 @@ const { test, expect } = require('@playwright/test');
 
 // Helper: wait for SQLite to load (progress bar disappears, search input enabled)
 async function waitForAppReady(page) {
-  // Wait for the search input to become enabled (means DB loaded)
+  // Wait for the search input to become enabled (means DB loaded).
+  // Match a lecture-count digit-group in the placeholder (e.g. "9 558" or "10 021"),
+  // robust to crossing the 10k threshold.
   await page.waitForFunction(() => {
     const input = document.getElementById('searchTerm');
-    return input && !input.disabled && input.placeholder && input.placeholder.includes('9');
+    if (!input || input.disabled || !input.placeholder) return false;
+    return /\d{1,2}[ ,. ]?\d{3}/.test(input.placeholder);
   }, { timeout: 60000 });
 }
 
