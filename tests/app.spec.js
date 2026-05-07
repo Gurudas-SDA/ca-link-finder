@@ -375,6 +375,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   });
 
   test('19. Download button generates client-side HTML file (no Drive dependency)', async ({ page }) => {
+    test.setTimeout(180000);  // Loading the per-language HTML DB (~50MB) on first visit takes >60s default
     await page.goto('./');
     await page.waitForFunction(() => window.PPP && window.PPP.app && typeof window.PPP.app.downloadTranscript === 'function', { timeout: 30000 });
 
