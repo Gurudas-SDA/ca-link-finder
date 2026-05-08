@@ -1740,3 +1740,27 @@ body.dark .transcript-deep-highlight {
     opacity: 0.5 !important;
     pointer-events: none !important;
 }
+
+/* Persistent tooltip shown while cursor is over a combo-display search input.
+   Replaces the native title attribute (which dismisses on keypress / cursor move). */
+.combo-display-tooltip {
+    position: absolute;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 120ms ease;
+    background: #1a3a6b;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    white-space: nowrap;
+    max-width: 92vw;
+}
+.combo-display-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+}
