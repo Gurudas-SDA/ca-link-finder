@@ -611,10 +611,11 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await expect(title).toHaveText(/Raw transcript \(txt\)/i, { timeout: 10000 });
     await expect(title).not.toHaveText(/Transcript not found/i);
 
-    // Body explains txt-only + Google Drive, and keeps the Drive link
+    // Body explains this is an auto-generated unprocessed (Raw) transcript,
+    // and keeps the "Open in Google Drive" link
     const body = page.locator('#transcriptModalBody');
-    await expect(body).toContainText(/Raw transcript/i);
-    await expect(body).toContainText(/txt/i);
+    await expect(body).toContainText(/unprocessed \(Raw\) transcript/i);
+    await expect(body).not.toContainText(/Transcript not found/i);
     await expect(body).toContainText(/Google Drive/i);
     await expect(body.locator('a[href*="drive"], a[target="_blank"]').first()).toBeVisible();
 
