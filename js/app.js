@@ -1774,11 +1774,18 @@ PPP.app = (function () {
 
         firstFetch.then(function (rows) {
             if (rows.length === 0) {
-                title.textContent = 'Transcript not found';
                 if (driveUrl) {
-                    body.innerHTML = '<p>No ' + lang.toUpperCase() + ' HTML transcript for lecture Nr.' + lectureNr +
-                        '.</p><p><a href="' + driveUrl + '" target="_blank" rel="noopener" style="color:var(--saffron)">Open in Google Drive \u2197</a></p>';
+                    // Raw transcript: HTML not in-app, but the txt exists on Drive.
+                    var rawTitle = (i18n.t && i18n.t('rawTranscriptTitle')) || 'Raw transcript (txt)';
+                    var rawBody = (i18n.t && i18n.t('rawTranscriptBody')) ||
+                        'This is a Raw transcript, available only in txt format. Open it from Google Drive.';
+                    var openLabel = (i18n.t && i18n.t('openInGoogleDrive')) || 'Open in Google Drive';
+                    title.textContent = rawTitle;
+                    body.innerHTML = '<p>' + utils.escapeHtml(rawBody) + '</p><p><a href="' + driveUrl +
+                        '" target="_blank" rel="noopener" style="color:var(--saffron)">' +
+                        utils.escapeHtml(openLabel) + ' \u2197</a></p>';
                 } else {
+                    title.textContent = 'Transcript not found';
                     body.textContent = 'No ' + lang.toUpperCase() + ' transcript for lecture Nr.' + lectureNr;
                 }
                 return;

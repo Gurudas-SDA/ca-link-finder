@@ -587,4 +587,39 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(enInRawRow).toBe('OK');
   });
 
+  test('23. Clicking a Raw transcript shows the "txt only / Google Drive" message (not "Transcript not found")', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    // Lecture Nr. 730 ("07.07.12") is a Raw transcript: no in-app HTML, but a
+    // Drive txt URL exists. Clicking its "Raw" button must open the modal with
+    // the corrected message, NOT the old "Transcript not found".
+    await page.fill('#searchTerm', '07.07.12');
+    await page.click('.search-button');
+    await page.waitForSelector('#resultsInfo strong', { timeout: 10000 });
+
+    const rawBtn = page.locator('#resultsTable tbody tr a', { hasText: /^Raw$/ }).first();
+    await expect(rawBtn).toBeVisible({ timeout: 10000 });
+    await rawBtn.click();
+
+    // Modal opens
+    const overlay = page.locator('#transcriptModalOverlay');
+    await expect(overlay).toHaveClass(/active/, { timeout: 10000 });
+
+    // Title is the Raw-transcript title, NOT "Transcript not found"
+    const title = page.locator('#transcriptModalTitle');
+    await expect(title).toHaveText(/Raw transcript \(txt\)/i, { timeout: 10000 });
+    await expect(title).not.toHaveText(/Transcript not found/i);
+
+    // Body explains txt-only + Google Drive, and keeps the Drive link
+    const body = page.locator('#transcriptModalBody');
+    await expect(body).toContainText(/Raw transcript/i);
+    await expect(body).toContainText(/txt/i);
+    await expect(body).toContainText(/Google Drive/i);
+    await expect(body.locator('a[href*="drive"], a[target="_blank"]').first()).toBeVisible();
+
+    // Regression guard: the old wrong message must not appear anywhere in the modal
+    await expect(body).not.toContainText(/No EN HTML transcript/i);
+  });
+
 });

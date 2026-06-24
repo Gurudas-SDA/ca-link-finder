@@ -94,6 +94,8 @@ PPP.i18n = (function () {
             allSaved: 'All saved',
             shareQuote: 'Share quote',
             downloadTranscript: 'Download transcript',
+            rawTranscriptTitle: 'Raw transcript (txt)',
+            rawTranscriptBody: 'This is a Raw transcript, available only in txt format. Open it from Google Drive.',
             lastUpdate: 'Last update',
             featuresBtn: '32 Features'
         },
@@ -174,6 +176,8 @@ PPP.i18n = (function () {
             allSaved: '\u0412\u0441\u0435 \u0441\u043e\u0445\u0440\u0430\u043d\u0451\u043d\u043d\u044b\u0435',
             shareQuote: '\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f \u0446\u0438\u0442\u0430\u0442\u043e\u0439',
             downloadTranscript: '\u0421\u043a\u0430\u0447\u0430\u0442\u044c \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442',
+            rawTranscriptTitle: 'Raw-\u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442 (txt)',
+            rawTranscriptBody: '\u042d\u0442\u043e Raw-\u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0442, \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0442\u043e\u043b\u044c\u043a\u043e \u0432 \u0444\u043e\u0440\u043c\u0430\u0442\u0435 txt. \u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u0435\u0433\u043e \u0438\u0437 Google Drive.',
             lastUpdate: '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u043e',
             featuresBtn: '32 \u0424\u0443\u043d\u043a\u0446\u0438\u0438'
         },
@@ -253,6 +257,8 @@ PPP.i18n = (function () {
             allSaved: 'Visi saglab\u0101tie',
             shareQuote: 'Koplietot cit\u0101tu',
             downloadTranscript: 'Lejupiel\u0101d\u0113t transkriptu',
+            rawTranscriptTitle: 'Raw transkripts (txt)',
+            rawTranscriptBody: '\u0160is ir Raw transkripts, pieejams tikai txt form\u0101t\u0101. Atveriet to no Google Drive.',
             lastUpdate: 'Atjaunots',
             featuresBtn: '32 Funkcijas'
         },
