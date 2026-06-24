@@ -516,4 +516,75 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     }
   });
 
+  test('21. Lecture extras (essence + summary modal) reach the results table', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    // Wait until extras JSON has loaded (essence/summary depend on it)
+    await page.waitForFunction(() => {
+      return window.PPP && window.PPP.ui &&
+        typeof window.PPP.ui.extrasReady === 'function' &&
+        window.PPP.ui.extrasReady();
+    }, { timeout: 60000 });
+
+    // Search for lecture Nr. 730 by its original_file_name "07.07.12"
+    await page.fill('#searchTerm', '07.07.12');
+    await page.click('.search-button');
+
+    await page.waitForSelector('#resultsInfo strong', { timeout: 10000 });
+
+    // Essence hint must be rendered under the title
+    const essence = page.locator('.essence-hint').first();
+    await expect(essence).toBeVisible({ timeout: 10000 });
+    await expect(essence).toContainText('Essence:');
+
+    // Clickable summary link for lecture 730 must exist
+    const summaryLink = page.locator('a[data-nr="730"]');
+    await expect(summaryLink.first()).toBeVisible({ timeout: 10000 });
+
+    // Clicking it opens the summary modal with non-empty body text
+    await summaryLink.first().click();
+    const overlay = page.locator('#summaryModalOverlay');
+    await expect(overlay).toBeVisible({ timeout: 10000 });
+
+    await page.waitForFunction(() => {
+      const b = document.getElementById('summaryModalBody');
+      return b && b.textContent && b.textContent.trim().length > 1 &&
+        b.textContent.trim() !== '…';
+    }, { timeout: 10000 });
+    const bodyText = await page.locator('#summaryModalBody').textContent();
+    expect(bodyText.trim().length).toBeGreaterThan(1);
+  });
+
+  test('22. Raw transcript row shows a "Raw" button, not "EN"', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    // Lecture Nr. 730 (original_file_name "07.07.12") is a Raw transcript:
+    // its meta DB Script_EN cell stores the literal string "Raw".
+    await page.fill('#searchTerm', '07.07.12');
+    await page.click('.search-button');
+    await page.waitForSelector('#resultsInfo strong', { timeout: 10000 });
+
+    // The script cell for a Raw row must render a "Raw" button (not "EN").
+    // The three script columns are the last 3 cells of each row; the Raw EN
+    // button is a styled <a> whose text is exactly "Raw".
+    const rawBtn = page.locator('#resultsTable tbody tr a', { hasText: /^Raw$/ }).first();
+    await expect(rawBtn).toBeVisible({ timeout: 10000 });
+    await expect(rawBtn).toHaveText('Raw');
+
+    // Regression guard: the Raw EN cell must NOT be labelled "EN".
+    // Find the row containing the Raw button and assert no sibling <a> reads "EN".
+    const enInRawRow = await page.evaluate(() => {
+      const anchors = Array.from(document.querySelectorAll('#resultsTable tbody tr a'));
+      const raw = anchors.find(a => a.textContent.trim() === 'Raw');
+      if (!raw) return 'NO_RAW';
+      const tr = raw.closest('tr');
+      const labels = Array.from(tr.querySelectorAll('a')).map(a => a.textContent.trim());
+      // The Raw cell replaced what used to be "EN"; ensure "Raw" is present.
+      return labels.includes('Raw') ? 'OK' : labels.join(',');
+    });
+    expect(enInRawRow).toBe('OK');
+  });
+
 });

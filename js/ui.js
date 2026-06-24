@@ -220,13 +220,28 @@ PPP.ui = (function () {
                     if (isScriptCol && row._blockIndex && row._lectureNr) {
                         var hasScript = val && val !== 'N/A' && val !== '0' && val !== '';
                         if (hasScript) {
-                            var langLabel = col.split('_')[1];
-                            var langCode = langLabel.toLowerCase();
+                            var defaultLangLabel = col.split('_')[1];
+                            var langCode = defaultLangLabel.toLowerCase();
+                            // Recognize special cell markers like the non-verse path.
+                            // Non-ASCII duplicate labels (LV "Dublikats" with a-macron,
+                            // RU "Dubikat") are built via char codes to keep source ASCII-safe.
+                            var lvDup = 'Dublik' + String.fromCharCode(257) + 'ts';
+                            var ruDup = String.fromCharCode(1044, 1091, 1073, 1080, 1082, 1072, 1090);
+                            var cellTrim = (val || '').toString().trim();
+                            var isDuplicate = (cellTrim === 'Duplicate' || cellTrim === lvDup || cellTrim === ruDup);
+                            var isRaw = (cellTrim === 'Raw');
+                            var langLabel = isDuplicate ? cellTrim : (isRaw ? 'Raw' : defaultLangLabel);
                             var viewBtn = document.createElement('a');
                             viewBtn.href = '#';
                             viewBtn.textContent = langLabel;
-                            viewBtn.title = 'Open transcript at [' + row._blockIndex + ']';
-                            viewBtn.style.cssText = 'color:var(--saffron);font-weight:700;text-decoration:underline;cursor:pointer;';
+                            viewBtn.title = isRaw ? 'Open raw (auto) transcript at [' + row._blockIndex + ']' : 'Open transcript at [' + row._blockIndex + ']';
+                            if (isDuplicate) {
+                                viewBtn.style.cssText = 'color:#1a4fa8;font-weight:600;font-size:11px;text-decoration:underline;cursor:pointer;';
+                            } else if (isRaw) {
+                                viewBtn.style.cssText = 'color:#888;font-weight:600;text-decoration:underline;cursor:pointer;';
+                            } else {
+                                viewBtn.style.cssText = 'color:var(--saffron);font-weight:700;text-decoration:underline;cursor:pointer;';
+                            }
                             viewBtn.setAttribute('data-nr', row._lectureNr);
                             viewBtn.setAttribute('data-lang', langCode);
                             viewBtn.setAttribute('data-block', row._blockIndex);
@@ -255,15 +270,19 @@ PPP.ui = (function () {
                             var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
                             var cellTrim = (val || '').toString().trim();
                             var isDuplicate = !!DUP_LABELS[cellTrim];
-                            var langLabel = isDuplicate ? cellTrim : defaultLangLabel;
+                            var isRaw = (cellTrim === 'Raw');
+                            var langLabel = isDuplicate ? cellTrim : (isRaw ? 'Raw' : defaultLangLabel);
                             var lectNr = (row['Nr.'] || '').toString().trim();
                             var viewBtn = document.createElement('a');
                             viewBtn.href = '#';
                             viewBtn.textContent = langLabel;
-                            viewBtn.title = 'Open transcript';
+                            viewBtn.title = isRaw ? 'Open raw (auto) transcript' : 'Open transcript';
                             if (isDuplicate) {
                                 // Duplicate label: blue, 11px, same as Essence
                                 viewBtn.style.cssText = 'color:#1a4fa8;font-weight:600;font-size:11px;text-decoration:underline;cursor:pointer;';
+                            } else if (isRaw) {
+                                // Raw (auto) transcript: muted gray so users see it is not polished
+                                viewBtn.style.cssText = 'color:#888;font-weight:600;text-decoration:underline;cursor:pointer;';
                             } else {
                                 viewBtn.style.cssText = 'color:var(--saffron);font-weight:700;text-decoration:underline;cursor:pointer;';
                             }
@@ -835,7 +854,15 @@ PPP.ui = (function () {
     function loadExtras() {
         if (_extrasCache) return Promise.resolve(_extrasCache);
         if (_extrasLoading) return _extrasLoading;
-        _extrasLoading = fetch('data/ppp_lecture_extras.json?v=bf256312')
+        var versionsP = (window.PPP && PPP.db && PPP.db.getDbVersions)
+            ? PPP.db.getDbVersions()
+            : Promise.resolve({});
+        _extrasLoading = versionsP
+            .then(function (v) {
+                var url = 'data/ppp_lecture_extras.json' +
+                    (v && v.extras ? ('?v=' + v.extras) : '');
+                return fetch(url);
+            })
             .then(function (r) { return r.ok ? r.json() : {}; })
             .then(function (data) {
                 _extrasCache = data || {};
