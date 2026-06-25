@@ -984,9 +984,9 @@ PPP.app = (function () {
         if (usingSqlite) {
             db.queryMetaAsync(
                 "SELECT * FROM lectures " +
-                "WHERE (script_en != '' AND script_en != 'N/A' AND script_en != '0') " +
-                "   OR (script_lv != '' AND script_lv != 'N/A' AND script_lv != '0') " +
-                "   OR (script_ru != '' AND script_ru != 'N/A' AND script_ru != '0') " +
+                "WHERE (script_en NOT IN ('', 'N/A', '0', 'Not relevant', 'Neattiecas', 'Не относится')) " +
+                "   OR (script_lv NOT IN ('', 'N/A', '0', 'Not relevant', 'Neattiecas', 'Не относится')) " +
+                "   OR (script_ru NOT IN ('', 'N/A', '0', 'Not relevant', 'Neattiecas', 'Не относится')) " +
                 "ORDER BY CASE WHEN date = 'unknown' THEN 1 ELSE 0 END, date DESC, original_file_name DESC"
             ).then(function (rows) {
                 var uiRows = rows.map(mapSqlRowToUI);
@@ -1014,7 +1014,7 @@ PPP.app = (function () {
             var en = (r['Script_EN'] || '').toString().trim();
             var lv = (r['Script_LV'] || '').toString().trim();
             var ru = (r['Script_RU'] || '').toString().trim();
-            function hasVal(v) { return v !== '' && v !== 'N/A' && v !== '0'; }
+            function hasVal(v) { return v !== '' && v !== 'N/A' && v !== '0' && v !== 'Not relevant' && v !== 'Neattiecas' && v !== 'Не относится'; }
             return hasVal(en) || hasVal(lv) || hasVal(ru);
         });
         withScripts.sort(function (a, b) {
@@ -1331,9 +1331,9 @@ PPP.app = (function () {
             db.queryMetaAsync(
                 "SELECT subject FROM lectures " +
                 "WHERE subject LIKE '.%' AND (" +
-                "  (script_en NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат')) OR " +
-                "  (script_lv NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат')) OR " +
-                "  (script_ru NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат'))" +
+                "  (script_en NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Not relevant', 'Neattiecas', 'Не относится')) OR " +
+                "  (script_lv NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Not relevant', 'Neattiecas', 'Не относится')) OR " +
+                "  (script_ru NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Not relevant', 'Neattiecas', 'Не относится'))" +
                 ")"
             ).then(function (rows) {
                 var topicCounts = {};

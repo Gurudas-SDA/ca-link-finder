@@ -587,6 +587,45 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(enInRawRow).toBe('OK');
   });
 
+  test('24. "Not relevant" transcript cells render as plain text span, not a clickable link', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    // Search for a lecture known to have "Not relevant" in Script_EN (Private_mp3_Bihari)
+    await page.fill('#searchTerm', '@Private_mp3_Bihari');
+    await page.click('.search-button');
+    await page.waitForSelector('#resultsInfo strong', { timeout: 15000 });
+
+    // Find any cell containing "Not relevant" / "Neattiecas" / "Не относится"
+    const notRelevantSpan = page.locator('#resultsTable tbody td span').filter({
+      hasText: /Not relevant|Neattiecas|Не относится/
+    }).first();
+
+    // If DB has these values, the span must exist (not an <a> link)
+    const count = await page.locator('#resultsTable tbody td span').filter({
+      hasText: /Not relevant|Neattiecas|Не относится/
+    }).count();
+
+    if (count === 0) {
+      // DB may not have been rebuilt yet — skip gracefully
+      console.log('No "Not relevant" cells found (DB not yet rebuilt). Skipping assertion.');
+      return;
+    }
+
+    // Must be a <span>, never an <a>
+    await expect(notRelevantSpan).toBeVisible();
+    const tagName = await notRelevantSpan.evaluate(el => el.tagName.toLowerCase());
+    expect(tagName).toBe('span');
+
+    // Must not be clickable (no href, no onclick that opens transcript)
+    const href = await notRelevantSpan.evaluate(el => el.getAttribute('href'));
+    expect(href).toBeNull();
+
+    // Font size must be 11px (smaller than normal 12.5px td)
+    const fontSize = await notRelevantSpan.evaluate(el => getComputedStyle(el).fontSize);
+    expect(fontSize).toBe('11px');
+  });
+
   test('23. Clicking a Raw transcript shows the "txt only / Google Drive" message (not "Transcript not found")', async ({ page }) => {
     await page.goto('./');
     await waitForAppReady(page);

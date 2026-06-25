@@ -144,9 +144,10 @@ PPP.ui = (function () {
         var thead = table.createTHead();
         // Count: only lectures with at least one ORIGINAL transcript (EN/LV/RU non-duplicate)
         var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
+        var NOT_REL_LABELS = { 'Not relevant': 1, 'Neattiecas': 1, 'Не относится': 1 };
         function isOrig(v) {
             v = (v || '').toString().trim();
-            return v !== '' && v !== 'N/A' && v !== '0' && !DUP_LABELS[v];
+            return v !== '' && v !== 'N/A' && v !== '0' && !DUP_LABELS[v] && !NOT_REL_LABELS[v];
         }
         var origCount = rows ? rows.filter(function (r) {
             return isOrig(r['Script_EN']) || isOrig(r['Script_LV']) || isOrig(r['Script_RU']);
@@ -220,6 +221,13 @@ PPP.ui = (function () {
                     if (isScriptCol && row._blockIndex && row._lectureNr) {
                         var hasScript = val && val !== 'N/A' && val !== '0' && val !== '';
                         if (hasScript) {
+                            var cellTrimNR = (val || '').toString().trim();
+                            if (cellTrimNR === 'Not relevant' || cellTrimNR === 'Neattiecas' || cellTrimNR === 'Не относится') {
+                                var spanNR = document.createElement('span');
+                                spanNR.textContent = cellTrimNR;
+                                spanNR.style.cssText = 'color:#222;font-size:11px;';
+                                td.appendChild(spanNR);
+                            } else {
                             var defaultLangLabel = col.split('_')[1];
                             var langCode = defaultLangLabel.toLowerCase();
                             // Recognize special cell markers like the non-verse path.
@@ -257,6 +265,7 @@ PPP.ui = (function () {
                                 );
                             };
                             td.appendChild(viewBtn);
+                            } // end else (not-relevant check)
                         }
                     } else if (isScriptCol) {
                         // NON-VERSE MODE: open in-app modal for script columns
@@ -264,11 +273,18 @@ PPP.ui = (function () {
                         if (scriptDriveUrl && !scriptDriveUrl.startsWith('http')) scriptDriveUrl = null;
                         var hasScript = val && val !== 'N/A' && val !== '0' && val !== '';
                         if (hasScript) {
+                            var cellTrim = (val || '').toString().trim();
+                            if (cellTrim === 'Not relevant' || cellTrim === 'Neattiecas' || cellTrim === 'Не относится') {
+                                var spanNRnv = document.createElement('span');
+                                spanNRnv.textContent = cellTrim;
+                                spanNRnv.style.cssText = 'color:#222;font-size:11px;';
+                                td.appendChild(spanNRnv);
+                            } else {
                             var defaultLangLabel = col.split('_')[1];
                             var langCode = defaultLangLabel.toLowerCase();
                             // If the cell value is a duplicate label, show it; otherwise show EN/LV/RU
                             var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
-                            var cellTrim = (val || '').toString().trim();
+                            cellTrim = cellTrim;
                             var isDuplicate = !!DUP_LABELS[cellTrim];
                             var isRaw = (cellTrim === 'Raw');
                             var langLabel = isDuplicate ? cellTrim : (isRaw ? 'Raw' : defaultLangLabel);
@@ -302,6 +318,7 @@ PPP.ui = (function () {
                                 }
                             };
                             td.appendChild(viewBtn);
+                            } // end else (not-relevant check)
                         }
                     } else {
                         // Links and Dwnld. columns — keep existing behavior (external links)
