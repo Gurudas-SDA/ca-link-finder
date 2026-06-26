@@ -984,9 +984,9 @@ PPP.app = (function () {
         if (usingSqlite) {
             db.queryMetaAsync(
                 "SELECT * FROM lectures " +
-                "WHERE (script_en NOT IN ('', 'N/A', '0', 'Not relevant', 'Neattiecas', 'Не относится')) " +
-                "   OR (script_lv NOT IN ('', 'N/A', '0', 'Not relevant', 'Neattiecas', 'Не относится')) " +
-                "   OR (script_ru NOT IN ('', 'N/A', '0', 'Not relevant', 'Neattiecas', 'Не относится')) " +
+                "WHERE (script_en NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Not relevant', 'Neattiecas', 'Не относится')) " +
+                "   OR (script_lv NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Not relevant', 'Neattiecas', 'Не относится')) " +
+                "   OR (script_ru NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Not relevant', 'Neattiecas', 'Не относится')) " +
                 "ORDER BY CASE WHEN date = 'unknown' THEN 1 ELSE 0 END, date DESC, original_file_name DESC"
             ).then(function (rows) {
                 var uiRows = rows.map(mapSqlRowToUI);
@@ -1014,7 +1014,7 @@ PPP.app = (function () {
             var en = (r['Script_EN'] || '').toString().trim();
             var lv = (r['Script_LV'] || '').toString().trim();
             var ru = (r['Script_RU'] || '').toString().trim();
-            function hasVal(v) { return v !== '' && v !== 'N/A' && v !== '0' && v !== 'Not relevant' && v !== 'Neattiecas' && v !== 'Не относится'; }
+            function hasVal(v) { return v !== '' && v !== 'N/A' && v !== '0' && v !== 'Duplicate' && v !== 'Dublikāts' && v !== 'Дубликат' && v !== 'Not relevant' && v !== 'Neattiecas' && v !== 'Не относится'; }
             return hasVal(en) || hasVal(lv) || hasVal(ru);
         });
         withScripts.sort(function (a, b) {
