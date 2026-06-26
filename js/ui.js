@@ -143,7 +143,7 @@ PPP.ui = (function () {
         table.innerHTML = '';
         var thead = table.createTHead();
         // Count: only lectures with at least one ORIGINAL transcript (EN/LV/RU non-duplicate)
-        var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
+        var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1, 'Дубикат': 1 };
         var NOT_REL_LABELS = { 'Not relevant': 1, 'Neattiecas': 1, 'Не относится': 1 };
         function isOrig(v) {
             v = (v || '').toString().trim();
@@ -235,8 +235,9 @@ PPP.ui = (function () {
                             // RU "Dubikat") are built via char codes to keep source ASCII-safe.
                             var lvDup = 'Dublik' + String.fromCharCode(257) + 'ts';
                             var ruDup = String.fromCharCode(1044, 1091, 1073, 1080, 1082, 1072, 1090);
+                            var ruDupCorrect = String.fromCharCode(1044, 1091, 1073, 1083, 1080, 1082, 1072, 1090);
                             var cellTrim = (val || '').toString().trim();
-                            var isDuplicate = (cellTrim === 'Duplicate' || cellTrim === lvDup || cellTrim === ruDup);
+                            var isDuplicate = (cellTrim === 'Duplicate' || cellTrim === lvDup || cellTrim === ruDup || cellTrim === ruDupCorrect);
                             var isRaw = (cellTrim === 'Raw');
                             var langLabel = isDuplicate ? cellTrim : (isRaw ? 'Raw' : defaultLangLabel);
                             var viewBtn = document.createElement('a');
@@ -283,7 +284,7 @@ PPP.ui = (function () {
                             var defaultLangLabel = col.split('_')[1];
                             var langCode = defaultLangLabel.toLowerCase();
                             // If the cell value is a duplicate label, show it; otherwise show EN/LV/RU
-                            var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1 };
+                            var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1, 'Дубикат': 1 };
                             cellTrim = cellTrim;
                             var isDuplicate = !!DUP_LABELS[cellTrim];
                             var isRaw = (cellTrim === 'Raw');
