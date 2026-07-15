@@ -13,6 +13,27 @@ PPP.ui = (function () {
     var columnHeaders = ['Date', 'Type', 'Original file name', 'Country', 'Lang.', 'Links', 'Dwnld.', 'Length', 'Script_EN', 'Script_LV', 'Script_RU'];
 
     /**
+     * Build a per-language selection checkbox. ALWAYS rendered next to each
+     * selectable transcript chip (no select-mode). Carries data-nr + data-lang;
+     * toggling adds/removes "<nr>|<lang>" from the selection Set.
+     */
+    function _makeSelCheckbox(nr, lang, langLabel) {
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'select-checkbox';
+        cb.setAttribute('data-nr', nr);
+        cb.setAttribute('data-lang', lang);
+        cb.checked = !!(PPP.app.isSelectedPair && PPP.app.isSelectedPair(nr, lang));
+        cb.setAttribute('aria-label', 'Select ' + (langLabel || lang).toString().toUpperCase() + ' transcript');
+        cb.onclick = function (e) { e.stopPropagation(); };
+        cb.onchange = function (e) {
+            var el = e.currentTarget;
+            PPP.app.toggleSelectPair(el.getAttribute('data-nr'), el.getAttribute('data-lang'), el.checked);
+        };
+        return cb;
+    }
+
+    /**
      * Get localized column header name.
      */
     function getColumnHeader(colName) {
@@ -179,6 +200,9 @@ PPP.ui = (function () {
             var starTd = tr.insertCell();
             starTd.className = 'fav-cell';
             var nr = (row['Nr.'] || '').toString().trim();
+            // Per-language multi-select checkboxes now live BEFORE each transcript
+            // chip (script-orig / script-raw) in the Script_* columns — see
+            // _makeSelCheckbox() below. Duplicates (script-dup) are not selectable.
             if (nr && PPP.favorites) {
                 var btn = document.createElement('button');
                 btn.className = 'fav-star' + (PPP.favorites.isFavorite(nr) ? ' active' : '');
@@ -274,6 +298,11 @@ PPP.ui = (function () {
                                     el.getAttribute('data-ref')
                                 );
                             };
+                            // Per-language checkbox ALWAYS rendered before selectable
+                            // chips (premium or raw). Duplicates stay non-selectable.
+                            if (!isDuplicate) {
+                                td.appendChild(_makeSelCheckbox(row._lectureNr, langCode, langLabel));
+                            }
                             td.appendChild(viewBtn);
                             } // end else (not-relevant check)
                         }
@@ -329,6 +358,11 @@ PPP.ui = (function () {
                                     window.open(dUrl, '_blank');
                                 }
                             };
+                            // Per-language checkbox ALWAYS rendered before selectable
+                            // chips (premium or raw). Duplicates stay non-selectable.
+                            if (!isDuplicate) {
+                                td.appendChild(_makeSelCheckbox(lectNr, langCode, langLabel));
+                            }
                             td.appendChild(viewBtn);
                             } // end else (not-relevant check)
                         }

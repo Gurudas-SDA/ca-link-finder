@@ -803,6 +803,25 @@ h1 {
     color: var(--primary-dark);
     text-align: center;
 }
+/* Results header row: count (left) + "Download selected" button (right corner,
+   closer to the transcript columns) on one line. When the button wrapper is
+   display:none it drops out of flow entirely — no empty gap. Wraps below on
+   narrow widths (flex-wrap) so it never overflows or overlaps the count. */
+.results-header-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+.results-header-row #resultsInfo {
+    flex: 1 1 auto;
+    margin-top: 0;
+}
+.results-header-row #selectToggleWrap {
+    margin-left: auto;
+    margin-top: 0;
+}
 
 /* ===== UTILITY BUTTONS (overlay on table header row — aligned with Transcripts label) ===== */
 .top-left-buttons {
@@ -1966,8 +1985,10 @@ body.dark .transcript-deep-highlight {
     .search-time .timer {
         display: none !important;
     }
-    #resultsInfo {
+    .results-header-row {
         grid-area: info;
+    }
+    #resultsInfo {
         text-align: center;
     }
 }
@@ -2032,4 +2053,157 @@ textarea:focus-visible,
 [tabindex]:focus-visible {
     outline: 3px solid var(--focus-ring, var(--saffron));
     outline-offset: 2px;
+}
+
+/* ===========================================================================
+   MULTI-SELECT TRANSCRIPTS -> ZIP
+   Select toggle (near #resultsInfo), per-row checkbox, and the floating
+   bottom action bar with progress. Theme-aware via existing CSS variables.
+   =========================================================================== */
+
+/* --- One persistent "Download selected transcripts" button above results --- */
+#selectToggleWrap {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.download-selected-btn {
+    background: var(--saffron);
+    color: #fff;
+    border: 1.5px solid var(--saffron);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, opacity 0.15s;
+}
+.download-selected-btn:hover:not(.disabled):not(:disabled) {
+    filter: brightness(1.05);
+}
+.download-selected-btn.disabled,
+.download-selected-btn:disabled {
+    background: var(--surface);
+    color: var(--text-muted);
+    border-color: var(--border);
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* --- Per-language selection checkbox: ALWAYS rendered before each selectable
+   transcript chip. Small + unobtrusive so normal browsing isn't cluttered. */
+.select-checkbox {
+    width: 14px;
+    height: 14px;
+    margin: 0 4px 0 0;
+    cursor: pointer;
+    vertical-align: middle;
+    accent-color: var(--saffron);
+    opacity: 0.7;
+    flex: none;
+}
+.select-checkbox:hover,
+.select-checkbox:checked {
+    opacity: 1;
+}
+
+/* --- Floating download panel (opens at the TOP of the page on button click) --- */
+.select-action-bar {
+    position: fixed;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 760px;
+    box-sizing: border-box;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    box-shadow: var(--shadow-lg);
+    padding: 12px 16px;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.select-bar-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.select-count {
+    font-weight: 800;
+    color: var(--text);
+    white-space: nowrap;
+}
+.zip-name-input {
+    flex: 1 1 160px;
+    min-width: 120px;
+    padding: 8px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+}
+.zip-download-btn {
+    flex: none;
+    white-space: nowrap;
+}
+.zip-clear-btn {
+    flex: none;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.zip-clear-btn:hover {
+    color: var(--vermillion);
+    border-color: var(--vermillion);
+}
+
+/* --- Progress row --- */
+.zip-progress-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.zip-progress-outer {
+    flex: 1 1 auto;
+    height: 8px;
+    background: var(--border-light);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.zip-progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--saffron), var(--saffron-light));
+    transition: width 0.2s ease;
+}
+.zip-progress-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 90px;
+}
+
+/* --- Post-download summary --- */
+.zip-summary-row {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tulasi);
+}
+
+@media (max-width: 640px) {
+    .select-action-bar { border-radius: 0 0 12px 12px; padding: 10px 12px; }
+    .zip-name-input { flex-basis: 100%; order: 3; }
 }

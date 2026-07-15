@@ -52,6 +52,14 @@ PPP.app = (function () {
     var lastSearchTerm = '';
     var allResults = [];
     var matchHints = new Map();
+    // ===== MULTI-SELECT → ZIP STATE =====
+    // Checkboxes are ALWAYS visible next to selectable transcript chips (no
+    // select-mode). Ticking any checkbox enables the "Download selected (N)"
+    // button; clicking that button opens the top download panel.
+    var selectedNrs = new Set();        // Set of "<nr>|<lang>" keys (per lecture x language) selected for ZIP
+    var _selResultsRef = null;          // identity of the result set selection belongs to
+    var _zipAbort = null;               // AbortController for an in-flight ZIP download
+    var _panelOpen = false;             // is the top download panel currently open?
     var dataLoaded = false;
     var usingSqlite = false;        // true if SQLite loaded successfully
     var searchMode = 'metadata';    // 'metadata', 'citations', or 'citationsTop'
@@ -669,6 +677,9 @@ PPP.app = (function () {
 
     function performSearch() {
         var startTime = performance.now();
+        // Multi-select UI belongs to the lecture table only. Hide it now; lecture
+        // modes call displayResults() which re-shows the toggle for the fresh set.
+        _showSelectToggle(false);
         // Clear verse position data on new search
         activeVersePositions = {};
         activeVerseReference = '';
@@ -829,12 +840,27 @@ PPP.app = (function () {
         var startIndex = (currentPage - 1) * pageSize;
         var endIndex = Math.min(currentPage * pageSize, totalResults);
 
+        // A new result set clears the selection. Every loader (search, favorites,
+        // by-date, …) assigns a FRESH allResults array, so an identity change means
+        // "new search". Pagination and language switches re-render the SAME array,
+        // so the selection persists across pages within one result set.
+        if (allResults !== _selResultsRef) {
+            _selResultsRef = allResults;
+            selectedNrs.clear();
+            // Let the zip-name default repopulate from the new search term.
+            var _zi = document.getElementById('zipNameInput');
+            if (_zi) _zi.value = '';
+        }
+
         document.getElementById('resultsInfo').innerHTML =
             '<strong>' + totalResults + ' ' + i18n.t('filesFound') + '</strong>&nbsp;&nbsp;&nbsp;' +
             i18n.t('showingResults') + ' ' + (totalResults === 0 ? 0 : (startIndex + 1)) + '-' + endIndex;
 
         ui.renderResults(allResults, lastSearchTerm, startIndex, endIndex, matchHints);
         ui.renderPagination(totalResults, currentPage, pageSize, changePage);
+
+        _showSelectToggle(totalResults > 0);
+        _updateSelectBar();
     }
 
     function changePage(p) {
@@ -843,6 +869,333 @@ PPP.app = (function () {
             currentPage = p;
             displayResults();
         }
+    }
+
+    // ===========================================================================
+    // MULTI-SELECT TRANSCRIPTS -> ONE NAMED ZIP
+    // Use case: search a topic, tick the lectures you want, download every
+    // transcript in one named .zip for offline theme-searching. No transcript is
+    // ever preloaded — raw/premium bodies are fetched ONLY on demand here.
+    // ===========================================================================
+
+    // --- ui.js reads these to render + reflect the per-language checkboxes ---
+    function _selKey(nr, lang) { return String(nr) + '|' + String(lang).toLowerCase(); }
+    function isSelectedPair(nr, lang) { return selectedNrs.has(_selKey(nr, lang)); }
+
+    // A transcript language cell is selectable when it holds a real premium OR raw
+    // value — not empty, not N/A, not a duplicate pointer, not "Not relevant".
+    function _langCellAvailable(val) {
+        var v = (val || '').toString().trim();
+        if (!v || v === 'N/A' || v === '0') return false;
+        var EXCLUDE = {
+            'Not relevant': 1, 'Neattiecas': 1, 'Не относится': 1,
+            'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1, 'Дубикат': 1
+        };
+        return !EXCLUDE[v];
+    }
+
+    // Distinct lecture count behind the currently selected pairs.
+    function _distinctNrCount() {
+        var seen = {};
+        selectedNrs.forEach(function (k) { seen[k.split('|')[0]] = 1; });
+        return Object.keys(seen).length;
+    }
+
+    // Show/hide the "Download selected" button wrapper. Shown only when the
+    // current result set has lecture rows; hidden (and panel closed) otherwise.
+    function _showSelectToggle(show) {
+        var wrap = document.getElementById('selectToggleWrap');
+        if (wrap) wrap.style.display = show ? '' : 'none';
+        if (!show) closeDownloadPanel();
+        _updateDownloadSelectedBtn();
+    }
+
+    // Reflect the selection count on the persistent "Download selected" button:
+    // disabled + base label at 0; enabled + "Download selected (N)" at ≥1.
+    function _updateDownloadSelectedBtn() {
+        var btn = document.getElementById('downloadSelectedBtn');
+        if (!btn) return;
+        var n = selectedNrs.size;
+        if (n > 0) {
+            btn.disabled = false;
+            btn.classList.remove('disabled');
+            btn.textContent = i18n.t('downloadSelectedBtnN').replace('{n}', n);
+        } else {
+            btn.disabled = true;
+            btn.classList.add('disabled');
+            btn.textContent = i18n.t('downloadSelectedBtn');
+        }
+    }
+
+    // Toggle one (lecture x language) transcript in/out of the selection.
+    function toggleSelectPair(nr, lang, checked) {
+        var key = _selKey(nr, lang);
+        if (checked) selectedNrs.add(key); else selectedNrs.delete(key);
+        _updateDownloadSelectedBtn();
+        _updateSelectBar();   // refresh panel count if it is open
+    }
+
+    // Clear the whole selection (unchecks every box on re-render) and close panel.
+    function clearSelection() {
+        selectedNrs.clear();
+        closeDownloadPanel();
+        if (allResults.length > 0) displayResults();
+        else _updateDownloadSelectedBtn();
+    }
+
+    function _defaultZipName() {
+        var base = _sanitizeFilename(lastSearchTerm || '');
+        if (!base || base === 'transcript') {
+            var d = new Date();
+            var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+            base = 'transcripts_' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+        }
+        return base;
+    }
+
+    // Open the top download panel (only meaningful when ≥1 transcript is selected).
+    function openDownloadPanel() {
+        if (selectedNrs.size === 0) return;   // button is disabled in this state
+        _panelOpen = true;
+        var bar = document.getElementById('selectActionBar');
+        if (bar) { bar.removeAttribute('data-summary'); bar.style.display = ''; }
+        var progRow = document.getElementById('zipProgressRow');
+        if (progRow) progRow.style.display = 'none';
+        _updateSelectBar();   // fills count + default zip name
+        var input = document.getElementById('zipNameInput');
+        if (input) { input.placeholder = i18n.t('zipNamePlaceholder'); if (!input.value) input.value = _defaultZipName(); input.focus(); }
+    }
+
+    // Close/dismiss the panel. Keeps the selection intact so the button stays
+    // enabled and the panel can be reopened.
+    function closeDownloadPanel() {
+        _panelOpen = false;
+        var bar = document.getElementById('selectActionBar');
+        if (bar) { bar.style.display = 'none'; bar.removeAttribute('data-summary'); }
+    }
+
+    // Refresh the panel body (count + zip-name default) while it is open.
+    function _updateSelectBar() {
+        if (!_panelOpen) return;
+        var bar = document.getElementById('selectActionBar');
+        if (!bar) return;
+        if (bar.getAttribute('data-summary') === '1') return; // keep post-download summary
+        var count = selectedNrs.size;
+        if (count === 0) { closeDownloadPanel(); return; } // nothing left to download
+        var summaryRow = document.getElementById('zipSummaryRow');
+        if (summaryRow) { summaryRow.style.display = 'none'; summaryRow.textContent = ''; }
+        var countEl = document.getElementById('selectCount');
+        if (countEl) countEl.textContent = i18n.t('nSelectedPairs')
+            .replace('{t}', count)
+            .replace('{l}', _distinctNrCount());
+        var input = document.getElementById('zipNameInput');
+        if (input) {
+            input.placeholder = i18n.t('zipNamePlaceholder');
+            if (!input.value) input.value = _defaultZipName();
+        }
+        bar.style.display = '';
+    }
+
+    // --- progress + summary UI ---
+    function _setZipDownloading(on) {
+        var row = document.getElementById('zipProgressRow');
+        if (row) row.style.display = on ? '' : 'none';
+        var dlBtn = document.getElementById('zipDownloadBtn');
+        if (dlBtn) dlBtn.disabled = !!on;
+    }
+
+    function _setZipProgress(done, total) {
+        var fill = document.getElementById('zipProgressFill');
+        if (fill) fill.style.width = (total ? Math.round(done / total * 100) : 0) + '%';
+        var txt = document.getElementById('zipProgressText');
+        if (txt) txt.textContent = i18n.t('downloadingProgress').replace('{done}', done).replace('{total}', total);
+    }
+
+    // ZIP-assembly phase (after all fetches): reuse the progress row for "Creating ZIP…".
+    function _setZipCreating(percent) {
+        var p = percent || 0;
+        var row = document.getElementById('zipProgressRow');
+        if (row) row.style.display = '';
+        var fill = document.getElementById('zipProgressFill');
+        if (fill) fill.style.width = p + '%';
+        var txt = document.getElementById('zipProgressText');
+        if (txt) txt.textContent = i18n.t('zipCreating').replace('{percent}', p);
+    }
+
+    function _showZipSummary(msg) {
+        var bar = document.getElementById('selectActionBar');
+        var row = document.getElementById('zipSummaryRow');
+        if (row) { row.textContent = msg; row.style.display = ''; }
+        if (bar) { bar.style.display = ''; bar.setAttribute('data-summary', '1'); }
+    }
+
+    function _zipTargetLang() {
+        return (i18n.getLanguage && i18n.getLanguage()) || 'en';
+    }
+
+    function _findDbRowByNr(nr) {
+        nr = String(nr);
+        for (var i = 0; i < DB.length; i++) {
+            if ((DB[i]['Nr.'] || '').toString().trim() === nr) return DB[i];
+        }
+        return null;
+    }
+
+    // Batch-fetch title + raw EN Drive URL for every selected nr up front.
+    function _fetchZipMeta(nrs) {
+        if (usingSqlite && db && db.queryMetaAsync) {
+            var placeholders = nrs.map(function () { return '?'; }).join(',');
+            var sql = "SELECT nr, original_file_name, script_en_url FROM lectures WHERE nr IN (" + placeholders + ")";
+            return db.queryMetaAsync(sql, nrs).then(function (rows) {
+                var map = {};
+                rows.forEach(function (r) {
+                    map[String(r.nr)] = { title: r.original_file_name || '', enUrl: r.script_en_url || '' };
+                });
+                return map;
+            }).catch(function () { return {}; });
+        }
+        // In-memory fallback (no SQLite): read titles/URLs from the mapped DB array.
+        var m = {};
+        nrs.forEach(function (nr) {
+            var row = _findDbRowByNr(nr);
+            if (row) m[String(nr)] = {
+                title: (row['Original file name'] || '').toString(),
+                enUrl: (row['Script_EN_url'] || '').toString()
+            };
+        });
+        return Promise.resolve(m);
+    }
+
+    // Add one lecture's transcript to the zip.
+    // Returns true (added), 'unavailable' (nothing offline), or throws on abort.
+    function _addOneToZip(zip, folder, nr, lang, meta, signal) {
+        var title = (meta && meta.title ? meta.title : ('Nr_' + nr)).toString();
+        var safeTitle = _sanitizeFilename(title);
+        return fetch('transcripts/' + lang + '/' + encodeURIComponent(String(nr)) + '.html', { signal: signal })
+            .then(function (r) { return r.ok ? r.text() : ''; })
+            .then(function (html) {
+                if (html && html.trim()) {
+                    // Premium per-lecture HTML (same-origin) — wrap into a standalone doc.
+                    var doc = _buildHtmlDoc({ nr: nr, lang: lang, title: title, html: html });
+                    // nr in the filename prevents collisions when two lectures share a title.
+                    zip.file(folder + '/Nr_' + nr + '_' + safeTitle + '_' + lang + '.html', doc);
+                    return true;
+                }
+                // Premium missing (404 / empty). Raw fallback exists only in EN.
+                if (lang === 'en') {
+                    var id = _driveIdFromUrl(meta && meta.enUrl);
+                    if (!id) return 'unavailable';
+                    var key = (PPP.config && PPP.config.driveApiKey) || '';
+                    var url = 'https://www.googleapis.com/drive/v3/files/' + id + '?alt=media&key=' + encodeURIComponent(key);
+                    return fetch(url, { signal: signal }).then(function (rr) {
+                        if (rr.status === 200) {
+                            return rr.text().then(function (txt) {
+                                zip.file(folder + '/Nr_' + nr + '_' + safeTitle + '_EN_raw.txt', txt);
+                                return true;
+                            });
+                        }
+                        return 'unavailable';
+                    });
+                }
+                return 'unavailable';
+            });
+    }
+
+    function downloadSelectedZip(zipName) {
+        if (typeof JSZip === 'undefined') {
+            _showZipSummary(i18n.t('zipNothing'));
+            return Promise.resolve();
+        }
+        var pairs = Array.from(selectedNrs);   // "<nr>|<lang>" keys
+        if (pairs.length === 0) return Promise.resolve();
+
+        // Codex fix #3: warn before very large selections (memory / slowness).
+        if (pairs.length > 100) {
+            if (!window.confirm(i18n.t('zipLargeWarn').replace('{n}', pairs.length))) return Promise.resolve();
+        }
+
+        var input = document.getElementById('zipNameInput');
+        var name = (zipName != null ? zipName : (input ? input.value : '')) || _defaultZipName();
+        var folder = _sanitizeFilename(name);
+
+        // One batched meta lookup for every DISTINCT nr in the selection.
+        var nrSet = {};
+        pairs.forEach(function (p) { nrSet[p.split('|')[0]] = 1; });
+        var nrs = Object.keys(nrSet);
+
+        var zip = new JSZip();
+        var abort = new AbortController();
+        _zipAbort = abort;                     // Codex fix #1: capture the local controller
+        var total = pairs.length, done = 0, included = 0, unavailable = 0;
+
+        _setZipDownloading(true);
+        _setZipProgress(0, total);
+
+        return _fetchZipMeta(nrs).then(function (metaByNr) {
+            var idx = 0;
+            var CONCURRENCY = 4;
+
+            function worker() {
+                if (abort.signal.aborted || idx >= pairs.length) return Promise.resolve();
+                var parts = pairs[idx++].split('|');
+                var myNr = parts[0], myLang = parts[1];
+                return _addOneToZip(zip, folder, myNr, myLang, metaByNr[myNr] || {}, abort.signal)
+                    .then(function (ok) {
+                        if (ok === true) included++; else unavailable++;
+                    })
+                    .catch(function () {
+                        // Aborted or per-item network error — count it and move on.
+                        unavailable++;
+                    })
+                    .then(function () {
+                        done++;
+                        _setZipProgress(done, total);
+                        return worker();
+                    });
+            }
+
+            var runners = [];
+            for (var k = 0; k < Math.min(CONCURRENCY, pairs.length); k++) runners.push(worker());
+            return Promise.all(runners);
+        }).then(function () {
+            // Codex fix #1: a cancel or a newer download replaced us — never mutate
+            // shared UI/global state that now belongs to a different run.
+            if (_zipAbort !== abort) return;
+            if (abort.signal.aborted) { _setZipDownloading(false); _zipAbort = null; return; }
+            if (included === 0) {
+                _setZipDownloading(false); _zipAbort = null;
+                _showZipSummary(i18n.t('zipNothing'));
+                return;
+            }
+            // Codex fix #2: stay busy THROUGH generateAsync; show "Creating ZIP… %".
+            return zip.generateAsync({ type: 'blob' }, function (meta) {
+                if (_zipAbort !== abort) return;              // superseded/cancelled: don't touch UI
+                _setZipCreating(Math.round(meta.percent));
+            }).then(function (blob) {
+                if (_zipAbort !== abort) return;             // superseded during ZIP assembly
+                _setZipDownloading(false);
+                _zipAbort = null;
+                _triggerBlobDownload(blob, folder + '.zip');
+                track('zip-download', { included: included, unavailable: unavailable, pairs: total });
+                _showZipSummary(i18n.t('zipSummary')
+                    .replace('{included}', included)
+                    .replace('{unavailable}', unavailable));
+                // Close the panel cleanly after the summary has been shown briefly.
+                setTimeout(function () { if (_zipAbort == null) closeDownloadPanel(); }, 3500);
+            });
+        }).catch(function (err) {
+            if (_zipAbort !== abort) return;   // guard shared state for a superseded run
+            _setZipDownloading(false);
+            _zipAbort = null;
+            console.error('ZIP download failed:', err);
+            _showZipSummary(i18n.t('zipNothing'));
+        });
+    }
+
+    function cancelZipDownload() {
+        if (_zipAbort) _zipAbort.abort();
+        _setZipDownloading(false);
+        _zipAbort = null;
     }
 
     // ===== SEARCH MODE TOGGLE =====
@@ -877,6 +1230,10 @@ PPP.app = (function () {
             allResults = [];
             totalResults = 0;
             lastSearchTerm = '';
+            // Reset the transcript selection: clear picks, hide the button + panel.
+            selectedNrs.clear();
+            closeDownloadPanel();
+            _showSelectToggle(false);
         }
         // Update search placeholder based on mode
         var searchInput = document.getElementById('searchTerm');
@@ -2240,6 +2597,11 @@ PPP.app = (function () {
             var val = i18n.t(key);
             if (val !== key) el.textContent = val;
         });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
+            var pkey = el.getAttribute('data-i18n-placeholder');
+            var pval = i18n.t(pkey);
+            if (pval !== pkey) el.placeholder = pval;
+        });
         var luEl = document.getElementById('dbLastUpdate');
         if (luEl && luEl.getAttribute('data-last-update')) {
             luEl.textContent = (i18n.t('lastUpdate') || 'Last update') + ': ' + luEl.getAttribute('data-last-update');
@@ -2363,6 +2725,14 @@ PPP.app = (function () {
         downloadTranscript: downloadTranscript,
         showFavorites: showFavorites,
         updateFavoritesCount: updateFavoritesCount,
+        // Multi-select transcripts -> ZIP
+        isSelectedPair: isSelectedPair,
+        toggleSelectPair: toggleSelectPair,
+        openDownloadPanel: openDownloadPanel,
+        closeDownloadPanel: closeDownloadPanel,
+        clearSelection: clearSelection,
+        downloadSelectedZip: downloadSelectedZip,
+        cancelZipDownload: cancelZipDownload,
         copyShareLink: copyShareLink,
         buildShareUrl: buildShareUrl,
         toggleTheme: toggleTheme,

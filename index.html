@@ -42,7 +42,7 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="e50b4fd4-578a-4674-944d-4fefcb6999e1"></script>
 
     <!-- Application CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=07603881">
+    <link rel="stylesheet" href="css/styles.css?v=f0297777">
 </head>
 <body>
 
@@ -129,7 +129,17 @@
                 <button class="help-search-btn help-search-btn-small" onclick="PPP.app.openHelpModal()" data-i18n="helpButton">How to use search?</button>
                 <span id="timer" class="timer"></span>
             </div>
-            <div id="resultsInfo"></div>
+            <!-- Results header row: count on the left, "Download selected" button on the right
+                 (closer to the transcript columns). Flex row so the button right-aligns on the
+                 same line; wraps below on narrow widths. -->
+            <div class="results-header-row">
+                <div id="resultsInfo"></div>
+                <!-- Multi-select transcripts → ZIP: one persistent button (shown only when lecture results exist).
+                     Disabled until ≥1 transcript checkbox is ticked; label then shows the count. -->
+                <div id="selectToggleWrap" style="display:none;">
+                    <button type="button" id="downloadSelectedBtn" class="download-selected-btn disabled" onclick="PPP.app.openDownloadPanel()" data-i18n="downloadSelectedBtn" disabled>Download selected transcripts</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -204,15 +214,33 @@
         </div>
     </div>
 
+    <!-- ===== SELECT / ZIP FLOATING PANEL (opens at TOP of page on button click) ===== -->
+    <div id="selectActionBar" class="select-action-bar" style="display:none;" role="region" aria-label="Selected transcripts download">
+        <div class="select-bar-row">
+            <span id="selectCount" class="select-count" aria-live="polite"></span>
+            <input type="text" id="zipNameInput" class="zip-name-input" aria-label="ZIP file name" data-i18n-placeholder="zipNamePlaceholder" placeholder="Janmastami lectures">
+            <button type="button" id="zipDownloadBtn" class="search-button zip-download-btn" onclick="PPP.app.downloadSelectedZip()" data-i18n="downloadZip">Download (ZIP)</button>
+            <button type="button" id="selectClearBtn" class="zip-clear-btn" onclick="PPP.app.closeDownloadPanel()" data-i18n="clearSelection">Cancel</button>
+        </div>
+        <div id="zipProgressRow" class="zip-progress-row" style="display:none;">
+            <div class="zip-progress-outer"><div id="zipProgressFill" class="zip-progress-fill"></div></div>
+            <span id="zipProgressText" class="zip-progress-text" aria-live="polite"></span>
+            <button type="button" id="zipCancelBtn" class="zip-clear-btn" onclick="PPP.app.cancelZipDownload()" data-i18n="clearSelection">Cancel</button>
+        </div>
+        <div id="zipSummaryRow" class="zip-summary-row" style="display:none;" aria-live="polite"></div>
+    </div>
+
     <!-- ===== APPLICATION SCRIPTS ===== -->
     <!-- Load order matters: utils first, then i18n, db, search, ui, app last -->
     <script src="js/utils.js?v=1eaf600f"></script>
-    <script src="js/i18n.js?v=8b57adad"></script>
+    <script src="js/i18n.js?v=c34f5266"></script>
     <script src="js/db.js?v=e11862f2"></script>
     <script src="js/search.js?v=f57ebe43"></script>
-    <script src="js/ui.js?v=ff014e6d"></script>
+    <script src="js/ui.js?v=0f878882"></script>
     <script src="js/favorites.js?v=7c80f4ac"></script>
-    <script src="js/app.js?v=2bd5a55d"></script>
+    <script src="js/config.js?v=4e5f4c23"></script>
+    <script src="js/vendor/jszip.min.js?v=b5d02b3f"></script>
+    <script src="js/app.js?v=a17824f4"></script>
 
 </body>
 </html>
