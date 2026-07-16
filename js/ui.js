@@ -24,7 +24,7 @@ PPP.ui = (function () {
         cb.setAttribute('data-nr', nr);
         cb.setAttribute('data-lang', lang);
         cb.checked = !!(PPP.app.isSelectedPair && PPP.app.isSelectedPair(nr, lang));
-        cb.setAttribute('aria-label', 'Select ' + (langLabel || lang).toString().toUpperCase() + ' transcript');
+        cb.setAttribute('aria-label', t('selectTranscriptAria').replace('{lang}', (langLabel || lang).toString().toUpperCase()));
         cb.onclick = function (e) { e.stopPropagation(); };
         cb.onchange = function (e) {
             var el = e.currentTarget;

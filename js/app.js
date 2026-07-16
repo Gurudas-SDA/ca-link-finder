@@ -915,6 +915,7 @@ PPP.app = (function () {
     function _updateDownloadSelectedBtn() {
         var btn = document.getElementById('downloadSelectedBtn');
         if (!btn) return;
+        btn.title = i18n.t('downloadSelectedTip');   // localized tooltip; re-set on language change
         var n = selectedNrs.size;
         if (n > 0) {
             btn.disabled = false;
