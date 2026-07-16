@@ -2739,9 +2739,111 @@ PPP.app = (function () {
         toggleTheme: toggleTheme,
         openGuide: function () {
             var lang = localStorage.getItem('preferredLanguage') || 'en';
-            window.open('guide/' + lang + '/', '_blank');
+            window.open('guide/' + lang + '/index.html', '_blank');
+        },
+        toggleFeaturesMenu: function (ev) {
+            if (ev) ev.stopPropagation();
+            var menu = document.getElementById('featuresMenu');
+            if (!menu) return;
+
+            // Currently open -> close.
+            if (!menu.hidden) {
+                closeFeaturesMenu();
+                return;
+            }
+
+            var lang = i18n.getLanguage() || localStorage.getItem('preferredLanguage') || 'en';
+            var data = window.PPP_GUIDE_MENU && window.PPP_GUIDE_MENU[lang];
+            if (!data) {
+                // No menu data available -> fall back to the full guide.
+                this.openGuide();
+                return;
+            }
+
+            var base = 'guide/' + lang + '/index.html';
+            menu.innerHTML = '';
+
+            // Centered modal panel.
+            var panel = document.createElement('div');
+            panel.className = 'features-modal';
+
+            // Header: title + close button.
+            var header = document.createElement('div');
+            header.className = 'fm-header';
+            var h2 = document.createElement('h2');
+            h2.textContent = i18n.t('featuresBtn');
+            var closeBtn = document.createElement('button');
+            closeBtn.className = 'fm-close';
+            closeBtn.type = 'button';
+            closeBtn.setAttribute('aria-label', 'Close');
+            closeBtn.textContent = '×';
+            closeBtn.addEventListener('click', closeFeaturesMenu);
+            header.appendChild(h2);
+            header.appendChild(closeBtn);
+            panel.appendChild(header);
+
+            // "All functions" link at the top.
+            var all = document.createElement('a');
+            all.className = 'fm-all';
+            all.href = base;
+            all.target = '_blank';
+            all.rel = 'noopener';
+            all.textContent = i18n.t('allFunctions');
+            panel.appendChild(all);
+
+            // Groups A-I, each a heading with its function names beneath.
+            var groups = data.groups || [];
+            var items = data.items || [];
+            groups.forEach(function (grp) {
+                var heading = document.createElement('div');
+                heading.className = 'fm-group';
+                heading.textContent = grp.name;
+                panel.appendChild(heading);
+
+                items.filter(function (it) { return it.g === grp.l; })
+                    .forEach(function (it) {
+                        var a = document.createElement('a');
+                        a.className = 'fm-item';
+                        a.href = base + '#item-' + it.n;
+                        a.target = '_blank';
+                        a.rel = 'noopener';
+                        a.textContent = it.t;
+                        panel.appendChild(a);
+                    });
+            });
+
+            menu.appendChild(panel);
+            menu.hidden = false;
+            // Defer wiring the backdrop-click handler so the current click that
+            // opened the menu does not immediately close it.
+            setTimeout(function () {
+                menu.addEventListener('click', onFeaturesOverlayClick);
+                document.addEventListener('keydown', onFeaturesKeydown);
+            }, 0);
         }
     };
+
+    // ---- Features menu helpers (module-private, single set of handlers) ----
+    function closeFeaturesMenu() {
+        var menu = document.getElementById('featuresMenu');
+        if (menu) {
+            menu.hidden = true;
+            menu.innerHTML = '';
+            menu.removeEventListener('click', onFeaturesOverlayClick);
+        }
+        document.removeEventListener('keydown', onFeaturesKeydown);
+    }
+
+    function onFeaturesOverlayClick(e) {
+        // Close only when the backdrop itself is clicked, not the panel/links.
+        if (e.target === e.currentTarget) closeFeaturesMenu();
+    }
+
+    function onFeaturesKeydown(e) {
+        if (e.key === 'Escape' || e.key === 'Esc') {
+            closeFeaturesMenu();
+        }
+    }
 })();
 
 // ===== Auto-init on DOM ready =====

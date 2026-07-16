@@ -42,7 +42,7 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="e50b4fd4-578a-4674-944d-4fefcb6999e1"></script>
 
     <!-- Application CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=f0297777">
+    <link rel="stylesheet" href="css/styles.css?v=cdedce7e">
 </head>
 <body>
 
@@ -84,7 +84,8 @@
         </div>
 
         <div class="language-switcher">
-            <button class="features-btn" onclick="PPP.app.openGuide()" data-i18n="featuresBtn">Features</button>
+            <button class="features-btn" onclick="PPP.app.toggleFeaturesMenu(event)" data-i18n="featuresBtn">Features</button>
+            <div id="featuresMenu" class="features-menu" hidden></div>
             <button class="lang-btn active" onclick="PPP.app.setLanguage('en')" data-lang="en">EN</button>
             <button class="lang-btn" onclick="PPP.app.setLanguage('ru')" data-lang="ru">RU</button>
             <button class="lang-btn" onclick="PPP.app.setLanguage('lv')" data-lang="lv">LV</button>
@@ -233,14 +234,15 @@
     <!-- ===== APPLICATION SCRIPTS ===== -->
     <!-- Load order matters: utils first, then i18n, db, search, ui, app last -->
     <script src="js/utils.js?v=1eaf600f"></script>
-    <script src="js/i18n.js?v=cfb49b48"></script>
+    <script src="js/i18n.js?v=862578eb"></script>
     <script src="js/db.js?v=e11862f2"></script>
     <script src="js/search.js?v=f57ebe43"></script>
     <script src="js/ui.js?v=9d9a15b9"></script>
     <script src="js/favorites.js?v=7c80f4ac"></script>
     <script src="js/config.js?v=4e5f4c23"></script>
     <script src="js/vendor/jszip.min.js?v=b5d02b3f"></script>
-    <script src="js/app.js?v=c7a264be"></script>
+    <script src="guide/menu-data.js?v=1"></script>
+    <script src="js/app.js?v=434aefba"></script>
 
 </body>
 </html>

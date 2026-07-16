@@ -662,4 +662,52 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await expect(body).not.toContainText(/No EN HTML transcript/i);
   });
 
+  test('32. Features button opens grouped dropdown menu', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    const menu = page.locator('#featuresMenu');
+    await expect(menu).toBeHidden();
+
+    // Clicking the Features button reveals the menu.
+    await page.locator('.features-btn').click();
+    await expect(menu).toBeVisible();
+
+    // "All functions" link points at the full guide.
+    const all = menu.locator('.fm-all');
+    await expect(all).toHaveCount(1);
+    const allHref = await all.getAttribute('href');
+    expect(allHref).toMatch(/guide\/en\/index\.html$/);
+
+    // Grouped list: 9 group headings, several item links.
+    await expect(menu.locator('.fm-group')).toHaveCount(9);
+    const itemCount = await menu.locator('.fm-item').count();
+    expect(itemCount).toBe(33);
+
+    // Each item deep-links to a specific function anchor.
+    const firstItemHref = await menu.locator('.fm-item').first().getAttribute('href');
+    expect(firstItemHref).toMatch(/guide\/en\/index\.html#item-\d+$/);
+
+    // Function numbers are NOT displayed in the visible text.
+    const groupText = await menu.locator('.fm-group').first().textContent();
+    expect(groupText && groupText.trim().length).toBeGreaterThan(0);
+
+    // Escape closes the menu.
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+  });
+
+  test('33. Features menu closes on backdrop click', async ({ page }) => {
+    await page.goto('./');
+    await waitForAppReady(page);
+
+    const menu = page.locator('#featuresMenu');
+    await page.locator('.features-btn').click();
+    await expect(menu).toBeVisible();
+
+    // Click the modal backdrop (overlay corner, away from the centered panel).
+    await menu.click({ position: { x: 5, y: 5 } });
+    await expect(menu).toBeHidden();
+  });
+
 });
