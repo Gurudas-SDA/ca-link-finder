@@ -2226,7 +2226,7 @@ PPP.app = (function () {
                         'This is a Raw transcript, available only in txt format. Open it from Google Drive.';
                     var openLabel = (i18n.t && i18n.t('openInGoogleDrive')) || 'Open in Google Drive';
                     title.textContent = rawTitle;
-                    body.innerHTML = '<p>' + utils.escapeHtml(rawBody) + '</p><p><a href="' + driveUrl +
+                    body.innerHTML = '<p>' + rawBody.split('\n').map(function (ln) { return utils.escapeHtml(ln); }).join('<br>') + '</p><p><a href="' + driveUrl +
                         '" target="_blank" rel="noopener" style="color:var(--saffron)">' +
                         utils.escapeHtml(openLabel) + ' \u2197</a></p>';
                 } else {

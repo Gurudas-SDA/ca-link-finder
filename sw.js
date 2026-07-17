@@ -1,7 +1,7 @@
 // Service Worker v8 — Force Update + no-cache for index.html
-// Versija: 2026-07-07 (mainīt šo komentāru katru reizi kad vajag forsēt atjaunināšanu)
+// Versija: 2026-07-17 (mainīt šo komentāru katru reizi kad vajag forsēt atjaunināšanu)
 
-const SW_VERSION = 'v8-2026-07-07-no-first-install-reload';
+const SW_VERSION = 'v8-2026-07-17-raw-disclaimer-warning';
 const MARKER_PREFIX = 'sw-marker-';
 
 self.addEventListener('install', function(event) {
