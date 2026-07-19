@@ -379,6 +379,13 @@ PPP.ui = (function () {
                             a.className = 'ext-chip'; // S94: mobile card chip styling hook
                             a.target = '_blank';
                             a.rel = 'noopener';
+                            // Offline guard: MP3/YouTube/Drive links need the network.
+                            a.onclick = function (e) {
+                                if (window.PPP && PPP.net && !PPP.net.online) {
+                                    e.preventDefault();
+                                    toast(t('requiresInternet'));
+                                }
+                            };
                             td.appendChild(a);
                         } else if (val && val !== 'N/A' && val !== '0' && val !== '') {
                             td.textContent = label;
@@ -432,64 +439,106 @@ PPP.ui = (function () {
     }
 
     /**
-     * Render transcript search results with snippets.
+     * Render advanced transcript (sentence) search results.
+     * rows: [{ ts, nr, seq, sentence, name, url, tier, date }]
+     * totals: { total, lectures, shown }
+     * Columns: Timestamp | Sentence | Tier | Lecture nr | Lecture name | Script_EN URL.
      */
-    function renderTranscriptResults(rows, searchTermStr) {
-        var container = document.getElementById('resultsTable');
-        container.innerHTML = '';
-        container.classList.remove('lecture-cards'); // not the 13-col lecture table
+    function renderSentenceResults(rows, searchTermStr, totals, foldedWords) {
+        totals = totals || {};
+        var searchTerms = searchTermStr ? searchTermStr.split(';').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+        foldedWords = foldedWords || [];
 
-        if (rows.length === 0) {
-            container.innerHTML = '<div class="empty-result-message">' + t('noTranscriptResults') + '</div>';
-            return;
+        // Summary line + Download Excel button above the table.
+        var info = document.getElementById('resultsInfo');
+        if (info) {
+            if (rows && rows.length > 0) {
+                var summary = t('sentenceResultsSummary')
+                    .replace('{n}', totals.total != null ? totals.total : rows.length)
+                    .replace('{m}', totals.lectures != null ? totals.lectures : '')
+                    .replace('{k}', totals.shown != null ? totals.shown : rows.length);
+                info.innerHTML = '<strong>' + utils.escapeHtml(summary) + '</strong> ' +
+                    '<button type="button" class="search-button" style="margin-left:10px;" ' +
+                    'onclick="PPP.app.exportSentencesExcel()">' + utils.escapeHtml(t('downloadExcel')) + '</button>';
+            } else {
+                info.innerHTML = '';
+            }
         }
 
-        var searchTerms = searchTermStr ? searchTermStr.split(';').map(function (s) { return s.trim(); }).filter(Boolean) : [];
-        var table = document.createElement('table');
-        table.id = 'resultsTable';
-        table.style.width = '100%';
+        var table = document.getElementById('resultsTable');
+        table.classList.remove('lecture-cards'); // not the 13-col lecture table
 
-        var thead = table.createTHead();
-        var hr = thead.insertRow();
-        ['Date', 'Lecture', 'Snippet'].forEach(function (h) {
-            var th = document.createElement('th');
-            th.textContent = h;
-            hr.appendChild(th);
-        });
+        var html = '<thead><tr>' +
+            '<th></th>' +
+            '<th>Timestamp</th>' +
+            '<th>Sentence</th>' +
+            '<th>Tier</th>' +
+            '<th>Lecture nr</th>' +
+            '<th>Lecture name</th>' +
+            '<th>Script_EN URL</th>' +
+            '</tr></thead><tbody>';
 
-        var tbody = table.createTBody();
-        rows.forEach(function (row) {
-            var tr = tbody.insertRow();
-            var tdDate = tr.insertCell();
-            tdDate.textContent = row.date || row.Date || '';
+        if (!rows || rows.length === 0) {
+            html += '<tr><td colspan="7" class="empty-result-message">' + t('noTranscriptResults') + '</td></tr>';
+        } else {
+            rows.forEach(function (row) {
+                var ts = utils.escapeHtml(row.ts || '');
+                var sentence = highlightSentencePrefix(row.sentence || '', foldedWords);
+                var tier = utils.escapeHtml(row.tier || '');
+                var nr = row.nr;
+                var nameText = row.name || ('Nr.' + nr);
 
-            var tdName = tr.insertCell();
-            var lectureName = row.original_file_name || row['Original file name'] || '';
-            var lectureNr = row.nr || row['Nr.'] || '';
-            if (lectureNr && hasSummary(lectureNr)) {
-                var link = document.createElement('a');
-                link.href = '#';
-                link.textContent = lectureName;
-                link.style.cssText = 'color:inherit;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;';
-                link.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    PPP.ui.openSummaryModal(lectureName, lectureNr);
-                });
-                tdName.appendChild(link);
-            } else {
-                tdName.textContent = lectureName;
-            }
+                var nameCell;
+                if (nr != null && nr !== '') {
+                    var nrInt = parseInt(nr, 10);
+                    var openCall = "PPP.app.openHtmlTranscriptViewer(" + nrInt + ", 'en'); return false;";
+                    nameCell = '<a href="#" style="color:inherit;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;" ' +
+                        'onclick="' + openCall + '">' + utils.escapeHtml(nameText) + '</a>';
+                } else {
+                    nameCell = utils.escapeHtml(nameText);
+                }
 
-            var tdSnippet = tr.insertCell();
-            var text = row.text_content || row.text || row.content || '';
-            var snippet = getSnippet(text, searchTerms, 120);
-            tdSnippet.innerHTML = highlightSearchTerms(snippet, searchTerms);
-            tdSnippet.style.fontSize = '12px';
-            tdSnippet.style.lineHeight = '1.5';
-        });
+                var urlCell = '';
+                if (row.url) {
+                    urlCell = '<a href="' + utils.escapeHtml(row.url) + '" target="_blank" rel="noopener">' +
+                        utils.escapeHtml(row.url) + '</a>';
+                }
 
-        container.parentNode.replaceChild(table, container);
-        table.id = 'resultsTable';
+                // data-nr on the row lets us drop in the multi-select checkbox as a
+                // DOM node (below) — the checkbox reuses the SAME "<nr>|en" selection
+                // key space as the metadata-table checkboxes and the existing ZIP flow.
+                html += '<tr data-nr="' + utils.escapeHtml(String(nr != null ? nr : '')) + '">' +
+                    '<td class="sel-cell"></td>' +
+                    '<td>' + ts + '</td>' +
+                    '<td>' + sentence + '</td>' +
+                    '<td>' + tier + '</td>' +
+                    '<td>' + utils.escapeHtml(String(nr != null ? nr : '')) + '</td>' +
+                    '<td>' + nameCell + '</td>' +
+                    '<td style="font-size:0.85em;word-break:break-all;">' + urlCell + '</td>' +
+                    '</tr>';
+            });
+        }
+        html += '</tbody>';
+        table.innerHTML = html;
+
+        // Per-row selection checkbox — built as a DOM node (innerHTML can't host
+        // the onchange closure _makeSelCheckbox() needs) and dropped into the
+        // empty first <td> reserved above. English-only (sentences DB is EN).
+        if (rows && rows.length > 0) {
+            var trs = table.querySelectorAll('tbody tr[data-nr]');
+            trs.forEach(function (tr) {
+                var nrAttr = tr.getAttribute('data-nr');
+                if (!nrAttr) return;
+                var cell = tr.querySelector('td.sel-cell');
+                if (cell) cell.appendChild(_makeSelCheckbox(nrAttr, 'en', 'EN'));
+            });
+        }
+
+        // Show/hide the persistent "Download selected" button + panel — same
+        // mechanism the metadata table results use.
+        if (PPP.app && PPP.app.showSelectToggle) {
+            PPP.app.showSelectToggle(!!(rows && rows.length > 0));
+        }
     }
 
     /**
@@ -631,6 +680,45 @@ PPP.ui = (function () {
             });
         });
         return result;
+    }
+
+    /**
+     * Compute the length (in original code units of `run`) whose folded
+     * (diacritic-stripped, lowercased) form has exactly `wLen` characters.
+     * Robust to combining marks folding to zero-width and multi-char folds.
+     */
+    function _foldedPrefixLen(run, wLen) {
+        var acc = 0, i = 0;
+        while (i < run.length && acc < wLen) {
+            acc += utils.removeDiacritics(run[i].toLowerCase()).length;
+            i++;
+        }
+        return i;
+    }
+
+    /**
+     * Diacritic- and case-insensitive, word-start-prefix highlighter for the
+     * sentence-search ("Text" mode) results table. Unlike highlightSearchTerms
+     * (which does whole-term/whole-word matching for the other search modes),
+     * this matches a folded WORD PREFIX so "mahaprabh" highlights "Mahāprabh"
+     * inside "Mahāprabhu" without highlighting the trailing "u".
+     *
+     * foldedWords: already diacritic-stripped, lowercased search words.
+     */
+    function highlightSentencePrefix(text, foldedWords) {
+        if (!text || !foldedWords || !foldedWords.length) return utils.escapeHtml(text || '');
+        return text.replace(/[\p{L}\p{M}\p{N}]+|[^\p{L}\p{M}\p{N}]+/gu, function (tok) {
+            if (!/^[\p{L}\p{M}\p{N}]/u.test(tok)) return utils.escapeHtml(tok);
+            var folded = utils.removeDiacritics(tok.toLowerCase());
+            var best = null;
+            foldedWords.forEach(function (w) {
+                if (w && folded.indexOf(w) === 0 && (!best || w.length > best.length)) best = w;
+            });
+            if (!best) return utils.escapeHtml(tok);
+            var prefixLen = _foldedPrefixLen(tok, best.length);
+            return '<span style="background-color: #fce9b8; border-radius: 2px; padding: 0 2px;">' +
+                utils.escapeHtml(tok.slice(0, prefixLen)) + '</span>' + utils.escapeHtml(tok.slice(prefixLen));
+        });
     }
 
     /**
@@ -919,13 +1007,11 @@ PPP.ui = (function () {
     var _extrasCache = null;
     var _extrasLoading = null;
 
-    function loadExtras() {
-        if (_extrasCache) return Promise.resolve(_extrasCache);
-        if (_extrasLoading) return _extrasLoading;
+    function _loadExtrasNetwork() {
         var versionsP = (window.PPP && PPP.db && PPP.db.getDbVersions)
             ? PPP.db.getDbVersions()
             : Promise.resolve({});
-        _extrasLoading = versionsP
+        return versionsP
             .then(function (v) {
                 var url = 'data/ppp_lecture_extras.json' +
                     (v && v.extras ? ('?v=' + v.extras) : '');
@@ -934,6 +1020,22 @@ PPP.ui = (function () {
             .then(function (r) {
                 if (!r.ok) throw new Error('extras HTTP ' + r.status);
                 return r.json();
+            });
+    }
+
+    function loadExtras() {
+        if (_extrasCache) return Promise.resolve(_extrasCache);
+        if (_extrasLoading) return _extrasLoading;
+        // Offline-first: the installed library keeps extras gzipped in the
+        // IndexedDB store (core:extras). Network stays as the fallback for
+        // unsupported browsers / not-yet-installed state.
+        var offlineP = (window.PPP && PPP.offlineStore && PPP.offlineStore.supported())
+            ? PPP.offlineStore.getText('core:extras').catch(function () { return null; })
+            : Promise.resolve(null);
+        _extrasLoading = offlineP
+            .then(function (txt) {
+                if (txt) return JSON.parse(txt);
+                return _loadExtrasNetwork();
             })
             .then(function (data) {
                 _extrasCache = data || {};
@@ -949,6 +1051,15 @@ PPP.ui = (function () {
                 return {};
             });
         return _extrasLoading;
+    }
+
+    /**
+     * Drop the in-memory extras cache (delta update replaced core:extras in
+     * the offline store) so the next loadExtras() re-reads fresh data.
+     */
+    function clearExtrasCache() {
+        _extrasCache = null;
+        _extrasLoading = null;
     }
 
     function getExtras(nr) {
@@ -1011,6 +1122,46 @@ PPP.ui = (function () {
         });
     }
 
+    // ===== TOASTS & UPDATE NOTES =====
+
+    var _toastTimer = null;
+
+    /**
+     * Small transient message, bottom center. Reuses the .copy-toast styling.
+     */
+    function toast(text) {
+        var el = document.getElementById('uiToast');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'uiToast';
+            el.className = 'copy-toast';
+            document.body.appendChild(el);
+        }
+        el.textContent = text;
+        el.classList.add('show');
+        if (_toastTimer) clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3000);
+    }
+
+    /**
+     * Discreet one-line note (delta update summary) styled like the
+     * extrasLoadingInfo indicator; auto-hides after 6 s.
+     */
+    function showUpdateNote(text) {
+        var el = document.getElementById('updateNoteInfo');
+        if (!el) {
+            var info = document.getElementById('resultsInfo');
+            if (!info || !info.parentNode) return;
+            el = document.createElement('div');
+            el.id = 'updateNoteInfo';
+            el.style.cssText = 'font-size:0.8em;color:#888;margin-top:4px;';
+            info.parentNode.insertBefore(el, info.nextSibling);
+        }
+        el.textContent = text;
+        el.style.display = 'block';
+        setTimeout(function () { el.style.display = 'none'; }, 6000);
+    }
+
     function closeSummaryModal(e) {
         var overlay = document.getElementById('summaryModalOverlay');
         if (!overlay) return;
@@ -1021,7 +1172,7 @@ PPP.ui = (function () {
 
     return {
         renderResults: renderResults,
-        renderTranscriptResults: renderTranscriptResults,
+        renderSentenceResults: renderSentenceResults,
         renderCitationResults: renderCitationResults,
         renderCitationStats: renderCitationStats,
         renderPagination: renderPagination,
@@ -1029,6 +1180,7 @@ PPP.ui = (function () {
         renderTopics: renderTopics,
         renderStats: renderStats,
         highlightSearchTerms: highlightSearchTerms,
+        highlightSentencePrefix: highlightSentencePrefix,
         getSnippet: getSnippet,
         showLoading: showLoading,
         hideLoading: hideLoading,
@@ -1036,6 +1188,9 @@ PPP.ui = (function () {
         updateProgress: updateProgress,
         loadExtras: loadExtras,
         extrasReady: extrasReady,
+        clearExtrasCache: clearExtrasCache,
+        toast: toast,
+        showUpdateNote: showUpdateNote,
         getColumnHeader: getColumnHeader,
         columnHeaders: columnHeaders,
         openSummaryModal: openSummaryModal,
