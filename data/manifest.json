@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-07-20T13:41:26.251019+00:00",
+  "generated": "2026-07-20T18:38:04.760388+00:00",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.gz",
@@ -18,10 +18,10 @@
     },
     "sentences": {
       "path": "data/ppp_sentences_en.db.gz",
-      "hash": "31d022361b",
-      "sha256": "9365b5679384846ede31d7ee6830f5a9dece8c95689094b8424556e37f4cecb0",
-      "size": 19606443,
-      "raw": 63619072
+      "hash": "403e76373b",
+      "sha256": "ab77fbd828f0225d7c9f7066fadac6da71c0ed4f27cbcf0cb9cda1863458287b",
+      "size": 19867662,
+      "raw": 66031616
     }
   },
   "packs": [
@@ -407,7 +407,7 @@
     }
   ],
   "totals": {
-    "bytes": 204468052,
+    "bytes": 204729271,
     "files": 11070
   }
 }
