@@ -11,6 +11,11 @@ PPP.ui = (function () {
     var utils = PPP.utils;
 
     var columnHeaders = ['Date', 'Type', 'Original file name', 'Country', 'Lang.', 'Links', 'Dwnld.', 'Length', 'Script_EN', 'Script_LV', 'Script_RU'];
+    // "In Text" (sentence search) table — SAME column set/renderer as the
+    // metadata table, with exactly two differences (Rājan design, S-current):
+    // no Length column, and a Timestamp column immediately BEFORE the file
+    // name column (whose header reads "File title / Sentence" in this mode).
+    var sentenceColumnHeaders = ['Date', 'Type', 'Timestamp', 'Original file name', 'Country', 'Lang.', 'Links', 'Dwnld.', 'Script_EN', 'Script_LV', 'Script_RU'];
 
     /**
      * Build a per-language selection checkbox. ALWAYS rendered next to each
@@ -28,9 +33,62 @@ PPP.ui = (function () {
         cb.onclick = function (e) { e.stopPropagation(); };
         cb.onchange = function (e) {
             var el = e.currentTarget;
-            PPP.app.toggleSelectPair(el.getAttribute('data-nr'), el.getAttribute('data-lang'), el.checked);
+            var applied = PPP.app.toggleSelectPair(el.getAttribute('data-nr'), el.getAttribute('data-lang'), el.checked);
+            // Rejected (e.g. MP3_ZIP_MAX_COUNT hard cap) — snap the checkbox
+            // back to unchecked; the selection Set was never touched.
+            if (applied === false) el.checked = false;
         };
         return cb;
+    }
+
+    /**
+     * Shared script-transcript chip renderer (checkbox + EN/Raw/Duplicate
+     * link). Used by BOTH the metadata table's Script_EN/LV/RU cells
+     * (non-verse mode) and the sentence-search table's Transkripts cell, so
+     * the chip markup/behavior/selection-key semantics never drift apart
+     * between the two tables.
+     *
+     * langLabel precedence: duplicate label > 'Raw' > defaultLangLabel.
+     * Duplicates are never selectable (no checkbox).
+     */
+    function _renderScriptChip(td, nr, langCode, defaultLangLabel, isRaw, isDuplicate, dupLabel, driveUrl) {
+        var langLabel = isDuplicate ? dupLabel : (isRaw ? 'Raw' : defaultLangLabel);
+        var viewBtn = document.createElement('a');
+        viewBtn.href = '#';
+        viewBtn.textContent = langLabel;
+        // S94: class only used by mobile card CSS (desktop keeps inline styles)
+        viewBtn.className = 'script-chip ' + (isDuplicate ? 'script-dup' : (isRaw ? 'script-raw' : 'script-orig'));
+        viewBtn.title = isRaw ? 'Open raw (auto) transcript' : 'Open transcript';
+        if (isDuplicate) {
+            // Duplicate label: blue, 11px, same as Essence
+            viewBtn.style.cssText = 'color:#1a4fa8;font-weight:600;font-size:11px;text-decoration:underline;cursor:pointer;';
+        } else if (isRaw) {
+            // Raw (auto) transcript: muted gray so users see it is not polished
+            viewBtn.style.cssText = 'color:#888;font-weight:600;text-decoration:underline;cursor:pointer;';
+        } else {
+            viewBtn.style.cssText = 'color:var(--saffron);font-weight:700;text-decoration:underline;cursor:pointer;';
+        }
+        viewBtn.setAttribute('data-nr', nr);
+        viewBtn.setAttribute('data-lang', langCode);
+        viewBtn.setAttribute('data-drive-url', driveUrl || '');
+        viewBtn.onclick = function (e) {
+            e.preventDefault();
+            var el = e.currentTarget;
+            var elNr = el.getAttribute('data-nr');
+            var elLang = el.getAttribute('data-lang');
+            var dUrl = el.getAttribute('data-drive-url') || undefined;
+            if (elNr) {
+                PPP.app.openHtmlTranscriptViewer(elNr, elLang, null, null, dUrl);
+            } else if (dUrl) {
+                window.open(dUrl, '_blank');
+            }
+        };
+        // Per-language checkbox ALWAYS rendered before selectable chips
+        // (premium or raw). Duplicates stay non-selectable.
+        if (!isDuplicate) {
+            td.appendChild(_makeSelCheckbox(nr, langCode, langLabel));
+        }
+        td.appendChild(viewBtn);
     }
 
     /**
@@ -47,8 +105,11 @@ PPP.ui = (function () {
 
     /**
      * Build the multi-row table header (same structure as original).
+     * mode 'sentences' swaps in the sentence-search column set (Timestamp
+     * instead of Length, "File title / Sentence" header on the name column).
      */
-    function buildHeader(thead, totalCount) {
+    function buildHeader(thead, totalCount, mode) {
+        var cols = (mode === 'sentences') ? sentenceColumnHeaders : columnHeaders;
         var row0 = thead.insertRow();
         // Extra spacer for star + share columns
         var starSpacer = document.createElement('th');
@@ -84,11 +145,11 @@ PPP.ui = (function () {
         shareTh.style.fontSize = '12px';
         row1.appendChild(shareTh);
 
-        for (var idx = 0; idx < columnHeaders.length; idx++) {
-            var h = columnHeaders[idx];
-            if (h === 'Length') {
+        for (var idx = 0; idx < cols.length; idx++) {
+            var h = cols[idx];
+            if (h === 'Length' || h === 'Timestamp') {
                 var th = document.createElement('th');
-                th.textContent = getColumnHeader(h);
+                th.textContent = (h === 'Timestamp') ? t('sentColTime') : getColumnHeader(h);
                 th.rowSpan = 3;
                 row1.appendChild(th);
                 continue;
@@ -151,7 +212,9 @@ PPP.ui = (function () {
             }
             if (h === 'Script_LV' || h === 'Script_RU') continue;
             var th2 = document.createElement('th');
-            th2.textContent = getColumnHeader(h);
+            th2.textContent = (mode === 'sentences' && h === 'Original file name')
+                ? t('sentColFileSentence')
+                : getColumnHeader(h);
             th2.rowSpan = 3;
             row1.appendChild(th2);
         }
@@ -167,6 +230,7 @@ PPP.ui = (function () {
         // 13-column lecture table into cards. Other tables (citations,
         // transcript snippets) keep the classic table layout.
         table.classList.add('lecture-cards');
+        table.classList.remove('sentence-mode');
         var thead = table.createTHead();
         // Count: only lectures with at least one ORIGINAL transcript (EN/LV/RU non-duplicate)
         var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1, 'Дубикат': 1 };
@@ -193,7 +257,21 @@ PPP.ui = (function () {
         var searchTerms = searchTermStr ? searchTermStr.split(';') : [];
 
         for (var i = startIndex; i < endIndex && i < rows.length; i++) {
-            var row = rows[i];
+            _renderLectureRow(tbody, rows[i], searchTerms, columnHeaders, null);
+        }
+    }
+
+    /**
+     * Render ONE lecture row (star + share + data cells) into tbody.
+     * Shared by the metadata table (cols = columnHeaders, sentCtx = null) and
+     * the sentence-search table (cols = sentenceColumnHeaders, sentCtx =
+     * { ts, sentenceHtml }) so the two tables render identically.
+     * sentCtx.ts fills the Timestamp column; sentCtx.sentenceHtml (already
+     * highlighted + escaped) is appended under the file title, using the same
+     * match-hint visual mechanism as translated titles / essence lines.
+     */
+    function _renderLectureRow(tbody, row, searchTerms, cols, sentCtx) {
+        {
             var tr = tbody.insertRow();
 
             // Star / favorite cell
@@ -241,10 +319,16 @@ PPP.ui = (function () {
                 shareTd.appendChild(shareBtn);
             }
 
-            for (var ci = 0; ci < columnHeaders.length; ci++) {
-                var col = columnHeaders[ci];
+            for (var ci = 0; ci < cols.length; ci++) {
+                var col = cols[ci];
                 var td = tr.insertCell();
                 var val = row[col] || '';
+
+                if (col === 'Timestamp') {
+                    // Sentence-mode only: the matched sentence's time position.
+                    td.textContent = (sentCtx && sentCtx.ts) ? sentCtx.ts : '';
+                    continue;
+                }
 
                 if (col === 'Links' || col === 'Dwnld.' || col === 'Script_EN' || col === 'Script_LV' || col === 'Script_RU') {
                     // For verse search results: all script columns get auto-scroll links
@@ -323,47 +407,10 @@ PPP.ui = (function () {
                             var langCode = defaultLangLabel.toLowerCase();
                             // If the cell value is a duplicate label, show it; otherwise show EN/LV/RU
                             var DUP_LABELS = { 'Duplicate': 1, 'Dublikāts': 1, 'Дубликат': 1, 'Дубикат': 1 };
-                            cellTrim = cellTrim;
                             var isDuplicate = !!DUP_LABELS[cellTrim];
                             var isRaw = (cellTrim === 'Raw');
-                            var langLabel = isDuplicate ? cellTrim : (isRaw ? 'Raw' : defaultLangLabel);
                             var lectNr = (row['Nr.'] || '').toString().trim();
-                            var viewBtn = document.createElement('a');
-                            viewBtn.href = '#';
-                            viewBtn.textContent = langLabel;
-                            // S94: class only used by mobile card CSS (desktop keeps inline styles)
-                            viewBtn.className = 'script-chip ' + (isDuplicate ? 'script-dup' : (isRaw ? 'script-raw' : 'script-orig'));
-                            viewBtn.title = isRaw ? 'Open raw (auto) transcript' : 'Open transcript';
-                            if (isDuplicate) {
-                                // Duplicate label: blue, 11px, same as Essence
-                                viewBtn.style.cssText = 'color:#1a4fa8;font-weight:600;font-size:11px;text-decoration:underline;cursor:pointer;';
-                            } else if (isRaw) {
-                                // Raw (auto) transcript: muted gray so users see it is not polished
-                                viewBtn.style.cssText = 'color:#888;font-weight:600;text-decoration:underline;cursor:pointer;';
-                            } else {
-                                viewBtn.style.cssText = 'color:var(--saffron);font-weight:700;text-decoration:underline;cursor:pointer;';
-                            }
-                            viewBtn.setAttribute('data-nr', lectNr);
-                            viewBtn.setAttribute('data-lang', langCode);
-                            viewBtn.setAttribute('data-drive-url', scriptDriveUrl || '');
-                            viewBtn.onclick = function (e) {
-                                e.preventDefault();
-                                var el = e.currentTarget;
-                                var nr = el.getAttribute('data-nr');
-                                var lang = el.getAttribute('data-lang');
-                                var dUrl = el.getAttribute('data-drive-url') || undefined;
-                                if (nr) {
-                                    PPP.app.openHtmlTranscriptViewer(nr, lang, null, null, dUrl);
-                                } else if (dUrl) {
-                                    window.open(dUrl, '_blank');
-                                }
-                            };
-                            // Per-language checkbox ALWAYS rendered before selectable
-                            // chips (premium or raw). Duplicates stay non-selectable.
-                            if (!isDuplicate) {
-                                td.appendChild(_makeSelCheckbox(lectNr, langCode, langLabel));
-                            }
-                            td.appendChild(viewBtn);
+                            _renderScriptChip(td, lectNr, langCode, defaultLangLabel, isRaw, isDuplicate, cellTrim, scriptDriveUrl);
                             } // end else (not-relevant check)
                         }
                     } else {
@@ -373,6 +420,9 @@ PPP.ui = (function () {
                         if (url && !url.startsWith('http')) url = null;
                         var label = col === 'Dwnld.' ? 'Mp3' : (val || 'Link');
                         if (url) {
+                            if (col === 'Dwnld.' && nr) {
+                                td.appendChild(_makeSelCheckbox(nr, 'mp3', 'Mp3'));
+                            }
                             var a = document.createElement('a');
                             a.href = url;
                             a.textContent = label;
@@ -411,25 +461,38 @@ PPP.ui = (function () {
                     } else {
                         td.innerHTML = highlightSearchTerms(val, searchTerms);
                     }
-                    // Tulkotais nosaukums zem oriģināla (tumši zils) — tikai non-EN valodās
-                    var langPref = localStorage.getItem('preferredLanguage') || 'en';
-                    if (langPref !== 'en' && nr) {
-                        var translatedTitle = getTitleTranslation(nr, langPref);
-                        if (translatedTitle) {
-                            var titleSpan = document.createElement('span');
-                            titleSpan.className = 'match-hint translated-title';
-                            titleSpan.textContent = translatedTitle;
-                            td.appendChild(titleSpan);
+                    if (!sentCtx) {
+                        // Metadata ("In Titles") mode only — Rājan rule: a
+                        // sentence-hit row shows ONLY title + matched sentence,
+                        // never the translated-title hint or the essence line.
+                        // Tulkotais nosaukums zem oriģināla (tumši zils) — tikai non-EN valodās
+                        var langPref = localStorage.getItem('preferredLanguage') || 'en';
+                        if (langPref !== 'en' && nr) {
+                            var translatedTitle = getTitleTranslation(nr, langPref);
+                            if (translatedTitle) {
+                                var titleSpan = document.createElement('span');
+                                titleSpan.className = 'match-hint translated-title';
+                                titleSpan.textContent = translatedTitle;
+                                td.appendChild(titleSpan);
+                            }
                         }
-                    }
-                    // Essence zem nosaukuma (sarkans, prefiksu lokalizē LV/RU)
-                    var essenceText = nr ? getEssence(nr) : '';
-                    if (essenceText) {
-                        var prefix = (langPref === 'lv') ? 'Būtība: ' : (langPref === 'ru') ? 'Суть: ' : 'Essence: ';
-                        var essSpan = document.createElement('span');
-                        essSpan.className = 'match-hint essence-hint';
-                        essSpan.textContent = prefix + essenceText;
-                        td.appendChild(essSpan);
+                        // Essence zem nosaukuma (sarkans, prefiksu lokalizē LV/RU)
+                        var essenceText = nr ? getEssence(nr) : '';
+                        if (essenceText) {
+                            var prefix = (langPref === 'lv') ? 'Būtība: ' : (langPref === 'ru') ? 'Суть: ' : 'Essence: ';
+                            var essSpan = document.createElement('span');
+                            essSpan.className = 'match-hint essence-hint';
+                            essSpan.textContent = prefix + essenceText;
+                            td.appendChild(essSpan);
+                        }
+                    } else if (sentCtx.sentenceHtml) {
+                        // Sentence-mode: the matched sentence (pre-highlighted,
+                        // pre-escaped HTML) under the title — the ONLY extra
+                        // line in this cell.
+                        var sentSpan = document.createElement('span');
+                        sentSpan.className = 'match-hint sentence-hit';
+                        sentSpan.innerHTML = sentCtx.sentenceHtml;
+                        td.appendChild(sentSpan);
                     }
                 } else {
                     td.innerHTML = highlightSearchTerms(val, searchTerms);
@@ -439,14 +502,43 @@ PPP.ui = (function () {
     }
 
     /**
-     * Render advanced transcript (sentence) search results.
+     * Render the empty sentence-mode frame — shown IMMEDIATELY when the user
+     * switches to "In Text" mode, before any search has run, so the results
+     * area changes look (localized headers + distinct header tone) the
+     * instant the mode button is pressed rather than only after a search.
+     * Uses the SAME multi-row header as the metadata table (buildHeader with
+     * mode 'sentences') — the unified full column set.
+     */
+    function renderEmptySentenceTable() {
+        var table = document.getElementById('resultsTable');
+        table.innerHTML = '';
+        table.classList.remove('lecture-cards');
+        table.classList.add('sentence-mode');
+        var thead = table.createTHead();
+        buildHeader(thead, undefined, 'sentences');
+        var tbody = table.createTBody();
+        var r = tbody.insertRow();
+        var c = r.insertCell();
+        c.colSpan = sentenceColumnHeaders.length + 2;
+        c.className = 'empty-result-message';
+        c.textContent = t('sentEmptyHint');
+    }
+
+    /**
+     * Render advanced transcript (sentence) search results — UNIFIED layout
+     * (Rājan design pivot): every sentence hit renders as a FULL metadata
+     * lecture row (star, share, Date, Type, Country, Lang., Links, Dwnld.
+     * incl. mp3 checkbox, EN/LV/RU transcript chips incl. checkboxes) via the
+     * shared _renderLectureRow, with exactly two differences from "In Titles":
+     * a Timestamp column replaces Length (placed just before the file title),
+     * and the matched sentence (highlighted) shows UNDER the file title in
+     * the "File title / Sentence" column (match-hint mechanism). One lecture
+     * can appear in several rows — one per sentence hit.
      * rows: [{ ts, nr, seq, sentence, name, url, tier, date }]
      * totals: { total, lectures, shown }
-     * Columns: Timestamp | Sentence | Tier | Lecture nr | Lecture name | Script_EN URL.
      */
     function renderSentenceResults(rows, searchTermStr, totals, foldedWords) {
         totals = totals || {};
-        var searchTerms = searchTermStr ? searchTermStr.split(';').map(function (s) { return s.trim(); }).filter(Boolean) : [];
         foldedWords = foldedWords || [];
 
         // Summary line + Download Excel button above the table.
@@ -466,75 +558,47 @@ PPP.ui = (function () {
         }
 
         var table = document.getElementById('resultsTable');
-        table.classList.remove('lecture-cards'); // not the 13-col lecture table
-
-        var html = '<thead><tr>' +
-            '<th></th>' +
-            '<th>Timestamp</th>' +
-            '<th>Sentence</th>' +
-            '<th>Tier</th>' +
-            '<th>Lecture nr</th>' +
-            '<th>Lecture name</th>' +
-            '<th>Script_EN URL</th>' +
-            '</tr></thead><tbody>';
+        table.innerHTML = '';
+        // sentence-mode (olive header) instead of lecture-cards: the mobile
+        // card CSS is tuned for the "In Titles" result set; sentence hits
+        // keep the classic table layout like citations do.
+        table.classList.remove('lecture-cards');
+        table.classList.add('sentence-mode');
+        var thead = table.createTHead();
+        buildHeader(thead, undefined, 'sentences');
+        var tbody = table.createTBody();
 
         if (!rows || rows.length === 0) {
-            html += '<tr><td colspan="7" class="empty-result-message">' + t('noTranscriptResults') + '</td></tr>';
+            var r0 = tbody.insertRow();
+            var c0 = r0.insertCell();
+            c0.colSpan = sentenceColumnHeaders.length + 2;
+            c0.className = 'empty-result-message';
+            c0.textContent = t('noTranscriptResults');
         } else {
             rows.forEach(function (row) {
-                var ts = utils.escapeHtml(row.ts || '');
-                var sentence = highlightSentencePrefix(row.sentence || '', foldedWords);
-                var tier = utils.escapeHtml(row.tier || '');
-                var nr = row.nr;
-                var nameText = row.name || ('Nr.' + nr);
-
-                var nameCell;
-                if (nr != null && nr !== '') {
-                    var nrInt = parseInt(nr, 10);
-                    var openCall = "PPP.app.openHtmlTranscriptViewer(" + nrInt + ", 'en'); return false;";
-                    nameCell = '<a href="#" style="color:inherit;text-decoration:underline;text-decoration-style:dotted;cursor:pointer;" ' +
-                        'onclick="' + openCall + '">' + utils.escapeHtml(nameText) + '</a>';
-                } else {
-                    nameCell = utils.escapeHtml(nameText);
+                var nr = (row.nr != null) ? String(row.nr) : '';
+                // Full lecture metadata row from the already-loaded meta DB.
+                // If it is missing (should not happen — sentences DB is built
+                // from the same lectures), fall back to a minimal stub built
+                // from the sentences DB fields so the row still renders
+                // (title + EN chip + timestamp; other cells stay empty).
+                var metaRow = (nr && PPP.app && PPP.app.getDbRowByNr) ? PPP.app.getDbRowByNr(nr) : null;
+                if (!metaRow) {
+                    metaRow = {
+                        'Nr.': nr,
+                        'Original file name': row.name || ('Nr.' + nr),
+                        'Script_EN': ((row.tier || '').toString().toLowerCase() === 'raw') ? 'Raw' : 'EN',
+                        'Script_EN_url': row.url || ''
+                    };
                 }
-
-                var urlCell = '';
-                if (row.url) {
-                    if (utils.isSafeUrl(row.url)) {
-                        urlCell = '<a href="' + utils.escapeHtml(row.url) + '" target="_blank" rel="noopener">' +
-                            utils.escapeHtml(row.url) + '</a>';
-                    } else {
-                        urlCell = utils.escapeHtml(row.url);
-                    }
-                }
-
-                // data-nr on the row lets us drop in the multi-select checkbox as a
-                // DOM node (below) — the checkbox reuses the SAME "<nr>|en" selection
-                // key space as the metadata-table checkboxes and the existing ZIP flow.
-                html += '<tr data-nr="' + utils.escapeHtml(String(nr != null ? nr : '')) + '">' +
-                    '<td class="sel-cell"></td>' +
-                    '<td>' + ts + '</td>' +
-                    '<td>' + sentence + '</td>' +
-                    '<td>' + tier + '</td>' +
-                    '<td>' + utils.escapeHtml(String(nr != null ? nr : '')) + '</td>' +
-                    '<td>' + nameCell + '</td>' +
-                    '<td style="font-size:0.85em;word-break:break-all;">' + urlCell + '</td>' +
-                    '</tr>';
-            });
-        }
-        html += '</tbody>';
-        table.innerHTML = html;
-
-        // Per-row selection checkbox — built as a DOM node (innerHTML can't host
-        // the onchange closure _makeSelCheckbox() needs) and dropped into the
-        // empty first <td> reserved above. English-only (sentences DB is EN).
-        if (rows && rows.length > 0) {
-            var trs = table.querySelectorAll('tbody tr[data-nr]');
-            trs.forEach(function (tr) {
-                var nrAttr = tr.getAttribute('data-nr');
-                if (!nrAttr) return;
-                var cell = tr.querySelector('td.sel-cell');
-                if (cell) cell.appendChild(_makeSelCheckbox(nrAttr, 'en', 'EN'));
+                var sentCtx = {
+                    ts: row.ts || '',
+                    sentenceHtml: highlightSentencePrefix(row.sentence || '', foldedWords)
+                };
+                // searchTerms deliberately [] — highlighting belongs to the
+                // sentence line, not the title (the sentence words need not
+                // appear in the title at all).
+                _renderLectureRow(tbody, metaRow, [], sentenceColumnHeaders, sentCtx);
             });
         }
 
@@ -596,6 +660,7 @@ PPP.ui = (function () {
         var table = document.getElementById('resultsTable');
         table.innerHTML = '';
         table.classList.add('lecture-cards'); // S94: keep card layout hook on empty state too
+        table.classList.remove('sentence-mode');
         var thead = table.createTHead();
         buildHeader(thead);
         var tbody = table.createTBody();
@@ -805,6 +870,7 @@ PPP.ui = (function () {
     function renderCitationResults(rows, searchTerms) {
         var table = document.getElementById('resultsTable');
         table.classList.remove('lecture-cards'); // not the 13-col lecture table
+        table.classList.remove('sentence-mode');
         var html = '<thead><tr>' +
             '<th>Reference</th>' +
             '<th>Source</th>' +
@@ -847,6 +913,7 @@ PPP.ui = (function () {
     function renderCitationStats(rows) {
         var table = document.getElementById('resultsTable');
         table.classList.remove('lecture-cards'); // not the 13-col lecture table
+        table.classList.remove('sentence-mode');
         var html = '<thead><tr>' +
             '<th>Source</th>' +
             '<th>Total Citations</th>' +
@@ -1177,6 +1244,7 @@ PPP.ui = (function () {
     return {
         renderResults: renderResults,
         renderSentenceResults: renderSentenceResults,
+        renderEmptySentenceTable: renderEmptySentenceTable,
         renderCitationResults: renderCitationResults,
         renderCitationStats: renderCitationStats,
         renderPagination: renderPagination,

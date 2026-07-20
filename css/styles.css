@@ -672,6 +672,20 @@ h1 {
     box-shadow: 0 3px 10px rgba(139,105,20,0.5), inset 0 0 0 2px rgba(255,255,255,0.5) !important;
     z-index: 1;
 }
+/* Rājan UX: the ACTIVE "In Text" button carries the sentence-mode identity —
+   the same olive gradient/tones as the .sentence-mode thead, so the pressed
+   mode button and the results header read as one environment. Placed after
+   (and same specificity as) the gold .active rule above so it wins. */
+.text-search-btn.active {
+    background: linear-gradient(180deg, #5b6b3f, #46552e) !important;
+    color: #f7f0d8 !important;
+    box-shadow: 0 3px 10px rgba(70,85,46,0.5), inset 0 0 0 2px rgba(247,240,216,0.35) !important;
+}
+body.dark .text-search-btn.active {
+    background: linear-gradient(180deg, #3d3018, #2f2512) !important;
+    color: #f0dfa8 !important;
+    box-shadow: 0 3px 10px rgba(47,37,18,0.6), inset 0 0 0 2px rgba(240,223,168,0.3) !important;
+}
 .search-row {
     display: flex;
     gap: 0 !important;
@@ -1261,6 +1275,30 @@ h1 {
     text-decoration: underline;
 }
 
+/* "In Text" (sentence search) results header — deliberately different tone
+   from the normal cream/gold lecture-table header, so switching modes feels
+   like stepping into a different environment (Rājan UX requirement). Deep
+   olive/sage in the base palette, deep golden-brown in dark mode. */
+#resultsTable.sentence-mode thead th {
+    background: linear-gradient(180deg, #5b6b3f, #46552e) !important;
+    color: #f7f0d8;
+    border-bottom: 2px solid #8a9a5a;
+}
+body.dark #resultsTable.sentence-mode thead th {
+    background: linear-gradient(180deg, #3d3018, #2f2512) !important;
+    color: #f0dfa8;
+    border-bottom: 2px solid var(--saffron);
+}
+/* Unified sentence-mode header reuses the metadata header block — its
+   "Transcripts & Translations" label is inline-styled dark blue, unreadable
+   on the olive/dark header, so recolor it here. */
+#resultsTable.sentence-mode thead .transcripts-block div[data-i18n="transcriptsAndTranslations"] {
+    color: #f7f0d8 !important;
+}
+body.dark #resultsTable.sentence-mode thead .transcripts-block div[data-i18n="transcriptsAndTranslations"] {
+    color: #f0dfa8 !important;
+}
+
 .empty-result-message {
     font-size: 13px;
     color: var(--text-muted);
@@ -1332,6 +1370,17 @@ th.transcripts-block {
     font-weight: 600;
     font-style: normal;
     font-size: 12px;
+}
+/* "In Text" mode: matched sentence shown under the file title (same
+   match-hint mechanism as essence/translated-title, but body-text tone so
+   the highlighted words stand out inside a readable sentence). */
+.match-hint.sentence-hit {
+    color: var(--text, #222);
+    font-style: normal;
+    font-size: 12px;
+}
+body.dark .match-hint.sentence-hit {
+    color: #ddd;
 }
 
 /* ===== PAGINATION ===== */
