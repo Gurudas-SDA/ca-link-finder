@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-07-21T08:25:19.693007+00:00",
+  "generated": "2026-07-21T09:11:34.278020+00:00",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.gz",
-      "hash": "2d62b46aba",
-      "sha256": "a249f6ff8fdb45e1cad9dae3023d8fc0ea08df227e710ecc502c342950147df1",
-      "size": 6508543,
+      "hash": "02b2f03c4e",
+      "sha256": "ebbc90e1d13190468064b7cdd2781732fcaa16c70699193902cd440a8dcd168c",
+      "size": 6509790,
       "raw": 34021376
     },
     "extras": {
@@ -130,10 +130,10 @@
       "kind": "prem",
       "lang": "lv",
       "path": "packs/prem-lv-0005.pack",
-      "hash": "3da79aaebc",
-      "sha256": "7d22ebce83d254b063a7199c5108a7064fa81f2087c354a725e29b0ecf722eb5",
-      "size": 186536,
-      "count": 6
+      "hash": "818ef1922a",
+      "sha256": "e0c0151e7871f719d939925df025ef96682a2deef719b5cd1ed29836afbf5b2b",
+      "size": 245519,
+      "count": 7
     },
     {
       "id": "prem-ru-0000",
@@ -190,10 +190,10 @@
       "kind": "prem",
       "lang": "ru",
       "path": "packs/prem-ru-0005.pack",
-      "hash": "778f5b590b",
-      "sha256": "a7c590c860589a6670471793c2cbf881cc18198357f32e4f3d5e3e2bf088006f",
-      "size": 219651,
-      "count": 6
+      "hash": "dd2bd3dc87",
+      "sha256": "de5f33af27813716cda3c4ff0ed882da1bee8b6992fa580431ff5efb7ef6d69d",
+      "size": 289562,
+      "count": 7
     },
     {
       "id": "raw-en-0000",
@@ -407,8 +407,8 @@
     }
   ],
   "totals": {
-    "bytes": 204729266,
-    "files": 11070
+    "bytes": 204859407,
+    "files": 11072
   },
   "sentenceShards": [
     {
