@@ -290,7 +290,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
 
     const texts = await buttons.allTextContents();
     const joined = texts.join(' | ');
-    for (const needle of ['By 2026', 'By Added', 'Top Searches', 'By Verse', 'Verses (Top)', 'Favorites']) {
+    for (const needle of ['Filters', 'By Added', 'Top Searches', 'By Verse', 'Verses (Top)', 'Favorites']) {
       expect(joined).toContain(needle);
     }
 
@@ -298,22 +298,23 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(flexWrap).toBe('nowrap');
   });
 
-  test('15. By 2026 button exists and is clickable', async ({ page }) => {
+  test('15. Filters button exists and is clickable', async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto('./');
     await waitForAppReady(page);
 
-    const btn = page.locator('.search-quick-buttons.main-button-row .combo-btn', { hasText: 'By 2026' });
+    const btn = page.locator('.search-quick-buttons.main-button-row .combo-btn', { hasText: 'Filters' });
     await expect(btn).toBeVisible();
     await btn.click();
     await page.waitForTimeout(500);
+    await expect(page.locator('#filtersPanel')).toBeVisible();
 
     const critical = errors.filter(e =>
       !e.includes('favicon') && !e.includes('umami') && !e.includes('service-worker')
     );
     expect(critical).toHaveLength(0);
 
-    const isFn = await page.evaluate(() => typeof window.PPP?.app?.showBy2026 === 'function');
+    const isFn = await page.evaluate(() => typeof window.PPP?.app?.toggleFilters === 'function');
     expect(isFn).toBe(true);
   });
 
