@@ -24,7 +24,7 @@ PPP.search = (function () {
      * Supports: AND (;), OR (//), has:, subject:, lang:, source: (@), latest_files:, latest_transcripts:
      */
     function parseSearchQuery(input) {
-        if (!input) return { terms: [], filters: {}, isLatestFiles: false, isLatestTranscripts: false, orGroups: [] };
+        if (!input) return { terms: [], filters: { source: [], has: [], subject: [], lang: [], year: [], country: [], latestTranscripts: [], latestFiles: [] }, isLatestFiles: false, isLatestTranscripts: false, otherTerms: [], orGroups: [] };
 
         var searchTerms = input.split(';').map(function (s) { return s.trim(); }).filter(Boolean);
 
@@ -32,6 +32,8 @@ PPP.search = (function () {
         var hasTerms = [];
         var subjectTerms = [];
         var langTerms = [];
+        var yearTerms = [];
+        var countryTerms = [];
         var latestTranscriptsTerms = [];
         var latestFilesTerms = [];
         var otherTerms = [];
@@ -46,6 +48,18 @@ PPP.search = (function () {
                 subjectTerms.push(t);
             } else if (tl.startsWith('lang:')) {
                 langTerms.push(t);
+            } else if (tl.startsWith('year:')) {
+                // year:2024,2025 — comma-separated 4-digit years (Filters panel).
+                t.slice(5).split(',').forEach(function (y) {
+                    y = y.trim();
+                    if (/^\d{4}$/.test(y)) yearTerms.push(y);
+                });
+            } else if (tl.startsWith('country:')) {
+                // country:RUS,LVA — comma-separated canonical codes (Filters panel).
+                t.slice(8).split(',').forEach(function (cc) {
+                    cc = cc.trim();
+                    if (cc) countryTerms.push(cc);
+                });
             } else if (tl.startsWith('latest_transcripts:')) {
                 latestTranscriptsTerms.push(t);
             } else if (tl.startsWith('latest_files:')) {
@@ -67,6 +81,8 @@ PPP.search = (function () {
                 has: hasTerms,
                 subject: subjectTerms,
                 lang: langTerms,
+                year: yearTerms,
+                country: countryTerms,
                 latestTranscripts: latestTranscriptsTerms,
                 latestFiles: latestFilesTerms
             },
@@ -124,6 +140,40 @@ PPP.search = (function () {
                 return "(LOWER(l.lang) = " + key + " OR LOWER(l.lang) LIKE " + keyP + ")";
             });
             conditions.push('(' + langConds.join(' OR ') + ')');
+        }
+
+        // year: filter (Filters panel). OR within the group (any selected year),
+        // ANDed against the rest. Matches the 4-digit prefix of the date column.
+        if (parsed.filters.year && parsed.filters.year.length > 0) {
+            var yearConds = parsed.filters.year.map(function (y) {
+                var key = '$yr' + (paramIdx++);
+                params[key] = y + '%';
+                return "l.date LIKE " + key;
+            });
+            conditions.push('(' + yearConds.join(' OR ') + ')');
+        }
+
+        // country: filter (Filters panel). OR within the group (any selected
+        // country), ANDed against the rest. The stored cell is "CODE" or
+        // "CODE, City", so a code-prefix match on country_norm covers both.
+        // "Online" has no comma but the same prefix match still works.
+        if (parsed.filters.country && parsed.filters.country.length > 0) {
+            var cfg = (window.PPP && PPP.config) || {};
+            var ctryConds = [];
+            parsed.filters.country.forEach(function (cc) {
+                // Expand the canonical code to every raw variant it folds from
+                // (LVA also matches the drifted "lat" rows). Each raw code
+                // matches the bare cell or a "code, city" cell.
+                var raws = cfg.countryMatchCodes ? cfg.countryMatchCodes(cc) : [cc.toLowerCase()];
+                raws.forEach(function (lc) {
+                    var codeKey = '$ccode' + (paramIdx++);
+                    var cityKey = '$ccity' + (paramIdx++);
+                    params[codeKey] = lc;              // bare code, no city
+                    params[cityKey] = lc + ',%';       // "code, city"
+                    ctryConds.push("l.country_norm = " + codeKey + " OR l.country_norm LIKE " + cityKey);
+                });
+            });
+            if (ctryConds.length > 0) conditions.push('(' + ctryConds.join(' OR ') + ')');
         }
 
         // has: filter (AND, check non-empty columns; includes duplicate-labeled transcripts)
@@ -388,21 +438,27 @@ PPP.search = (function () {
      *
      * Same matching rules as the lecture-name search:
      *   - `;`  = AND groups, `//` = OR alternatives (parsed.orGroups).
-     *   - Each alternative is diacritic-folded (removeDiacritics + lower), split into
-     *     words; every word must co-occur in the SAME sentence (word AND).
+     *   - Each alternative is diacritic-folded (removeDiacritics + lower) and matched
+     *     as ONE CONTIGUOUS PHRASE, exactly like the lecture-name search: `guru
+     *     tattva` finds "guru tattva" / "guru-tattva", NOT every sentence that
+     *     happens to contain both words apart. (Corrected 2026-07-24: this mode
+     *     had split terms into ANDed words, contradicting both the stated rule
+     *     above and the comment right here.)
      *   - Prefix filters (subject:/lang:/@source/has:) are IGNORED in this mode — the
      *     sentences DB carries no such metadata (documented v1 limitation).
      *
-     * PREFIX (word-start) matching: each word matches s.sentence_search LIKE
-     * '% word%'. sentence_search is diacritic-folded, lowercased, with every
+     * PREFIX (word-start) matching: the phrase matches s.sentence_search LIKE
+     * '% word[ word...]%'. sentence_search is diacritic-folded, lowercased, with every
      * run of non-alphanumeric chars collapsed to a single space and padded
      * with one leading/trailing space (built by scripts/build_sentences_db.py
      * to_search()). The leading space in the LIKE pattern anchors the match
      * to a word START, and the missing trailing space allows any suffix. So
      * `rice` matches `rice`/`rices` (word-start) but NOT `price`/`priceless`
      * (no space before "rice" there); `feather` matches `feather`/`feathers`.
-     * Words are sanitized to [a-z0-9] the same way the column is built; a term
-     * with internal punctuation (e.g. a hyphen) splits into multiple ANDed words.
+     * The same anchor+open-suffix applies to the phrase as a whole, so
+     * `guru tattva` also matches `guru tattvam`. Words are sanitized to
+     * [a-z0-9] the same way the column is built, so any internal punctuation
+     * in the term simply becomes a space inside the phrase.
      *
      * Returns { sql, countSql, params } — or null when there is no free-text term.
      * The main query takes a $limit param (default 500); callers may override it
@@ -425,13 +481,14 @@ PPP.search = (function () {
                 // punctuation (e.g. a hyphen) yields multiple ANDed words.
                 var words = normalized.split(/[^a-z0-9]+/).filter(Boolean);
                 if (words.length === 0) return null;
-                // Each word must appear at a WORD-START in the same sentence (AND).
-                var wordConds = words.map(function (word) {
-                    var key = '$tw' + (paramIdx++);
-                    params[key] = '% ' + word + '%';
-                    return "s.sentence_search LIKE " + key;
-                });
-                return "(" + wordConds.join(" AND ") + ")";
+                // ONE contiguous phrase — the words must appear next to each
+                // other, in this order, exactly as in the lecture-name search.
+                // sentence_search collapses every non-alphanumeric run to a
+                // single space, so joining with ' ' also matches punctuated
+                // forms: "guru tattva" hits "guru-tattva" and "Guru Tattva".
+                var key = '$tw' + (paramIdx++);
+                params[key] = '% ' + words.join(' ') + '%';
+                return "(s.sentence_search LIKE " + key + ")";
             }).filter(Boolean);
             if (groupConds.length > 0) {
                 conditions.push('(' + groupConds.join(' OR ') + ')');
@@ -443,11 +500,32 @@ PPP.search = (function () {
         }
 
         var where = conditions.join(' AND ');
+
+        // year: filter (Filters panel) — ANDed onto the text match. The sentence
+        // DB's `lectures` table carries `date` (but NOT country, so country: is
+        // not supported here). Only applied ON TOP of a text term: a year alone
+        // in "In Text" would scan a whole year of sentences, which belongs to
+        // the "In Titles" browse, not the transcript-text search.
+        var yearWhere = '';
+        if (parsed.filters && parsed.filters.year && parsed.filters.year.length > 0) {
+            var yearConds = parsed.filters.year.map(function (y) {
+                var yk = '$syr' + (paramIdx++);
+                params[yk] = y + '%';
+                return "l.date LIKE " + yk;
+            });
+            yearWhere = '(' + yearConds.join(' OR ') + ')';
+        }
+
+        var mainWhere = yearWhere ? (where + ' AND ' + yearWhere) : where;
         var sql = "SELECT s.ts, s.ts_end, s.nr, s.seq, s.sentence, l.name AS name, l.url AS url, l.tier AS tier, l.date AS date " +
                   "FROM sentences s LEFT JOIN lectures l ON s.nr = l.nr " +
-                  "WHERE " + where +
+                  "WHERE " + mainWhere +
                   " ORDER BY CASE WHEN l.date='unknown' OR l.date IS NULL THEN 1 ELSE 0 END, l.date DESC, s.nr, s.seq ASC LIMIT $limit";
-        var countSql = "SELECT COUNT(*) AS n, COUNT(DISTINCT s.nr) AS lectures FROM sentences s WHERE " + where;
+        // The count query normally skips the lectures JOIN for speed; the year
+        // filter needs l.date, so join only when a year is actually selected.
+        var countSql = yearWhere
+            ? "SELECT COUNT(*) AS n, COUNT(DISTINCT s.nr) AS lectures FROM sentences s LEFT JOIN lectures l ON s.nr = l.nr WHERE " + mainWhere
+            : "SELECT COUNT(*) AS n, COUNT(DISTINCT s.nr) AS lectures FROM sentences s WHERE " + where;
         params.$limit = 500;
 
         return { sql: sql, countSql: countSql, params: params };

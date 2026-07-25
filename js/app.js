@@ -1432,6 +1432,18 @@ PPP.app = (function () {
                 if (ui.clearExtrasCache) ui.clearExtrasCache();
                 startExtrasLoad();
             }
+            if (res.coreChanged && res.coreChanged.sentences) {
+                // Swap the sentence DB this session has open for the fresh IDB
+                // copy. No view refresh: sentence results are queried live, so
+                // the next search already sees the new bytes.
+                db.reloadSentencesFromStore()
+                    .catch(function (e) { console.warn('Sentences refresh failed:', e); });
+            }
+            // Shard set / shard versions can change in the same delta. The
+            // chunked search memoizes them from manifest.json at first use, so
+            // drop that cache whenever anything was applied — cost is one
+            // small manifest re-fetch on the next sentence search.
+            if (db.resetSentenceShards) db.resetSentenceShards();
         });
     }
 
@@ -2399,6 +2411,151 @@ PPP.app = (function () {
     }
 
     function getTranscriptView() { return transcriptView; }
+
+    // ===== FILTERS PANEL (Years + Countries) =====
+    //
+    // Replaces the old "By 2026" quick button. The button toggles a panel of
+    // year + country checkboxes; "Apply" writes readable filter tokens
+    // (`year:2024,2025; country:RUS,LVA`) into the search field and runs the
+    // normal metadata search (parsed by search.js). The panel is rebuilt from
+    // live data on every open and always starts with nothing checked — no
+    // filter state survives a reload (deliberate: a hidden sticky filter is a
+    // classic "why are results missing?" trap).
+    var _filterOptions = null;   // cached {years, countries} derived from data
+
+    function _buildFilterOptions(rows) {
+        var years = {}, countries = {};
+        rows.forEach(function (r) {
+            var ym = String(r.date || '').match(/^(\d{4})/);
+            if (ym) years[ym[1]] = true;
+            var code = (window.PPP && PPP.config && PPP.config.normalizeCountry)
+                ? PPP.config.normalizeCountry(r.country) : null;
+            if (code) countries[code] = true;
+        });
+        return {
+            years: Object.keys(years).sort(function (a, b) { return b - a; }),   // newest first
+            countries: Object.keys(countries).sort(function (a, b) {             // by 3-letter code
+                return a.toUpperCase() < b.toUpperCase() ? -1 : 1;
+            })
+        };
+    }
+
+    function _getFilterOptions() {
+        if (_filterOptions) return Promise.resolve(_filterOptions);
+        if (usingSqlite) {
+            return db.queryMetaAsync("SELECT date, country FROM lectures WHERE nr != ''")
+                .then(function (rows) { _filterOptions = _buildFilterOptions(rows); return _filterOptions; });
+        }
+        var mem = (DB || []).map(function (r) { return { date: r['Date'] || r.date, country: r['Country'] || r.country }; });
+        _filterOptions = _buildFilterOptions(mem);
+        return Promise.resolve(_filterOptions);
+    }
+
+    function _renderFiltersPanel(panel, opts) {
+        var esc = utils.escapeHtml;
+        var lang = i18n.getLanguage() || 'en';
+        // The transcript-sentence DB carries date but NOT country, so in the
+        // "In Text" mode only the Years section is offered.
+        var sentenceMode = (searchMode === 'sentences');
+        var years = opts.years.map(function (y) {
+            return '<label class="flt-item"><input type="checkbox" class="flt-year" value="' + y + '"><span>' + y + '</span></label>';
+        }).join('');
+        var countrySec = '';
+        if (!sentenceMode) {
+            var countries = opts.countries.map(function (code) {
+                var name = PPP.config.countryName(code, lang);
+                return '<label class="flt-item"><input type="checkbox" class="flt-country" value="' + esc(code) +
+                    '"><span>' + esc(code) + ' (' + esc(name) + ')</span></label>';
+            }).join('');
+            countrySec =
+                '<div class="flt-sec"><div class="flt-title">' + esc(i18n.t('filtersCountries')) + '</div>' +
+                    '<div class="flt-grid flt-countries">' + countries + '</div></div>';
+        }
+        panel.innerHTML =
+            '<div class="flt-cols">' +
+                '<div class="flt-sec"><div class="flt-title">' + esc(i18n.t('filtersYears')) + '</div>' +
+                    '<div class="flt-grid flt-years">' + years + '</div></div>' +
+                countrySec +
+            '</div>' +
+            '<div class="flt-actions">' +
+                '<button type="button" class="flt-apply" onclick="PPP.app.applyFilters()">' + esc(i18n.t('filtersApply')) + '</button>' +
+                '<button type="button" class="flt-clear" onclick="PPP.app.clearFilters()">' + esc(i18n.t('filtersClear')) + '</button>' +
+            '</div>';
+    }
+
+    function toggleFilters(evt) {
+        if (evt) evt.stopPropagation();
+        var panel = document.getElementById('filtersPanel');
+        if (!panel) return;
+        if (!panel.hidden) { closeFilters(); return; }
+        if (!dataLoaded) return;
+        _getFilterOptions().then(function (opts) {
+            _renderFiltersPanel(panel, opts);
+            panel.hidden = false;
+            var btn = document.querySelector('.main-button-row .combo-btn-1');
+            if (btn) btn.classList.add('active');
+            document.addEventListener('click', _filtersOutside, true);
+            document.addEventListener('keydown', _filtersEsc, true);
+        });
+    }
+
+    function closeFilters() {
+        var panel = document.getElementById('filtersPanel');
+        if (panel) panel.hidden = true;
+        var btn = document.querySelector('.main-button-row .combo-btn-1');
+        if (btn) btn.classList.remove('active');
+        document.removeEventListener('click', _filtersOutside, true);
+        document.removeEventListener('keydown', _filtersEsc, true);
+    }
+
+    function _filtersOutside(e) {
+        var panel = document.getElementById('filtersPanel');
+        var btn = document.querySelector('.main-button-row .combo-btn-1');
+        if (!panel || panel.hidden) return;
+        if (panel.contains(e.target) || (btn && btn.contains(e.target))) return;
+        closeFilters();
+    }
+    function _filtersEsc(e) { if (e.key === 'Escape' || e.key === 'Esc') closeFilters(); }
+
+    function applyFilters() {
+        var panel = document.getElementById('filtersPanel');
+        if (!panel) return;
+        var years = Array.prototype.map.call(panel.querySelectorAll('.flt-year:checked'), function (c) { return c.value; });
+        var countries = Array.prototype.map.call(panel.querySelectorAll('.flt-country:checked'), function (c) { return c.value; });
+        var input = document.getElementById('searchTerm');
+        var sentenceMode = (searchMode === 'sentences');
+
+        // Keep any free-text the user already typed; drop only the OLD filter
+        // tokens so re-applying replaces (not stacks) year/country.
+        var kept = input.value.split(';').map(function (s) { return s.trim(); }).filter(Boolean)
+            .filter(function (seg) { return !/^year:/i.test(seg) && !/^country:/i.test(seg); });
+
+        var tokens = kept.slice();
+        if (years.length) tokens.push('year:' + years.join(','));
+        // Country applies to lecture metadata only (the sentence DB has no
+        // country column), so it is never emitted in "In Text" mode.
+        if (countries.length && !sentenceMode) tokens.push('country:' + countries.join(','));
+        closeFilters();
+
+        if (sentenceMode) {
+            // "In Text": a year narrows a TEXT search — it needs a word to run.
+            if (kept.length === 0) { ui.toast(i18n.t('enterSearchTerms')); return; }
+            input.value = tokens.join('; ');
+            doSearch();
+            return;
+        }
+        // Titles/verse modes → normalize to the metadata search. setSearchMode
+        // clears the field on a real mode change, so set the value AFTER it.
+        if (searchMode !== 'metadata') setSearchMode('metadata');
+        input.value = tokens.join('; ');
+        if (tokens.length) doSearch();
+    }
+
+    function clearFilters() {
+        var panel = document.getElementById('filtersPanel');
+        if (!panel) return;
+        Array.prototype.forEach.call(panel.querySelectorAll('input[type="checkbox"]'), function (c) { c.checked = false; });
+    }
 
     function setSearchMode(mode) {
         if (_sentenceSearchBusy) { ui.toast(i18n.t('searchInProgress')); return; }
@@ -3413,8 +3570,20 @@ PPP.app = (function () {
         }
     }
 
-    function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference, driveUrl) {
+    function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference, driveUrl, highlightText) {
         track('transcript-open', { nr: String(lectureNr), lang: lang, block: blockIndex || 0 });
+        // "In Text" deep-open: jump to (and highlight) the matched sentence.
+        // Uses the same _pendingHighlight → _highlightAndScroll path as shared
+        // deep links. First ~60 chars are enough to locate it; a miss (e.g.
+        // punctuation drift, or opening a different-language transcript that
+        // lacks the EN sentence) degrades silently to opening at the top.
+        if (highlightText) {
+            var _hlSent = String(highlightText).trim();
+            // Two-tier in the transcript, same as the results row: the matched
+            // sentence gets the yellow band, the searched words inside it turn
+            // green. _sentenceWords holds the current In-Text search words.
+            if (_hlSent) _pendingHighlight = { sentence: _hlSent, words: (_sentenceWords || []).slice() };
+        }
         var overlay = document.getElementById('transcriptModalOverlay');
         var body = document.getElementById('transcriptModalBody');
         var title = document.getElementById('transcriptModalTitle');
@@ -3658,8 +3827,16 @@ PPP.app = (function () {
                 var deepHl = _pendingHighlight;
                 _pendingHighlight = null;
 
-                if (deepHl) {
-                    // Deep link highlight — find text, highlight, scroll
+                if (deepHl && deepHl.sentence) {
+                    // In-Text deep-open: two-tier highlight (yellow sentence +
+                    // green words) with the same drift-tolerant matcher as the
+                    // ZIP export, then scroll the matched sentence into view.
+                    setTimeout(function () {
+                        _wrapMatchesInContainer(body, [deepHl.sentence], deepHl.words || []);
+                        _scrollModalToMark(body.querySelector('mark.tr-sentence'));
+                    }, 150);
+                } else if (deepHl) {
+                    // Shared deep link (start/len) — find text, highlight, scroll.
                     setTimeout(function () {
                         _highlightAndScroll(body, deepHl);
                     }, 150);
@@ -3684,6 +3861,22 @@ PPP.app = (function () {
     }
 
     // ===== TRANSCRIPT TEXT HIGHLIGHT SHARING =====
+
+    // Scroll the modal so `mark` sits ~60px below the top (or center it if the
+    // modal is not the scroll container). Shared by the In-Text two-tier open.
+    function _scrollModalToMark(mark) {
+        if (!mark) return;
+        setTimeout(function () {
+            var modalBody = document.getElementById('transcriptModalBody');
+            if (modalBody && modalBody.contains(mark)) {
+                var mr = mark.getBoundingClientRect();
+                var br = modalBody.getBoundingClientRect();
+                modalBody.scrollTop = Math.max(0, mr.top - br.top + modalBody.scrollTop - 60);
+            } else {
+                mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 300);
+    }
 
     function _highlightAndScroll(container, hlObj) {
         // hlObj = { start: "first 50 chars", len: total_char_count }
@@ -3859,8 +4052,14 @@ PPP.app = (function () {
         // is already diacritic-folded + lowercased (see _sentenceWords). We
         // walk every word-run in the original (unfolded) text and highlight
         // only the folded-prefix portion, so "mahaprabh" highlights the
-        // "Mahāprabh" inside "Mahāprabhu" without the trailing "u". May nest
-        // inside a tr-sentence <mark> from pass 1 — that is intentional.
+        // "Mahāprabh" inside "Mahāprabhu" without the trailing "u".
+        //
+        // ONLY inside a matched sentence: a searched word that appears elsewhere
+        // in the transcript (outside the matched sentences) is NOT highlighted —
+        // green words scattered across the whole lecture were confusing (Rājan,
+        // 2026-07-25). Pass 1 wraps text in <mark> without changing any text
+        // content, so the char offsets from `sentRanges` (built on map1) stay
+        // valid in map2's identical fullText.
         var wordRanges = [];
         var map2 = buildTextMap();
         var wordRe = /[\p{L}\p{M}\p{N}]+/gu;
@@ -3874,7 +4073,11 @@ PPP.app = (function () {
             });
             if (best) {
                 var plen = _foldedPrefixLen(run, best.length);
-                wordRanges.push({ start: wm.index, end: wm.index + plen });
+                var ws = wm.index, we = wm.index + plen;
+                var insideSentence = sentRanges.some(function (sr) {
+                    return ws >= sr.start && we <= sr.end;
+                });
+                if (insideSentence) wordRanges.push({ start: ws, end: we });
             }
             if (wordRe.lastIndex === wm.index) wordRe.lastIndex++; // guard zero-length matches
         }
@@ -4396,6 +4599,9 @@ PPP.app = (function () {
         setLanguage: setLanguage,
         showLatestFiles: showLatestFiles,
         showBy2026: showBy2026,
+        toggleFilters: toggleFilters,
+        applyFilters: applyFilters,
+        clearFilters: clearFilters,
         showLatestTranscripts: showLatestTranscripts,
         showAllTranscriptsByDate: showAllTranscriptsByDate,
         showRecommendations: showRecommendations,
@@ -4441,6 +4647,14 @@ PPP.app = (function () {
         // Internal (test only) — drive the background install directly so the
         // quota-exceeded UI path can be exercised deterministically (P12).
         startBackgroundInstall: startBackgroundInstall,
+        // Internal (test only) — seed the current In-Text search words so the
+        // transcript deep-open two-tier (green tr-word) can be exercised without
+        // running a full 21-shard sentence search.
+        _setSentenceWordsForTest: function (w) { _sentenceWords = (w || []).slice(); },
+        // Internal (test only) — drive the delta-update refresh directly so the
+        // per-core-key reload branches can be exercised with a stubbed
+        // checkForUpdates instead of a real remote manifest change (P14c).
+        _backgroundUpdateCheckForTest: backgroundUpdateCheck,
         // Internal (test only) — unit-test the MP3 ZIP count cap in
         // _addOneToZip / toggleSelectPair without fetching real audio.
         _addOneToZip: _addOneToZip,

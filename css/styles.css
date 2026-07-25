@@ -506,6 +506,71 @@ h1 {
     opacity: 0.82;
     filter: grayscale(0.25);
 }
+
+/* ===== Filters panel (Years + Countries) — toggled by the Filters button ===== */
+.filters-panel {
+    margin: 10px 0 4px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border, rgba(0,0,0,0.12));
+    border-radius: var(--radius, 12px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    text-align: left;
+}
+.filters-panel[hidden] { display: none; }
+.filters-panel .flt-cols {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+}
+.filters-panel .flt-sec { flex: 1 1 240px; min-width: 200px; }
+.filters-panel .flt-title {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--primary, #aa5210);
+    margin-bottom: 8px;
+}
+.filters-panel .flt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 4px 14px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.filters-panel .flt-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 0;
+    line-height: 1.3;
+}
+.filters-panel .flt-item input { flex: 0 0 auto; cursor: pointer; }
+.filters-panel .flt-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, rgba(0,0,0,0.1));
+}
+.filters-panel .flt-apply,
+.filters-panel .flt-clear {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: filter 150ms;
+}
+.filters-panel .flt-apply { background: linear-gradient(135deg, #aa5210, #b45e14); color: #fff; }
+.filters-panel .flt-clear { background: var(--bg-warm, #efe7dc); color: var(--text, #333); }
+.filters-panel .flt-apply:hover,
+.filters-panel .flt-clear:hover { filter: brightness(1.08); }
 /* Sentence ("In Text") results: the matched sentence's time position, shown
    inline in parentheses right after the lecture name (replaces the old
    standalone Timestamp column). Muted + non-wrapping so it reads as a suffix. */
@@ -1432,16 +1497,28 @@ th.transcripts-block {
     font-style: normal;
     font-size: 12px;
 }
-/* "In Text" mode: matched sentence shown under the file title (same
-   match-hint mechanism as essence/translated-title, but body-text tone so
-   the highlighted words stand out inside a readable sentence). */
+/* "In Text" mode: matched sentence shown under the file title. Two-tier
+   highlight matching the ZIP-export download (Rājan's original spec): the
+   whole matched SENTENCE sits on yellow (#fff3a0); the searched WORDS inside
+   it sit on light green (#b6f5c0). Dark text in both themes keeps the
+   green-on-yellow readable. */
 .match-hint.sentence-hit {
-    color: var(--text, #222);
+    color: #222;
     font-style: normal;
     font-size: 12px;
+    background-color: #fff3a0;
+    padding: 3px 6px;
+    border-radius: 4px;
+}
+.match-hint.sentence-hit .sent-word-hit {
+    background-color: #b6f5c0;
+    color: #14310f;
+    border-radius: 2px;
+    padding: 0 2px;
 }
 body.dark .match-hint.sentence-hit {
-    color: #ddd;
+    color: #222;                 /* dark text stays — bg is light yellow */
+    background-color: #fff3a0;
 }
 
 /* ===== PAGINATION ===== */
@@ -1951,6 +2028,25 @@ body.dark .match-hint.sentence-hit {
     border-radius: 2px;
     animation: highlight-pulse 2s ease-in-out 1;
 }
+/* In-Text deep-open two-tier highlight inside the transcript modal — the SAME
+   principle as the results row: matched SENTENCE on yellow, searched WORDS on
+   green. Dark text keeps green-on-yellow readable in both themes; the sentence
+   pulses once to draw the eye after the jump-scroll. */
+#transcriptModalBody mark.tr-sentence {
+    background-color: #fff3a0;
+    color: #222;
+    border-radius: 3px;
+    padding: 1px 2px;
+    animation: highlight-pulse 2s ease-in-out 1;
+}
+#transcriptModalBody mark.tr-word {
+    background-color: #b6f5c0;
+    color: #14310f;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+body.dark #transcriptModalBody mark.tr-sentence { background-color: #fff3a0; color: #222; }
+body.dark #transcriptModalBody mark.tr-word { background-color: #b6f5c0; color: #14310f; }
 body.dark .transcript-deep-highlight {
     background: linear-gradient(135deg, #5a4a1a, #6b5520);
     color: #f0e0a0;
