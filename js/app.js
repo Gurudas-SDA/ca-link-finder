@@ -206,12 +206,10 @@ PPP.app = (function () {
 
     // ===== INIT =====
     function initTheme() {
-        var saved = localStorage.getItem('ppp_theme');
-        var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var isDark = saved === 'dark' || (!saved && prefersDark);
-        if (isDark) document.body.classList.add('dark');
-        var btn = document.getElementById('themeToggle');
-        if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+        // Dark mode toggle removed from the UI (Rājan decision, 2026-07-25).
+        // Body always renders light; the .dark CSS rules are left dormant
+        // (not deleted) so this stays reversible. No stored preference is
+        // read or applied here anymore.
     }
 
     function toggleTheme() {
@@ -225,18 +223,41 @@ PPP.app = (function () {
         initTheme();
         _renderConnectionState();
 
+        // Keep the Favorites button's visibility (gated on count() > 0 — see
+        // updateFavoritesCount) in sync with EVERY favorites mutation, not
+        // just the ones made through the star-button UI's own call sites
+        // (ui.js already calls updateFavoritesCount after its popup actions).
+        // Without this, code that saves a favorite through any other path
+        // (e.g. the backward-compat PPP.favorites.toggle()) leaves the button
+        // hidden even though the save itself succeeded.
+        if (PPP.favorites && PPP.favorites.subscribe) {
+            PPP.favorites.subscribe(updateFavoritesCount);
+        }
+
         var savedLang = localStorage.getItem('preferredLanguage') || 'en';
         setLanguage(savedLang);
+        initOnboarding();
 
-        // Close List of Sources dropdown on any other button click
+        // Close List of Sources dropdown(s) on any other button click
         document.addEventListener('click', function (e) {
-            var sourcesList = document.getElementById('sourcesList');
-            if (!sourcesList || sourcesList.style.display === 'none' || sourcesList.style.display === '') return;
-            var btn = e.target.closest('button');
-            if (!btn) return;
-            if (btn.closest('.top-left-buttons')) return;
-            if (sourcesList.contains(btn)) return;
-            sourcesList.style.display = 'none';
+            ['sourcesList', 'utilSourcesList'].forEach(function (id) {
+                var sourcesList = document.getElementById(id);
+                if (!sourcesList || sourcesList.style.display === 'none' || sourcesList.style.display === '') return;
+                var btn = e.target.closest('button');
+                if (!btn) return;
+                if (btn.closest('.top-left-buttons')) return;
+                if (btn.closest('.onb-intro-after')) return;
+                if (sourcesList.contains(btn)) return;
+                sourcesList.style.display = 'none';
+            });
+        }, true);
+
+        // Close the language chooser (compact button dropdown) on outside click
+        document.addEventListener('click', function (e) {
+            var full = document.getElementById('langSwitcherFull');
+            if (!full || !full.classList.contains('open')) return;
+            if (e.target.closest('#langSwitcherFull') || e.target.closest('#langCompactBtn')) return;
+            full.classList.remove('open');
         }, true);
 
         // Wire search input
@@ -259,8 +280,9 @@ PPP.app = (function () {
             }
         });
 
-        // Ensure metadata mode is active on start
-        setSearchMode('metadata');
+        // Ensure the mode matching the chosen purpose is active on start
+        // (quotes purpose starts in "In Text"; lectures/unset starts in "In Titles").
+        setSearchMode(_currentPurpose() === 'quotes' ? 'sentences' : 'metadata');
 
         // Wire search mode toggle
         var modeButtons = document.querySelectorAll('.search-mode-btn');
@@ -292,7 +314,17 @@ PPP.app = (function () {
             var dismissed = localStorage.getItem('installDismissed');
             var banner = document.getElementById('installBanner');
             if (deferredPrompt || (banner && banner.style.display === 'block') || isStandalone || dismissed) return;
-            var isAndroid = /android/i.test(navigator.userAgent);
+            var ua = navigator.userAgent;
+            var isAndroid = /android/i.test(ua);
+            // "Add to Home Screen" is a PHONE/TABLET gesture. Before the audit
+            // this branch treated every non-Android agent as iOS, so a Windows
+            // or macOS desktop was shown iOS instructions it cannot follow —
+            // and the banner also displaced the first button row there.
+            // Desktop still gets a real offer through beforeinstallprompt
+            // (showInstallBanner('native') above) when the browser supports it.
+            var isIOS = /iphone|ipad|ipod/i.test(ua) ||
+                (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1); // iPadOS 13+
+            if (!isAndroid && !isIOS) return;
             showInstallBanner(isAndroid ? 'android' : 'ios');
         }, 2000);
 
@@ -403,9 +435,20 @@ PPP.app = (function () {
             loadDataLegacy();
             return;
         }
-        store.open().then(function () {
-            return store.getState('localManifest');
-        }).then(function (localManifest) {
+        // Timeout-hardened the same way as _startMandatoryInstallGate/
+        // _requireTextSearchLibrary (Rājan 2026-07-26): a wedged IndexedDB
+        // read here must degrade to the legacy online load, not hang the
+        // app on "Loading the database…" forever.
+        _raceTimeout(
+            store.open().then(function () { return store.getState('localManifest'); }),
+            4000,
+            _OFFLINE_READ_TIMEOUT
+        ).then(function (localManifest) {
+            if (localManifest === _OFFLINE_READ_TIMEOUT) {
+                console.warn('Offline store read timed out, using legacy load');
+                loadDataLegacy();
+                return;
+            }
             if (localManifest) {
                 // Installed — open instantly from IDB, then check for deltas.
                 return openFromIdb().then(function () {
@@ -422,8 +465,8 @@ PPP.app = (function () {
             // usability here comes from the presence of the records, not from
             // the manifest fence (which must keep meaning "complete install").
             return Promise.all([
-                PPP.downloader.getResumeState ? PPP.downloader.getResumeState() : null,
-                PPP.downloader.isCoreReady ? PPP.downloader.isCoreReady() : false
+                PPP.downloader.getResumeState ? _raceTimeout(PPP.downloader.getResumeState(), 4000, null) : null,
+                PPP.downloader.isCoreReady ? _raceTimeout(PPP.downloader.isCoreReady(), 4000, false) : false
             ]).then(function (res) {
                 var resume = res[0];
                 var coreReady = res[1];
@@ -446,11 +489,21 @@ PPP.app = (function () {
                     else _ensureInstallListeners(resume.langs, resume.shards);
                     return;
                 }
-                // ONLINE is the base experience: load online immediately (fully usable).
-                // The offline download is OPTIONAL and offered only via the small
-                // "Work offline" button once the online DB is ready (see
-                // loadDataLegacy() -> onDataLoaded() -> maybeShowOfflineWorkButton()),
-                // never as an upfront banner while the DB is still loading.
+                // ONLINE is the base experience for a RETURNING user (purpose
+                // already chosen in an earlier session) whose device has no
+                // local install yet — e.g. storage was cleared, or offline
+                // isn't supported here. The offline download is then OPTIONAL,
+                // offered via the small "Work offline" button once the online
+                // DB is ready (see loadDataLegacy() -> onDataLoaded() ->
+                // maybeShowOfflineWorkButton()).
+                //
+                // A brand-new user (onboarding gate still open, no purpose
+                // chosen yet) must NOT silently start the online path here —
+                // Rājan decision 2026-07-26: first use goes through the
+                // mandatory install gate instead (setPurpose() ->
+                // _startMandatoryInstallGate()), which calls loadDataLegacy()/
+                // startFirstInstallFlow() itself once the choice is known.
+                if (!_currentPurpose()) return;
                 loadDataLegacy();
                 var auto = false; try { auto = localStorage.getItem('ppp_auto_install') === '1'; } catch (e) {}
                 if (auto) { startBackgroundInstall(); }   // test/CI hook keeps exercising install
@@ -508,6 +561,7 @@ PPP.app = (function () {
         return db.getStatsAsync().then(function (stats) {
             totalLectures = parseInt(stats.total_lectures || '0', 10);
             try { if (totalLectures > 0) localStorage.setItem('ppp_total_lectures', String(totalLectures)); } catch (e) {}
+            updateOnbIntro();
 
             // Also populate DB[] array for backward-compatible features
             return db.queryMetaAsync('SELECT * FROM lectures');
@@ -602,16 +656,75 @@ PPP.app = (function () {
     }
 
     // Cache the EN-base size (MB) so the offline-first-run/offer copy can show a
-    // computed value even before a manifest is fetched this session.
+    // computed value even before a manifest is fetched this session. Also
+    // caches the sentence-shards total (the "Offline text search" opt-in
+    // pack set) for the mobile "In Text" size warning below — same pattern,
+    // read from the SAME manifest fetch so no extra request is needed.
     function _cacheBaseMB(manifest) {
         try {
             var mb = Math.round(PPP.downloader.computeInstallBytes(manifest, []) / 1048576);
             if (mb > 0) localStorage.setItem('ppp_base_mb', String(mb));
         } catch (e) {}
+        try {
+            var shardBytes = 0;
+            (manifest.sentenceShards || []).forEach(function (s) { if (s && s.size) shardBytes += s.size; });
+            var shardMB = Math.round(shardBytes / 1048576);
+            if (shardMB > 0) localStorage.setItem('ppp_shards_mb', String(shardMB));
+        } catch (e) {}
     }
     function _baseMB() {
         try { var v = parseInt(localStorage.getItem('ppp_base_mb'), 10); if (v > 0) return v; } catch (e) {}
         return 151; // EN base fallback (core + prem-en + raw-en ≈ 150.8 MB)
+    }
+    // Measured (2026-07-26): a full "In Text" search transfers ~200.6 MB of
+    // sentence shards. Fallback used until a manifest fetch has cached the
+    // real total in ppp_shards_mb (see _cacheBaseMB above).
+    function _shardsMB() {
+        try { var v = parseInt(localStorage.getItem('ppp_shards_mb'), 10); if (v > 0) return v; } catch (e) {}
+        return 200;
+    }
+
+    // Sentinel distinguishable from every real offlineStore.getState() value
+    // (which includes `null` and `undefined` as legitimate "not set yet"
+    // results) — see _raceTimeout below.
+    var _OFFLINE_READ_TIMEOUT = {};
+
+    /**
+     * Race a promise against a timeout, resolving with `fallback` if the
+     * real promise neither resolves NOR rejects within `ms`. Rājan field
+     * report (2026-07-26): PPP.offlineStore.getState('shards') hung forever
+     * (never resolved, never rejected) on a real device — private browsing
+     * where IndexedDB exists but silently never answers, another tab
+     * holding a blocking version-change transaction, or a wedged embedded
+     * webview are all real, reachable conditions. A `.catch()` on the
+     * original promise cannot help: a promise that never settles never
+     * rejects either. Used at every offlineStore read that gates a visible
+     * response to a user action (the onboarding mandatory-install gate, the
+     * "In Text" search gate) so a stuck IndexedDB call degrades to a clear
+     * fallback instead of leaving the click unanswered. If the real promise
+     * eventually does settle after the timeout already fired, its result is
+     * silently discarded — the caller already moved on.
+     */
+    function _raceTimeout(promise, ms, fallback) {
+        return new Promise(function (resolve) {
+            var settled = false;
+            var timer = setTimeout(function () {
+                if (settled) return;
+                settled = true;
+                resolve(fallback);
+            }, ms);
+            promise.then(function (v) {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                resolve(v);
+            }, function () {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                resolve(fallback);
+            });
+        });
     }
 
     /**
@@ -648,10 +761,17 @@ PPP.app = (function () {
      *   sizeMode    — 'total' (core+EN+selected) | 'delta' (only selected packs)
      *   shardToggle — add the opt-in "Offline text search" (sentence shards)
      *                 checkbox (default unchecked); getIncludeShards() reads it
+     *   shardsForced — the sentence shards are MANDATORY (Rājan decision
+     *                 2026-07-26: text search requires them) — no checkbox is
+     *                 rendered and getIncludeShards() always returns true.
+     *                 Mutually exclusive with shardToggle in practice (a
+     *                 caller passing both gets the forced/no-checkbox
+     *                 behaviour, since shardsForced short-circuits first).
      * Returns { el, getLangs, getIncludeShards }. getLangs() reads the ticked
      * opt-in langs; getIncludeShards() reads the shard checkbox (false when the
-     * toggle is absent). The live size label recomputes from BOTH the language
-     * selection and the shard toggle via computeInstallBytes.
+     * toggle is absent, true when shardsForced). The live size label
+     * recomputes from BOTH the language selection and the shard state via
+     * computeInstallBytes.
      */
     function _buildLangSelector(manifest, opts) {
         opts = opts || {};
@@ -674,11 +794,11 @@ PPP.app = (function () {
             }
             return out;
         }
-        function includeShards() { return !!(shardCb && shardCb.checked); }
+        function includeShards() { return !!opts.shardsForced || !!(shardCb && shardCb.checked); }
         function refreshSize() {
             var sel = selectedLangs();
             var bytes = PPP.downloader.computeInstallBytes(manifest, sel, includeShards());
-            if (opts.sizeMode === 'delta') bytes -= PPP.downloader.computeInstallBytes(manifest, []);
+            if (opts.sizeMode === 'delta') bytes -= PPP.downloader.computeInstallBytes(manifest, [], !!opts.shardsForced);
             var mb = Math.round(bytes / 1048576);
             sizeLabel.textContent = i18n.t('offlineSizeSelected').replace('{size}', mb);
         }
@@ -715,7 +835,7 @@ PPP.app = (function () {
 
         if (opts.baseChecked) addRow('en', true);
         langList.forEach(function (l) { addRow(l, false); });
-        if (opts.shardToggle) addShardRow();
+        if (opts.shardToggle && !opts.shardsForced) addShardRow();
         wrap.appendChild(sizeLabel);
         refreshSize();
         return { el: wrap, getLangs: selectedLangs, getIncludeShards: includeShards };
@@ -739,22 +859,34 @@ PPP.app = (function () {
         }
         return PPP.downloader.fetchManifest().then(function (manifest) {
             _cacheBaseMB(manifest);
-            // Prompt headline shows the EN-only base size; ticking LV/RU grows it.
-            var sizeMB = Math.round(PPP.downloader.computeInstallBytes(manifest, []) / (1024 * 1024));
+            // Prompt headline shows the mandatory base size — core + EN premium
+            // + EN raw + the sentence shards (Rājan decision 2026-07-26: text
+            // search requires the shards, so they are no longer opt-in). Ticking
+            // LV/RU still grows it further.
+            var sizeMB = Math.round(PPP.downloader.computeInstallBytes(manifest, [], true) / (1024 * 1024));
             // TEST HOOK: Playwright sets localStorage ppp_auto_install=1 so
             // headless runs exercise the REAL install flow without a click.
             var auto = false;
             try { auto = localStorage.getItem('ppp_auto_install') === '1'; } catch (e) {}
-            if (auto) return beginInstall(manifest, _autoInstallLangs(manifest), _autoInstallShards());
+            if (auto) return beginInstall(manifest, _autoInstallLangs(manifest), true);
             showInstallPrompt(manifest, sizeMB);
         }).catch(function (err) {
-            console.warn('Manifest fetch failed, using legacy load:', err);
-            loadDataLegacy();
+            // A transient manifest failure used to skip the mandatory gate
+            // entirely and open the online app (Codex, 2026-07-26). One flaky
+            // request must not decide the product model — show the same error +
+            // Try again screen as any other install failure.
+            console.warn('Manifest fetch failed — install gate cannot start:', err);
+            _showInstallStalled(null, true);
         });
     }
 
     function showInstallPrompt(manifest, sizeMB) {
         _cacheBaseMB(manifest);
+        // Arm the click guard NOW, not at beginInstall(): while this prompt
+        // waits for a decision the app is not usable, and the search box was
+        // still live behind it, answering clicks with silence.
+        _installStarted = false;
+        document.addEventListener('click', _installGuardHandler, true);
         ui.showLoading(i18n.t('installPrompt').replace('{size}', sizeMB));
         ui.updateProgress(0);
         var bar = document.getElementById('progressBar');
@@ -764,9 +896,10 @@ PPP.app = (function () {
         var oldSel = document.getElementById('installLangSelect');
         if (oldSel) oldSel.remove();
 
-        // EN mandatory base + LV/RU opt-in checkboxes + opt-in offline text
-        // search (sentence shards), with a live size label.
-        var selector = _buildLangSelector(manifest, { baseChecked: true, sizeMode: 'total', shardToggle: true });
+        // EN + sentence shards are now the MANDATORY base (text search needs
+        // them — shardsForced skips the opt-in checkbox and always sizes/
+        // installs them); LV/RU stay opt-in checkboxes, unchecked by default.
+        var selector = _buildLangSelector(manifest, { baseChecked: true, sizeMode: 'total', shardsForced: true });
         selector.el.id = 'installLangSelect';
         bar.appendChild(selector.el);
 
@@ -778,18 +911,34 @@ PPP.app = (function () {
         btn.textContent = i18n.t('installButton');
         btn.onclick = function () {
             var langs = selector.getLangs();
-            var incShards = selector.getIncludeShards();
             selector.el.remove();
             btn.remove();
-            beginInstall(manifest, langs, incShards);
+            beginInstall(manifest, langs, true);
         };
         bar.appendChild(btn);
+
+        // NO escape hatch here. Rājan, 2026-07-26: "kā jebkura spēle — tai nav
+        // daļējas lejupielādes". The only choice on this screen is whether to
+        // add Latvian and/or Russian; everything else is downloaded on first
+        // use regardless, and until it is there the app does not run. An
+        // earlier build offered "Continue without text search" next to
+        // Download — that was this session's own addition, not the decision,
+        // and it let users into a half-app where 7,680 raw transcripts cannot
+        // be opened.
     }
 
-    // Capture-phase click interceptor active DURING the first install:
-    // interactions outside the loading area answer with a "still
-    // downloading — X%" toast instead of half-working on missing data.
+    // Capture-phase click interceptor active from the moment the mandatory
+    // install prompt appears until the library is on the device: interactions
+    // outside the loading area answer with a toast instead of half-working on
+    // missing data. Before Download is pressed the toast says the library is
+    // required; during the download it reports the percentage.
+    //
+    // It also covers the WAITING state, not just the download (Rājan
+    // 2026-07-26, all-or-nothing). Until this was armed early, the search box
+    // and Search button stayed live behind the prompt and answered a click
+    // with nothing at all — the same silent no-op this whole design removes.
     var _installPct = 0;
+    var _installStarted = false;
     function _installGuardHandler(e) {
         var bar = document.getElementById('progressBar');
         if (bar && bar.contains(e.target)) return;
@@ -797,7 +946,9 @@ PPP.app = (function () {
         if (!el) return;
         e.preventDefault();
         e.stopPropagation();
-        ui.toast(i18n.t('stillDownloading').replace('{pct}', _installPct));
+        ui.toast(_installStarted
+            ? i18n.t('stillDownloading').replace('{pct}', _installPct)
+            : i18n.t('libraryRequiredFirst'));
     }
 
     // ---- Install continuity (single flight, auto-retry, wake lock) ---------
@@ -915,8 +1066,95 @@ PPP.app = (function () {
         return ' [' + first.name + ': ' + first.error + extra + ']';
     }
 
+    function _disarmInstallGuard() {
+        document.removeEventListener('click', _installGuardHandler, true);
+    }
+
+    /**
+     * Stall watchdog for the mandatory install.
+     *
+     * firstInstall() awaits store.getState('install') with no timeout, and a
+     * wedged IndexedDB (private browsing, an embedded webview, another tab
+     * holding a version-change transaction) neither resolves NOR rejects. The
+     * install promise then never settles, so the .then/.catch that disarm the
+     * click guard never run — and since the gate deliberately has no skip
+     * button, the app is frozen for good. Codex audit + Sabhā, 2026-07-26;
+     * all four reviewers reached this independently.
+     *
+     * A byte-level watchdog covers every wedge point at once, wherever it is:
+     * if nothing at all has moved for _INSTALL_STALL_MS, settle with
+     * {stalled:true} so the caller can show an error the user can act on.
+     */
+    var _INSTALL_STALL_MS = 45000;
+    function _withStallWatchdog(start, onTick) {
+        var timer = null, settled = false;
+        return new Promise(function (resolve, reject) {
+            function arm() {
+                if (timer) clearTimeout(timer);
+                timer = setTimeout(function () {
+                    if (settled) return;
+                    settled = true;
+                    reject({ stalled: true });
+                }, _INSTALL_STALL_MS);
+            }
+            arm();
+            start(function (p) {
+                if (settled) return;
+                arm();              // progress: restart the clock
+                onTick(p);
+            }).then(function (v) {
+                if (settled) return;
+                settled = true; clearTimeout(timer); resolve(v);
+            }, function (e) {
+                if (settled) return;
+                settled = true; clearTimeout(timer); reject(e);
+            });
+        });
+    }
+
+    /** Install cannot proceed — say so and offer a real way forward. This is
+     *  NOT a partial state: nothing is unlocked, the library is still required
+     *  (Rājan all-or-nothing). It only replaces a silent freeze with a message
+     *  and a button. */
+    function _showInstallStalled(langs, includeShards) {
+        ui.showLoading(i18n.t('installStalled'));
+        // Keep the click guard ARMED on this screen. Disarming it (the obvious
+        // move, since the freeze we are fixing WAS a stuck guard) left the
+        // search box live behind the error with no data behind it: pressing
+        // Search did nothing at all — the same silence this whole night has been
+        // spent removing. Found by driving a clean profile in a real browser;
+        // the suite could not see it. The guard already lets everything inside
+        // #progressBar through, and the Try again button lives there, so the one
+        // action that should work still does.
+        _installStarted = false;    // toast says "the library is required", not "x% done"
+        document.addEventListener('click', _installGuardHandler, true);
+        var bar = document.getElementById('progressBar');
+        if (!bar) return;
+        var old = document.getElementById('installStallRetryBtn');
+        if (old) old.remove();
+        var btn = document.createElement('button');
+        btn.id = 'installStallRetryBtn';
+        btn.type = 'button';
+        btn.className = 'search-button';
+        btn.style.marginTop = '8px';
+        btn.textContent = i18n.t('installRetryBtn');
+        btn.onclick = function () {
+            btn.remove();
+            // langs === null means we never got as far as the language prompt
+            // (manifest fetch failed) — restart the whole gate rather than
+            // guessing a selection on the user's behalf.
+            if (!langs) { startFirstInstallFlow(); return; }
+            PPP.downloader.fetchManifest().then(function (m) {
+                if (m) beginInstall(m, langs, includeShards);
+                else _showInstallStalled(langs, includeShards);
+            }).catch(function () { _showInstallStalled(langs, includeShards); });
+        };
+        bar.appendChild(btn);
+    }
+
     function beginInstall(manifest, langs, includeShards) {
         _installPct = 0;
+        _installStarted = true;
         document.addEventListener('click', _installGuardHandler, true);
         ui.showLoading(i18n.t('downloadingAll'));
         ui.updateProgress(0);
@@ -925,14 +1163,16 @@ PPP.app = (function () {
         _installInFlight = true;
         _ensureInstallListeners(langs, includeShards);
         _acquireWakeLock();
-        return PPP.downloader.firstInstall(function (p) {
+        return _withStallWatchdog(function (onProgress) {
+            return PPP.downloader.firstInstall(onProgress, langs, includeShards);
+        }, function (p) {
             var frac = p.totalBytes ? p.loadedBytes / p.totalBytes : 0;
             _installPct = Math.round(frac * 100);
             ui.updateProgress(frac);
             ui.setLoadingText(i18n.t('downloadingAll') + ' ' +
                 Math.round(p.loadedBytes / (1024 * 1024)) + ' / ' + totalMB + ' MB');
-        }, langs, includeShards).then(function () {
-            document.removeEventListener('click', _installGuardHandler, true);
+        }).then(function () {
+            _disarmInstallGuard();
             _installInFlight = false;
             _offlinePartial = false;
             _removeInstallListeners();
@@ -940,11 +1180,23 @@ PPP.app = (function () {
             PPP.offlineStore.requestPersist();
             return openFromIdb();
         }).catch(function (err) {
-            document.removeEventListener('click', _installGuardHandler, true);
+            _disarmInstallGuard();
             _installInFlight = false;
             _releaseWakeLock();
             console.error('Offline install failed:', err);
+            if (err && err.stalled) {
+                // Nothing moved for 45 s — almost always wedged storage. Do not
+                // auto-resume behind a frozen screen; the user drives the retry.
+                _removeInstallListeners();
+                _showInstallStalled(langs, includeShards);
+                return;
+            }
             if (err && err.notEnoughStorage) {
+                // The device cannot fit the download. Say so plainly and stop.
+                // There is no "continue without it" any more (Rājan 2026-07-26,
+                // all-or-nothing): a half-installed library is exactly the
+                // state this design exists to prevent. Freeing space and
+                // reloading resumes from where it stopped.
                 ui.showLoading(i18n.t('notEnoughStorage').replace('{size}', totalMB));
                 return;
             }
@@ -976,11 +1228,14 @@ PPP.app = (function () {
                     loadDataLegacy();
                 });
             }
-            // Partial progress is durable (resume state) — next start resumes.
-            // For THIS session, fall back to the legacy network path so the
-            // user is never stuck on a broken screen.
-            ui.hideLoading();
-            loadDataLegacy();
+            // A first install that failed outright. It used to drop into the
+            // online app here — which quietly turned the mandatory gate into an
+            // optional one, the exact opposite of the decision (Rājan
+            // 2026-07-26). Progress is durable, so the retry resumes where it
+            // stopped; until it succeeds the app stays gated, but never frozen
+            // and never silent.
+            _removeInstallListeners();
+            _showInstallStalled(langs, includeShards);
         });
     }
 
@@ -1114,11 +1369,18 @@ PPP.app = (function () {
         var holder = document.createElement('div');
         holder.id = 'offlineAddLangs';
         panel.appendChild(holder);
+        // Timeout-hardened (Rājan 2026-07-26): a wedged IndexedDB read must
+        // not leave this panel's "add language" section blank forever —
+        // fall back to "shards not installed", the same default an absent
+        // store already uses.
+        var shardsStatePromise = (PPP.offlineStore && PPP.offlineStore.getState)
+            ? _raceTimeout(PPP.offlineStore.getState('shards'), 4000, false) : Promise.resolve(false);
         Promise.all([
             PPP.downloader.fetchManifest(),
-            PPP.downloader.getInstalledLangs()
+            PPP.downloader.getInstalledLangs(),
+            shardsStatePromise
         ]).then(function (res) {
-            var manifest = res[0], installed = res[1];
+            var manifest = res[0], installed = res[1], shardsInstalled = !!res[2];
             if (!document.body.contains(holder)) return;
             _cacheBaseMB(manifest);
             holder.innerHTML = '';
@@ -1132,23 +1394,93 @@ PPP.app = (function () {
             var available = _optInLangsFromManifest(manifest).filter(function (l) {
                 return installed.indexOf(l) === -1;
             });
-            if (available.length === 0) return;
 
-            var selector = _buildLangSelector(manifest, { langList: available, sizeMode: 'delta' });
-            holder.appendChild(selector.el);
+            if (available.length > 0) {
+                var selector = _buildLangSelector(manifest, { langList: available, sizeMode: 'delta' });
+                holder.appendChild(selector.el);
 
-            var addBtn = document.createElement('button');
-            addBtn.type = 'button';
-            addBtn.id = 'offlineAddLangBtn';
-            addBtn.className = 'search-button';
-            addBtn.textContent = i18n.t('offlineAddLangBtn');
-            addBtn.onclick = function () {
-                var toAdd = selector.getLangs();
-                if (toAdd.length === 0) return;
-                _runAddLanguages(toAdd, holder);
-            };
-            holder.appendChild(addBtn);
+                var addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.id = 'offlineAddLangBtn';
+                addBtn.className = 'search-button';
+                addBtn.textContent = i18n.t('offlineAddLangBtn');
+                addBtn.onclick = function () {
+                    var toAdd = selector.getLangs();
+                    if (toAdd.length === 0) return;
+                    _runAddLanguages(toAdd, holder);
+                };
+                holder.appendChild(addBtn);
+            }
+
+            // Library installed but the sentence shards (offline "In Text"
+            // search) were opted out at install time — offer to add them
+            // separately (this is what the mobile size-warning's "Install
+            // library now" button lands on for exactly this device state).
+            if (!shardsInstalled && manifest.sentenceShards && manifest.sentenceShards.length > 0) {
+                _renderAddShardsUI(holder, manifest);
+            }
         }).catch(function (e) { console.warn('Add-language UI failed:', e); });
+    }
+
+    /**
+     * Offer to add the sentence shards to an already-installed library that
+     * opted out of them (see _renderAddLanguageUI above). Appended into the
+     * SAME holder as the language-add UI, so both can coexist.
+     */
+    function _renderAddShardsUI(holder, manifest) {
+        var shardBytes = 0;
+        (manifest.sentenceShards || []).forEach(function (s) { if (s && s.size) shardBytes += s.size; });
+        var mb = Math.round(shardBytes / 1048576);
+
+        var wrap = document.createElement('div');
+        wrap.id = 'offlineAddShards';
+        wrap.className = 'offline-lang-row offline-shard-row';
+
+        var line = document.createElement('div');
+        line.textContent = i18n.t('offlineShardsOffer').replace('{size}', String(mb));
+        wrap.appendChild(line);
+
+        var addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.id = 'offlineAddShardsBtn';
+        addBtn.className = 'search-button';
+        addBtn.textContent = i18n.t('offlineAddShardsBtn');
+        addBtn.onclick = function () { _runAddShards(wrap); };
+        wrap.appendChild(addBtn);
+
+        holder.appendChild(wrap);
+    }
+
+    function _runAddShards(holder) {
+        holder.innerHTML = '';
+        var msg = document.createElement('span');
+        msg.textContent = i18n.t('offlineDownloading')
+            .replace('{loaded}', '0').replace('{total}', '?').replace('{pct}', '0');
+        holder.appendChild(msg);
+        PPP.downloader.addShards(function (p) {
+            var mb = Math.round(p.loadedBytes / 1048576);
+            var totalMB = Math.round(p.totalBytes / 1048576);
+            var pct = p.totalBytes ? Math.round(p.loadedBytes / p.totalBytes * 100) : 0;
+            msg.textContent = i18n.t('offlineDownloading')
+                .replace('{loaded}', mb).replace('{total}', totalMB).replace('{pct}', pct);
+        }).then(function () {
+            holder.innerHTML = '';
+            var done = document.createElement('span');
+            done.textContent = i18n.t('offlineShardsAdded');
+            holder.appendChild(done);
+            var reloadBtn = document.createElement('button');
+            reloadBtn.type = 'button';
+            reloadBtn.className = 'search-button';
+            reloadBtn.textContent = i18n.t('offlineReloadBtn');
+            reloadBtn.onclick = function () { location.reload(); };
+            holder.appendChild(reloadBtn);
+        }).catch(function (err) {
+            console.error('Add shards failed:', err);
+            holder.innerHTML = '';
+            var em = document.createElement('span');
+            em.textContent = i18n.t('offlineOfferError');
+            holder.appendChild(em);
+        });
     }
 
     function _runAddLanguages(toAdd, holder) {
@@ -1568,7 +1900,6 @@ PPP.app = (function () {
             currentPage = 1;
             matchHints = new Map();
             document.getElementById('searchTerm').value = 'Nr. ' + nr;
-            document.getElementById('timer').textContent = '';
             displayResults();
 
             // If highlight parameter present — open transcript and scroll to text
@@ -1707,6 +2038,34 @@ PPP.app = (function () {
         if (!dataLoaded) return;
         // Allow empty search in citations mode (shows stats overview)
         if (!term && searchMode !== 'citations' && searchMode !== 'citationsTop') return;
+
+        // "In Text" (sentence) search only runs from the offline sentence
+        // shards now (Rājan decision 2026-07-26: online text search is no
+        // longer offered at all — one full search used to transfer ~200 MB,
+        // ~34 min on Fast-3G). When the shards aren't installed, explain and
+        // offer the install instead of searching — see
+        // _requireTextSearchLibrary below. Metadata/citations searches never
+        // needed the shards and are not gated here.
+        if (searchMode === 'sentences' && term) {
+            // Engage the busy lock SYNCHRONOUSLY, before the gate's own async
+            // IndexedDB read below — _requireTextSearchLibrary's
+            // store.getState('shards').then(...) always defers to a microtask,
+            // even when already resolved. Without this, a second call issued
+            // in the very same tick (rapid double-dispatch, or a mode/language
+            // switch attempted immediately after search()) would race past the
+            // "if (_sentenceSearchBusy)" guard above because the flag hadn't
+            // been set yet — see test 36f. performSentenceSearch below
+            // re-asserts the same flag (harmless no-op); if the gate instead
+            // blocks the search (shards not installed), release it again so
+            // the UI is never left stuck "busy".
+            _sentenceSearchBusy = true;
+            _requireTextSearchLibrary(function () { _runSearch(term); }, function () { _sentenceSearchBusy = false; });
+            return;
+        }
+        _runSearch(term);
+    }
+
+    function _runSearch(term) {
         setActiveCollection(null);
         // A typed search is not a browse view / transcript sort — clear both so
         // the top-nav and By Date/Topic/Newest highlights don't linger. Verse
@@ -1717,6 +2076,89 @@ PPP.app = (function () {
         lastSearchTerm = term;
         currentPage = 1;
         performSearch();
+    }
+
+    // ---- "In Text" requires the installed library -------------------------
+    // Rājan decision 2026-07-26: online text search is no longer offered at
+    // all — one full "In Text" search used to transfer ~200 MB of sentence
+    // shards (~34 min on Fast-3G). This supersedes the earlier mobile-only
+    // warning dialog (mobileSearchWarn*, tests 51-53, removed): instead of a
+    // dismissable warning, the search simply does not run online — it
+    // explains that text search works from the downloaded library and
+    // offers the EXISTING offline-install flow (#offlineInfoPanel /
+    // renderOfflineInfoPanel) instead of a second/duplicate installer.
+
+    /**
+     * Gate before performSentenceSearch: run it only when the offline
+     * sentence shards are installed (offlineStore state key 'shards', the
+     * same one downloader.js persists at install time — see downloader.js
+     * firstInstall/checkForUpdates). Otherwise render the install notice.
+     *
+     * Rājan field report (2026-07-26): store.getState('shards') can hang
+     * indefinitely on a real device (private browsing, a blocking tab, a
+     * wedged webview) — a plain .then()/.catch() leaves the click
+     * unanswered forever because a promise that never settles never
+     * rejects either. Raced against a short timeout (_raceTimeout) so ANY
+     * outcome other than a definite "installed" — falsy, rejected, OR
+     * timed out — shows the install notice within a few seconds. This also
+     * fixes the OLD behaviour of quietly calling proceed() on a store
+     * error/absence: since this feature shipped, proceed() runs a sentence
+     * search with nothing left to search online, which used to no-op just
+     * as silently as the hang itself.
+     */
+    function _requireTextSearchLibrary(proceed, onBlocked) {
+        var store = PPP.offlineStore;
+        if (!store || !store.getState) {
+            if (onBlocked) onBlocked();
+            _renderTextSearchInstallNotice();
+            return;
+        }
+        _raceTimeout(store.getState('shards'), 4000, _OFFLINE_READ_TIMEOUT).then(function (installed) {
+            if (installed === true) { proceed(); return; }
+            if (onBlocked) onBlocked();
+            _renderTextSearchInstallNotice();
+        });
+    }
+
+    /**
+     * Clean explanation in place of results (never a raw error) + a button
+     * that opens the SAME offline-install panel used everywhere else. Does
+     * not touch the results table itself — a later successful search
+     * replaces #resultsInfo the normal way.
+     */
+    function _renderTextSearchInstallNotice() {
+        var info = document.getElementById('resultsInfo');
+        if (!info) return;
+        var mb = _shardsMB();
+        info.innerHTML = '';
+        var msg = document.createElement('div');
+        msg.className = 'quotes-require-install';
+        msg.textContent = i18n.t('quotesRequireInstallBody').replace('{size}', String(mb));
+        info.appendChild(msg);
+        // _shardsMB() falls back to a figure baked in on 2026-07-26 whenever no
+        // manifest fetch has cached the real one yet — which is the norm on the
+        // path that reaches this notice (a returning device with nothing
+        // installed never renders the install prompt). Quote the real number
+        // as soon as the manifest lands, so this cannot drift as shards change.
+        _getManifest().then(function (m) {
+            if (!m) return;
+            _cacheBaseMB(m);
+            var real = _shardsMB();
+            if (real !== mb && msg.isConnected) {
+                msg.textContent = i18n.t('quotesRequireInstallBody').replace('{size}', String(real));
+            }
+        });
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'search-button';
+        btn.textContent = i18n.t('quotesRequireInstallBtn');
+        btn.onclick = function () {
+            var panel = document.getElementById('offlineInfoPanel');
+            if (!panel) return;
+            renderOfflineInfoPanel();
+            panel.style.display = 'flex';
+        };
+        info.appendChild(btn);
     }
 
     function performSearch() {
@@ -1782,8 +2224,6 @@ PPP.app = (function () {
             totalResults = uiRows.length;
             currentPage = 1;
 
-            var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-            document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
 
             track('search', { query: lastSearchTerm, mode: searchMode, results: totalResults });
             displayResults();
@@ -1803,8 +2243,6 @@ PPP.app = (function () {
         totalResults = allResults.length;
         currentPage = 1;
 
-        var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-        document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
 
         displayResults();
     }
@@ -1910,6 +2348,7 @@ PPP.app = (function () {
 
         _showSelectToggle(totalResults > 0);
         _updateSelectBar();
+        _updateTipStrip();
     }
 
     function changePage(p) {
@@ -2158,6 +2597,46 @@ PPP.app = (function () {
         return Promise.resolve(m);
     }
 
+    /** Premium transcript HTML for the ZIP: installed library first, network
+     *  second. A store read that fails or comes back empty is not an error —
+     *  it just means "not in the library", so fall through to the network. */
+    function _zipPremiumHtml(nr, lang, signal) {
+        var key = 't:' + lang + ':' + String(nr);
+        var fromStore = (PPP.offlineStore && PPP.offlineStore.supported())
+            ? PPP.offlineStore.getText(key).catch(function () { return null; })
+            : Promise.resolve(null);
+        return fromStore.then(function (txt) {
+            if (txt && txt.trim()) return txt;
+            return fetch('transcripts/' + lang + '/' + encodeURIComponent(String(nr)) + '.html', { signal: signal })
+                .then(function (r) { return r.ok ? r.text() : ''; })
+                .catch(function (e) {
+                    if (e && e.name === 'AbortError') throw e;
+                    return '';                      // offline and not installed
+                });
+        });
+    }
+
+    /** Raw EN transcript text for the ZIP: installed library first, Drive
+     *  second. Returns '' when neither has it. */
+    function _zipRawText(nr, driveId, signal) {
+        var fromStore = (PPP.offlineStore && PPP.offlineStore.supported())
+            ? PPP.offlineStore.getText('raw:en:' + String(nr)).catch(function () { return null; })
+            : Promise.resolve(null);
+        return fromStore.then(function (txt) {
+            if (txt && txt.trim()) return txt;
+            if (!driveId) return '';
+            var key = (PPP.config && PPP.config.driveApiKey) || '';
+            var url = 'https://www.googleapis.com/drive/v3/files/' + driveId +
+                '?alt=media&key=' + encodeURIComponent(key);
+            return fetch(url, { signal: signal }).then(function (rr) {
+                return rr.status === 200 ? rr.text() : '';
+            }).catch(function (e) {
+                if (e && e.name === 'AbortError') throw e;
+                return '';
+            });
+        });
+    }
+
     // Add one lecture's transcript to the zip.
     // Returns true (added), 'unavailable' (nothing offline / MP3 count cap
     // hit), or throws on abort. `zipCtx` carries cross-item ZIP state —
@@ -2194,8 +2673,14 @@ PPP.app = (function () {
         // Sentence-search two-tier highlight: only non-empty when this ZIP was
         // triggered from an "In Transcripts" search result (see performSentenceSearch).
         var matchedSentences = _sentenceMatchesByNr[String(nr)] || [];
-        return fetch('transcripts/' + lang + '/' + encodeURIComponent(String(nr)) + '.html', { signal: signal })
-            .then(function (r) { return r.ok ? r.text() : ''; })
+        // The installed library FIRST. ZIP was written before the offline
+        // library existed and still asked the network for premium HTML and
+        // Google Drive for raw text — both of which are already on the device
+        // (Rājan spotted this, 2026-07-26). So ZIP did not work offline at all,
+        // and online it re-downloaded what the user had already paid for. Same
+        // two keys the transcript viewer uses; the network stays as the fallback
+        // for a lecture the library does not contain.
+        return _zipPremiumHtml(nr, lang, signal)
             .then(function (html) {
                 if (html && html.trim()) {
                     // Premium per-lecture HTML (same-origin) — wrap into a standalone doc.
@@ -2212,32 +2697,28 @@ PPP.app = (function () {
                     zip.file(folder + '/Nr_' + nr + '_' + safeTitle + '_' + lang + '.html', doc);
                     return true;
                 }
-                // Premium missing (404 / empty). Raw fallback exists only in EN.
+                // Premium missing (not in the library, 404 / empty). Raw fallback
+                // exists only in EN — library first, Drive second.
                 if (lang === 'en') {
-                    var id = _driveIdFromUrl(meta && meta.enUrl);
-                    if (!id) return 'unavailable';
-                    var key = (PPP.config && PPP.config.driveApiKey) || '';
-                    var url = 'https://www.googleapis.com/drive/v3/files/' + id + '?alt=media&key=' + encodeURIComponent(key);
-                    return fetch(url, { signal: signal }).then(function (rr) {
-                        if (rr.status === 200) {
-                            return rr.text().then(function (txt) {
-                                // Wrap raw plain text into <p> paragraphs so the same
-                                // DOM-based highlighter can mark sentences/words, then
-                                // save as HTML (was .txt) so highlighting is visible.
-                                var paragraphs = (txt || '').split(/\r?\n/).map(function (line) {
-                                    return '<p>' + utils.escapeHtml(line) + '</p>';
-                                }).join('\n');
-                                var container = document.createElement('div');
-                                container.innerHTML = paragraphs;
-                                if (matchedSentences.length) {
-                                    _wrapMatchesInContainer(container, matchedSentences, _sentenceWords);
-                                }
-                                var rawDoc = _buildHtmlDoc({ nr: nr, lang: 'en', title: title, html: container.innerHTML });
-                                zip.file(folder + '/Nr_' + nr + '_' + safeTitle + '_EN_raw.html', rawDoc);
-                                return true;
-                            });
+                    return _zipRawText(nr, _driveIdFromUrl(meta && meta.enUrl), signal).then(function (txt) {
+                        if (!txt || !txt.trim()) return 'unavailable';
+                        // A raw record from the library is already HTML paragraphs
+                        // (build_raw_en_transcripts.py); the Drive copy is plain
+                        // text. Wrap only the plain-text case so the same
+                        // DOM-based highlighter can mark sentences/words either way.
+                        var body = /<p[\s>]/i.test(txt)
+                            ? txt
+                            : txt.split(/\r?\n/).map(function (line) {
+                                return '<p>' + utils.escapeHtml(line) + '</p>';
+                            }).join('\n');
+                        var container = document.createElement('div');
+                        container.innerHTML = body;
+                        if (matchedSentences.length) {
+                            _wrapMatchesInContainer(container, matchedSentences, _sentenceWords);
                         }
-                        return 'unavailable';
+                        var rawDoc = _buildHtmlDoc({ nr: nr, lang: 'en', title: title, html: container.innerHTML });
+                        zip.file(folder + '/Nr_' + nr + '_' + safeTitle + '_EN_raw.html', rawDoc);
+                        return true;
                     });
                 }
                 return 'unavailable';
@@ -2461,6 +2942,7 @@ PPP.app = (function () {
             return '<label class="flt-item"><input type="checkbox" class="flt-year" value="' + y + '"><span>' + y + '</span></label>';
         }).join('');
         var countrySec = '';
+        var typeSec = '';
         if (!sentenceMode) {
             var countries = opts.countries.map(function (code) {
                 var name = PPP.config.countryName(code, lang);
@@ -2470,12 +2952,23 @@ PPP.app = (function () {
             countrySec =
                 '<div class="flt-sec"><div class="flt-title">' + esc(i18n.t('filtersCountries')) + '</div>' +
                     '<div class="flt-grid flt-countries">' + countries + '</div></div>';
+            // Record-type filter (Filters panel). Same metadata-only scope as
+            // Countries — the sentence DB has no type column either.
+            var types = PPP.config.TYPE_ORDER.map(function (key) {
+                var labelKey = PPP.config.TYPE_I18N_KEY[key];
+                return '<label class="flt-item"><input type="checkbox" class="flt-type" value="' + esc(key) +
+                    '"><span>' + esc(i18n.t(labelKey)) + '</span></label>';
+            }).join('');
+            typeSec =
+                '<div class="flt-sec"><div class="flt-title">' + esc(i18n.t('filtersTypes')) + '</div>' +
+                    '<div class="flt-grid flt-types">' + types + '</div></div>';
         }
         panel.innerHTML =
             '<div class="flt-cols">' +
                 '<div class="flt-sec"><div class="flt-title">' + esc(i18n.t('filtersYears')) + '</div>' +
                     '<div class="flt-grid flt-years">' + years + '</div></div>' +
                 countrySec +
+                typeSec +
             '</div>' +
             '<div class="flt-actions">' +
                 '<button type="button" class="flt-apply" onclick="PPP.app.applyFilters()">' + esc(i18n.t('filtersApply')) + '</button>' +
@@ -2517,24 +3010,35 @@ PPP.app = (function () {
     }
     function _filtersEsc(e) { if (e.key === 'Escape' || e.key === 'Esc') closeFilters(); }
 
+    // Shared by applyFilters() and clearFilters(): split the search field on
+    // ';' and drop any segment that IS a year:/country:/type: filter token,
+    // keeping only free text the user typed (or other tokens like lang:/
+    // has:/subject: that these two functions don't own). One parser so both
+    // callers can never drift apart on what counts as "a filter token".
+    function _keepNonFilterTokens(value) {
+        return (value || '').split(';').map(function (s) { return s.trim(); }).filter(Boolean)
+            .filter(function (seg) { return !/^year:/i.test(seg) && !/^country:/i.test(seg) && !/^type:/i.test(seg); });
+    }
+
     function applyFilters() {
         var panel = document.getElementById('filtersPanel');
         if (!panel) return;
         var years = Array.prototype.map.call(panel.querySelectorAll('.flt-year:checked'), function (c) { return c.value; });
         var countries = Array.prototype.map.call(panel.querySelectorAll('.flt-country:checked'), function (c) { return c.value; });
+        var types = Array.prototype.map.call(panel.querySelectorAll('.flt-type:checked'), function (c) { return c.value; });
         var input = document.getElementById('searchTerm');
         var sentenceMode = (searchMode === 'sentences');
 
         // Keep any free-text the user already typed; drop only the OLD filter
-        // tokens so re-applying replaces (not stacks) year/country.
-        var kept = input.value.split(';').map(function (s) { return s.trim(); }).filter(Boolean)
-            .filter(function (seg) { return !/^year:/i.test(seg) && !/^country:/i.test(seg); });
+        // tokens so re-applying replaces (not stacks) year/country/type.
+        var kept = _keepNonFilterTokens(input.value);
 
         var tokens = kept.slice();
         if (years.length) tokens.push('year:' + years.join(','));
-        // Country applies to lecture metadata only (the sentence DB has no
-        // country column), so it is never emitted in "In Text" mode.
+        // Country and type apply to lecture metadata only (the sentence DB has
+        // neither column), so neither is ever emitted in "In Text" mode.
         if (countries.length && !sentenceMode) tokens.push('country:' + countries.join(','));
+        if (types.length && !sentenceMode) tokens.push('type:' + types.join(','));
         closeFilters();
 
         if (sentenceMode) {
@@ -2555,6 +3059,38 @@ PPP.app = (function () {
         var panel = document.getElementById('filtersPanel');
         if (!panel) return;
         Array.prototype.forEach.call(panel.querySelectorAll('input[type="checkbox"]'), function (c) { c.checked = false; });
+
+        var input = document.getElementById('searchTerm');
+        if (!input) return;
+
+        if (input.classList.contains('combo-display')) {
+            // A combo-display label (By Added Date, By Topic, ...) sitting in
+            // the field is not a real search term — don't token-parse it,
+            // just drop it the same way switching search mode away from a
+            // combo view already does (clearComboDisplay(), defined above).
+            clearComboDisplay();
+        } else {
+            input.value = _keepNonFilterTokens(input.value).join('; ');
+        }
+
+        if (input.value.trim()) {
+            doSearch();
+            return;
+        }
+        // Nothing left to search — reset the result view instead of leaving
+        // a stale count/table contradicting the now-empty filter state
+        // (Rājan report, 2026-07-25: unticked every checkbox, but the field
+        // still showed a leftover filter token and the results still read
+        // "0 files found").
+        lastSearchTerm = '';
+        allResults = [];
+        totalResults = 0;
+        currentPage = 1;
+        matchHints = new Map();
+        navView = null;
+        transcriptView = null;
+        _refreshButtonGroups();
+        displayResults();
     }
 
     function setSearchMode(mode) {
@@ -2586,15 +3122,17 @@ PPP.app = (function () {
         if (verseList && mode !== 'citations') {
             verseList.style.display = 'none';
         }
-        // "List Of Sources" button + "Last update" label belong to the lecture
-        // (metadata) results view — hide them in sentence ("In Text") mode.
-        var topLeftBtns = document.querySelector('.top-left-buttons');
-        if (topLeftBtns) topLeftBtns.style.display = (mode === 'sentences') ? 'none' : '';
+        // "Last update" label is metadata-specific (DB refresh timestamp for
+        // the lecture list) — hide it in sentence ("In Text") mode.
+        var dbLastUpdate = document.getElementById('dbLastUpdate');
+        if (dbLastUpdate) {
+            if (mode === 'sentences') dbLastUpdate.style.display = 'none';
+            else if (dbLastUpdate.getAttribute('data-last-update')) dbLastUpdate.style.display = '';
+        }
         // Clear results and search field when switching modes
         if (prevMode !== mode) {
             document.getElementById('searchTerm').value = '';
             document.getElementById('resultsInfo').innerHTML = '';
-            document.getElementById('timer').textContent = '';
             document.getElementById('pagination').innerHTML = '';
             // The results area must switch FRAME immediately on the mode
             // button press — localized sentence-mode headers + distinct
@@ -2658,7 +3196,6 @@ PPP.app = (function () {
                 currentPage = 1;
                 matchHints = new Map();
                 document.getElementById('searchTerm').value = i18n.t('latest20Files');
-                document.getElementById('timer').textContent = '';
                 displayResults();
                 setComboDisplay(i18n.t('addedDateDisplay'));
             }).catch(function (e) {
@@ -2688,7 +3225,6 @@ PPP.app = (function () {
         currentPage = 1;
         matchHints = new Map();
         document.getElementById('searchTerm').value = i18n.t('latest20Files');
-        document.getElementById('timer').textContent = '';
         displayResults();
         setComboDisplay(i18n.t('addedDateDisplay'));
     }
@@ -2712,7 +3248,6 @@ PPP.app = (function () {
                 currentPage = 1;
                 matchHints = new Map();
                 document.getElementById('searchTerm').value = '2026';
-                document.getElementById('timer').textContent = '';
                 displayResults();
                 setComboDisplay(i18n.t('entries2026Display'));
             }).catch(function (e) {
@@ -2738,7 +3273,6 @@ PPP.app = (function () {
         currentPage = 1;
         matchHints = new Map();
         document.getElementById('searchTerm').value = '2026';
-        document.getElementById('timer').textContent = '';
         displayResults();
         setComboDisplay(i18n.t('entries2026Display'));
     }
@@ -2762,7 +3296,6 @@ PPP.app = (function () {
                 currentPage = 1;
                 matchHints = new Map();
                 document.getElementById('searchTerm').value = i18n.t('latest20Transcripts');
-                document.getElementById('timer').textContent = '';
                 displayResults();
                 setComboDisplay(i18n.t('newestTranscriptsDisplay'));
             }).catch(function (e) {
@@ -2793,7 +3326,6 @@ PPP.app = (function () {
         currentPage = 1;
         matchHints = new Map();
         document.getElementById('searchTerm').value = i18n.t('latest20Transcripts');
-        document.getElementById('timer').textContent = '';
         displayResults();
         setComboDisplay(i18n.t('newestTranscriptsDisplay'));
     }
@@ -2822,7 +3354,6 @@ PPP.app = (function () {
                 currentPage = 1;
                 matchHints = new Map();
                 document.getElementById('searchTerm').value = i18n.t('allTranscriptsByDate');
-                document.getElementById('timer').textContent = '';
                 displayResults();
                 setComboDisplay(i18n.t('transcriptsByDateDisplay'));
             }).catch(function (e) {
@@ -2860,7 +3391,6 @@ PPP.app = (function () {
         currentPage = 1;
         matchHints = new Map();
         document.getElementById('searchTerm').value = i18n.t('allTranscriptsByDate');
-        document.getElementById('timer').textContent = '';
         displayResults();
         setComboDisplay(i18n.t('transcriptsByDateDisplay'));
     }
@@ -2885,7 +3415,6 @@ PPP.app = (function () {
             currentPage = 1;
             matchHints = new Map();
             document.getElementById('searchTerm').value = i18n.t('favorites');
-            document.getElementById('timer').textContent = '';
             displayResults();
             var tbody = document.querySelector('#resultsTable tbody');
             if (tbody) {
@@ -2979,7 +3508,6 @@ PPP.app = (function () {
             currentPage = 1;
             matchHints = new Map();
             document.getElementById('searchTerm').value = label;
-            document.getElementById('timer').textContent = '';
             displayResults();
             setComboDisplay(i18n.t('favoritesBtn') || '\u2605 Favorites');
             var tbody = document.querySelector('#resultsTable tbody');
@@ -3003,7 +3531,6 @@ PPP.app = (function () {
                 currentPage = 1;
                 matchHints = new Map();
                 document.getElementById('searchTerm').value = label;
-                document.getElementById('timer').textContent = '';
                 displayResults();
                 setComboDisplay(i18n.t('favoritesBtn') || '\u2605 Favorites');
             });
@@ -3020,7 +3547,6 @@ PPP.app = (function () {
         currentPage = 1;
         matchHints = new Map();
         document.getElementById('searchTerm').value = label;
-        document.getElementById('timer').textContent = '';
         displayResults();
         setComboDisplay(i18n.t('favoritesBtn') || '\u2605 Favorites');
     }
@@ -3040,6 +3566,9 @@ PPP.app = (function () {
         badge.textContent = c > 0 ? c : '';
         badge.style.display = c > 0 ? 'inline-block' : 'none';
         if (btn) {
+            // Favorites is only offered once the user has actually saved one \u2014
+            // an empty star button on a first visit is just noise (onboarding spec).
+            btn.classList.toggle('has-fav', c > 0);
             var label = '\u2605 ' + i18n.t('favorites') + ' ';
             btn.firstChild.textContent = label;
             // Show active collection subtitle
@@ -3064,12 +3593,25 @@ PPP.app = (function () {
         track('quick-action', { action: 'recommendations' });
         var div = document.getElementById('recommendationsList');
         var resultsTable = document.getElementById('resultsTable');
-        if (div.style.display !== 'none' && div.style.display !== '') {
+        // Toggle state is tracked via navView (set synchronously below), NOT
+        // div.style.display: the panel's content — and its display:'block' —
+        // is only applied once the async DB query resolves (renderRecommendationsHTML).
+        // A second call arriving before that promise settles used to read
+        // div.style.display as still '' and re-enter the "open" branch instead
+        // of closing, leaving #resultsTable stuck hidden (flaky under load —
+        // Rājan/Codex report, 2026-07-26, test 50l).
+        if (navView === 'topSearches') {
             // Toggle OFF — panel closes, no browse view is active anymore.
             div.style.display = 'none';
             if (resultsTable) resultsTable.style.display = '';
             navView = null;
             _refreshButtonGroups();
+            // Repaint the table + its count line (displayResults(), same as
+            // showLatestFiles()/showAllTranscriptsByDate()/
+            // showLatestTranscripts() already do) — #resultsInfo was cleared
+            // below when this panel opened, and without this it stayed
+            // cleared even though the table is visible again.
+            displayResults();
             return;
         }
         closeAllPanels();
@@ -3077,6 +3619,12 @@ PPP.app = (function () {
         navView = 'topSearches'; transcriptView = null;
         _refreshButtonGroups();
         if (resultsTable) resultsTable.style.display = 'none';
+        // The count line describes the (now hidden) table, not this
+        // recommendations panel — clear it instead of leaving a stale
+        // "N files found" floating above unrelated content (Rājan report,
+        // 2026-07-25: it kept the previous search's count).
+        var recResultsInfo = document.getElementById('resultsInfo');
+        if (recResultsInfo) recResultsInfo.innerHTML = '';
         setComboDisplay(i18n.t('recommendations'));
 
         if (usingSqlite) {
@@ -3149,12 +3697,18 @@ PPP.app = (function () {
     function showTopics() {
         var div = document.getElementById('topicsList');
         var resultsTable = document.getElementById('resultsTable');
-        if (div.style.display !== 'none' && div.style.display !== '') {
+        // See showRecommendations() above: toggle state must be read from
+        // transcriptView (set synchronously), not div.style.display, which
+        // is only applied once the async DB query resolves.
+        if (transcriptView === 'byTopic') {
             // Toggle OFF — By Topic no longer the active transcript view.
             div.style.display = 'none';
             if (resultsTable) resultsTable.style.display = '';
             transcriptView = null;
             _refreshButtonGroups();
+            // Repaint table + count line — see showRecommendations() above
+            // for why (same stale-count report, 2026-07-25).
+            displayResults();
             return;
         }
         closeAllPanels();
@@ -3163,6 +3717,9 @@ PPP.app = (function () {
         navView = null; transcriptView = 'byTopic';
         _refreshButtonGroups();
         if (resultsTable) resultsTable.style.display = 'none';
+        // Clear the stale count line — see showRecommendations() above.
+        var topicsResultsInfo = document.getElementById('resultsInfo');
+        if (topicsResultsInfo) topicsResultsInfo.innerHTML = '';
 
         if (usingSqlite) {
             // Count only ORIGINAL transcripts (any of script_en/lv/ru with non-duplicate label)
@@ -3212,21 +3769,49 @@ PPP.app = (function () {
         setComboDisplay(i18n.t('transcriptsByTopicDisplay'));
     }
 
-    function showSources() {
-        var div = document.getElementById('sourcesList');
+    // targetId: 'sourcesList' (onboarding intro screen — the only place this
+    // button is reachable, per Rājan decision 2026-07-25; the former
+    // .top-left-buttons 'utilSourcesList' copy in the results view was
+    // removed because it visually collided with #tipStrip). Defaults to
+    // 'sourcesList' when called with no argument.
+    function showSources(targetId) {
+        var div = document.getElementById(targetId || 'sourcesList');
+        if (!div) return;
         if (div.style.display !== 'none' && div.style.display !== '') { div.style.display = 'none'; return; }
-        if (!dataLoaded) return;
 
-        function renderSourcesHTML(sources) {
+        // interactive=false renders the plain list used on the onboarding
+        // screen: applySourceFilter() runs a search, and there is no loaded DB
+        // to search there — a click would land on nothing.
+        function renderSourcesHTML(sources, interactive) {
             var esc = utils.escapeHtml;
             var enc = utils.encodeForAttr;
             var html = '<h3>' + i18n.t('sources') + '</h3><ul>';
             Object.keys(sources).sort().forEach(function (name) {
-                html += '<li onclick="PPP.app.applySourceFilter(decodeURIComponent(\'' + enc(name) + '\'))">' + esc(name) + '</li>';
+                html += interactive === false
+                    ? '<li>' + esc(name) + '</li>'
+                    : '<li onclick="PPP.app.applySourceFilter(decodeURIComponent(\'' + enc(name) + '\'))">' + esc(name) + '</li>';
             });
             html += '</ul>';
             div.innerHTML = html;
             div.style.display = 'block';
+        }
+
+        // First visit: the meta DB is not loaded yet (mandatory install gate),
+        // and this button lives on that very screen. It used to `return`
+        // silently on !dataLoaded, so for every new user it did nothing at all.
+        // Fall back to the manifest catalog, and if even that is unavailable
+        // say so — never fail silently. (Audit 2026-07-26.)
+        if (!dataLoaded) {
+            _getCatalog().then(function (cat) {
+                if (cat && cat.sources && Object.keys(cat.sources).length) {
+                    renderSourcesHTML(cat.sources, false);
+                } else {
+                    div.innerHTML = '<h3>' + utils.escapeHtml(i18n.t('sources')) + '</h3><p>' +
+                        utils.escapeHtml(i18n.t('sourcesUnavailable')) + '</p>';
+                    div.style.display = 'block';
+                }
+            });
+            return;
         }
 
         if (usingSqlite) {
@@ -3421,7 +4006,6 @@ PPP.app = (function () {
 
                 document.getElementById('searchTerm').value = reference;
                 lastSearchTerm = reference;
-                document.getElementById('timer').textContent = '';
 
                 displayResults();
             });
@@ -4181,8 +4765,6 @@ PPP.app = (function () {
         var q = search.buildCitationSQL(parsed);
 
         db.queryMetaAsync(q.sql, q.params).then(function (results) {
-            var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-            document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
 
             if (q.mode === 'stats') {
                 showVerseSources();
@@ -4227,6 +4809,12 @@ PPP.app = (function () {
     // and the catch tail of performSentenceSearch so it can never stick at
     // true after an error.
     var _sentenceSearchBusy = false;
+    // AbortController for the CURRENTLY in-flight performSentenceSearch run
+    // (null when idle). Cancel button wiring calls .abort() on this; the
+    // shard loop in db.searchSentencesChunked notices and stops, the busy
+    // lock still gets released in performSentenceSearch's own finally-style
+    // tail (single source of truth — cancel never clears the flag itself).
+    var _sentenceSearchAbort = null;
 
     // Extract the flat, diacritic-folded, whole-word list a search matched on
     // (mirrors the word-splitting rule in search.js buildTranscriptSQL).
@@ -4255,10 +4843,20 @@ PPP.app = (function () {
         var parsed = search.parseSearchQuery(myTerm);
         var q = search.buildTranscriptSQL(parsed);
         if (!q) {
-            // No free-text term — nothing to search on. Synchronous path, no
-            // async hop, so the busy lock is never engaged here.
+            // No free-text term to search on — buildTranscriptSQL returns null
+            // when the query has no [a-z0-9] word at all, which includes EVERY
+            // query typed in Cyrillic and a bare "year:2024".
+            //
+            // The old comment here said the busy lock is never engaged on this
+            // path. That stopped being true when doSearch started setting it
+            // SYNCHRONOUSLY (to close a race with the view/language switches),
+            // so returning without clearing it left search, mode switching and
+            // language switching dead until a reload — hit by the first query a
+            // Russian-speaking user types. Fable review, 2026-07-27.
+            _sentenceSearchBusy = false;
+            _sentenceSearchAbort = null;
+            _setSearchButtonBusy(false);
             document.getElementById('resultsInfo').innerHTML = '';
-            document.getElementById('timer').textContent = '';
             _sentenceMatchesByNr = {};
             _sentenceWords = [];
             _sentenceLastRender = null;
@@ -4267,6 +4865,8 @@ PPP.app = (function () {
         }
 
         _sentenceSearchBusy = true;
+        _sentenceSearchAbort = new AbortController();
+        _setSearchButtonBusy(true);
 
         _sentenceParsed = parsed;
         _sentenceTerm = myTerm;
@@ -4281,7 +4881,7 @@ PPP.app = (function () {
             if (!stillCurrent()) return;
             ui.updateProgress(done / total);
             ui.showLoading(i18n.t('searching') + ' ' + done + '/' + total + '…');
-        }).then(function (res) {
+        }, _sentenceSearchAbort.signal).then(function (res) {
             // Final gate before ANY render / persist: a newer search or a
             // mode/language switch since we started means these rows are
             // stale — never leak them into the current view.
@@ -4290,8 +4890,6 @@ PPP.app = (function () {
             var rows = (res && res.rows) || [];
             var n = (res && res.count) || 0;
             var lectures = (res && res.lectures) || 0;
-            var elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-            document.getElementById('timer').textContent = i18n.t('elapsedTime') + ' ' + elapsed + ' ' + i18n.t('seconds');
             track('search', { query: myTerm, mode: 'sentences', results: n });
             // Build the nr -> matched-sentence-texts map + word list for the
             // ZIP export highlighter (downloadSelectedZip / _addOneToZip).
@@ -4304,13 +4902,30 @@ PPP.app = (function () {
             _sentenceWords = _extractSentenceSearchWords(parsed);
             _sentenceLastRender = { rows: rows, term: myTerm, totals: { total: n, lectures: lectures, shown: rows.length } };
             ui.renderSentenceResults(rows, myTerm, _sentenceLastRender.totals, _sentenceWords);
+            _updateTipStrip();
         }).catch(function (err) {
             // Only surface an error for the still-current search — a superseded
             // run rejecting must not overwrite the live view.
             if (!stillCurrent()) return;
             ui.hideLoading();
+            if (err && err.name === 'AbortError') {
+                // User-initiated cancel (Cancel button) — not a real error.
+                // Leave whatever results/summary were on screen before this
+                // search started untouched (nothing was rendered for this
+                // run), just stop the spinner. No error text, no toast.
+                return;
+            }
             console.error('Sentence search error:', err);
             var infoEl = document.getElementById('resultsInfo');
+            if (err && err.shardRepairNeeded) {
+                // A piece of the INSTALLED library is missing or damaged. It is
+                // no longer silently re-fetched (that made "all-or-nothing" a
+                // fiction and spent metered data behind the user's back) — say
+                // it plainly and offer a repair of that one shard, a few MB,
+                // never a 342 MB reinstall.
+                _renderShardRepairNotice(err.shardId);
+                return;
+            }
             if (!navigator.onLine) {
                 // P2: offline + sentence shards not installed (opted out, or an
                 // older offline install that predates shards). The shard fetch
@@ -4321,13 +4936,89 @@ PPP.app = (function () {
                 infoEl.innerHTML = '<strong>Error: ' + utils.escapeHtml(err.message) + '</strong>';
             }
         }).then(function () {
-            // ALWAYS release the busy lock for THIS run (success or error), so
-            // it can never stick at true. Only clear the flag if no newer
-            // search has been issued since — an older run finishing after it
-            // was superseded must not unlock UI actions on behalf of the
-            // newer, still in-flight run (which owns the lock now).
-            if (mySeq === _sentenceSearchSeq) _sentenceSearchBusy = false;
+            // ALWAYS release the busy lock for THIS run (success, error or
+            // cancel), so it can never stick at true. Only clear the flag if
+            // no newer search has been issued since — an older run finishing
+            // after it was superseded must not unlock UI actions on behalf of
+            // the newer, still in-flight run (which owns the lock now).
+            if (mySeq === _sentenceSearchSeq) {
+                _sentenceSearchBusy = false;
+                _sentenceSearchAbort = null;
+                _setSearchButtonBusy(false);
+            }
         });
+    }
+
+    /**
+     * "Part of the library is damaged" + Repair. Shown instead of the silent
+     * network re-fetch that used to happen at db.js _getShardGz (Fable
+     * 2026-07-27). Offline, the repair cannot run yet — say so; the same button
+     * works at the next online moment. The rest of the app keeps working: one
+     * damaged shard must not take everything down.
+     */
+    function _renderShardRepairNotice(shardId) {
+        var info = document.getElementById('resultsInfo');
+        if (!info) return;
+        info.innerHTML = '';
+        var msg = document.createElement('div');
+        msg.className = 'quotes-require-install';
+        msg.textContent = navigator.onLine
+            ? i18n.t('libraryPartDamaged')
+            : i18n.t('libraryPartDamagedOffline');
+        info.appendChild(msg);
+        if (!navigator.onLine) return;
+        var btn = document.createElement('button');
+        btn.id = 'shardRepairBtn';
+        btn.type = 'button';
+        btn.className = 'search-button';
+        btn.textContent = i18n.t('libraryRepairBtn');
+        btn.onclick = function () {
+            btn.disabled = true;
+            btn.textContent = i18n.t('libraryRepairing');
+            db.repairShard(shardId).then(function () {
+                ui.toast(i18n.t('libraryRepaired'));
+                doSearch();                     // the search the user actually wanted
+            }).catch(function (e) {
+                console.error('Shard repair failed:', e);
+                btn.disabled = false;
+                btn.textContent = i18n.t('libraryRepairBtn');
+                ui.toast(i18n.t('libraryRepairFailed'));
+            });
+        };
+        info.appendChild(btn);
+    }
+
+    /** Cancel the in-flight "In Text" (sentence) search, if any — aborts the
+     *  underlying shard fetch loop (db.searchSentencesChunked) and lets
+     *  performSentenceSearch's own cleanup tail release the busy lock and
+     *  restore the Search button. A no-op if nothing is running. */
+    function cancelSentenceSearch() {
+        if (_sentenceSearchAbort) _sentenceSearchAbort.abort();
+    }
+
+    /** Search button click dispatcher: while a sentence search is in flight
+     *  the same visible button doubles as Cancel (Rājan request — the user
+     *  had no way to stop a 15-20s+ "In Text" search). Direct calls to
+     *  PPP.app.search() (tests, keyboard Enter, filters) are untouched and
+     *  keep the existing busy-lock-refuses-with-a-toast behavior (test 36f) —
+     *  this dispatcher only changes what CLICKING THE BUTTON does. */
+    function searchOrCancel() {
+        if (_sentenceSearchBusy && searchMode === 'sentences') {
+            cancelSentenceSearch();
+            return;
+        }
+        doSearch();
+    }
+
+    /** Swap the search button between its normal "Search" label/behavior and
+     *  a "Cancel" label while a sentence search is in flight. Purely visual —
+     *  searchOrCancel() (wired to the button's onclick) decides the actual
+     *  behavior from _sentenceSearchBusy/searchMode, not from this class. */
+    function _setSearchButtonBusy(isBusy) {
+        var btn = document.querySelector('.search-row .search-button');
+        if (!btn) return;
+        btn.classList.toggle('is-cancel', !!isBusy);
+        btn.textContent = i18n.t(isBusy ? 'cancelSearch' : 'searchButton');
     }
 
     // Re-run the stored sentence query with a very high limit and export to Excel.
@@ -4401,7 +5092,6 @@ PPP.app = (function () {
         ).then(function (rows) {
             var resultsInfo = document.getElementById('resultsInfo');
             resultsInfo.innerHTML = '';
-            document.getElementById('timer').textContent = '';
 
             var esc = utils.escapeHtml;
             var enc = utils.encodeForAttr;
@@ -4456,6 +5146,318 @@ PPP.app = (function () {
         performSearch();
     }
 
+    // ===== ONBOARDING GATE (purpose picker) =====
+    // localStorage.ppp_purpose is either unset (first run — gate active) or
+    // 'lectures' | 'quotes' (chosen — gate stays closed forever, until the
+    // user clears storage). See CLAUDE.md "Onboarding gate" for the full spec.
+    function _currentPurpose() {
+        try {
+            var p = localStorage.getItem('ppp_purpose');
+            return (p === 'lectures' || p === 'quotes') ? p : null;
+        } catch (e) { return null; }
+    }
+
+    function _onbShowStage(stage) {
+        document.querySelectorAll('.onb-stage').forEach(function (s) {
+            s.hidden = s.getAttribute('data-onb-stage') !== stage;
+        });
+    }
+
+    function _hideOnboarding() {
+        var overlay = document.getElementById('onboardingOverlay');
+        if (overlay) overlay.hidden = true;
+        document.body.classList.remove('onboarding-active');
+    }
+
+    /** Called once from init(): shows the gate on first run, or applies the
+     *  already-chosen view immediately (no flash of the wrong UI). */
+    function initOnboarding() {
+        var purpose = _currentPurpose();
+        if (!purpose) {
+            document.body.classList.add('onboarding-active');
+            var overlay = document.getElementById('onboardingOverlay');
+            if (overlay) overlay.hidden = false;
+            _onbShowStage('lang');
+        } else {
+            _hideOnboarding();
+            _applyPurposeView(purpose);
+        }
+        updateOnbIntro();
+    }
+
+    /** Onboarding stage (a): pick a language, reuse setLanguage(), advance. */
+    function onbPickLanguage(lang) {
+        setLanguage(lang);
+        _onbShowStage('intro');
+        updateOnbIntro();
+    }
+
+    /**
+     * Catalog figures (lecture count, source list) for the ONBOARDING screen.
+     *
+     * That screen is shown BEFORE the meta DB is loaded: loadData() returns
+     * early while no purpose is chosen (Rājan's mandatory install gate), so
+     * totalLectures is 0 and dataLoaded is false for every genuinely new user —
+     * the exact audience the intro sentence and "List Of Sources" address.
+     * manifest.json is small (~20 KB) and already part of this screen's work,
+     * so both figures ride along in its "catalog" block
+     * (scripts/build_offline_packs.py read_catalog()).
+     *
+     * Never rejects: an older manifest without the block, or no network at all,
+     * resolves to null and each caller keeps its previous behaviour.
+     */
+    var _manifestPromise = null;
+    function _getManifest() {
+        if (!_manifestPromise) {
+            _manifestPromise = fetch('data/manifest.json')
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .catch(function () { return null; });
+        }
+        return _manifestPromise;
+    }
+    function _getCatalog() {
+        return _getManifest().then(function (m) { return (m && m.catalog) || null; });
+    }
+
+    /** Live "{count} recordings" text in the onboarding intro sentence — kept
+     *  in sync with totalLectures (cached value first, real value once the
+     *  meta DB resolves — see _loadMetaIntoApp). Before the meta DB exists at
+     *  all (first visit) the count comes from the manifest catalog; until that
+     *  resolves the sentence renders WITHOUT a number rather than with "0". */
+    function updateOnbIntro() {
+        var el = document.getElementById('onbIntroText');
+        if (!el) return;
+        function render(count) {
+            var tpl = i18n.t('onbIntro');
+            el.textContent = count > 0
+                ? tpl.replace('{count}', count.toLocaleString())
+                // No figure yet: drop the placeholder and the space around it
+                // instead of asserting "0 recordings", which is simply false.
+                : tpl.replace(/\s*\{count\}\s*/, ' ');
+        }
+        if (totalLectures > 0) { render(totalLectures); return; }
+        render(0);
+        _getCatalog().then(function (cat) {
+            // Guard against a late meta DB having already filled the real value.
+            if (totalLectures > 0) { render(totalLectures); return; }
+            if (cat && cat.lectures) { render(cat.lectures); }
+        });
+    }
+
+    /** Onboarding stage (b): purpose chosen — close the gate, enter that view,
+     *  then kick off the mandatory first-use install gate (see
+     *  _startMandatoryInstallGate). */
+    function setPurpose(purpose) {
+        try { localStorage.setItem('ppp_purpose', purpose); } catch (e) {}
+        track('onboarding-purpose', { purpose: purpose });
+        _hideOnboarding();
+        _applyPurposeView(purpose);
+        setSearchMode(purpose === 'quotes' ? 'sentences' : 'metadata');
+        _updateTipStrip();
+        _startMandatoryInstallGate();
+    }
+
+    /**
+     * First-use mandatory install (Rājan decision 2026-07-26): every user
+     * downloads the full EN dataset (core + EN premium + EN raw + the
+     * sentence shards "In Text" search needs) on first use; LV/RU stay
+     * optional. loadData() (called unconditionally from init(), before the
+     * purpose is even known) defers its own online-load fallback while the
+     * onboarding gate is open — this function is what actually decides what
+     * happens once the user's purpose choice makes that decision possible.
+     * Skipped for: a returning device that already has the full library
+     * (just opens it), a resumed/interrupted install (the normal boot logic
+     * already knows how to open a partial library and keep downloading in
+     * the background), and a browser that cannot do offline at all (the
+     * existing offlineUnsupported path — proceeds online, "In Text" explains
+     * itself later via _requireTextSearchLibrary).
+     */
+    function _startMandatoryInstallGate() {
+        var store = PPP.offlineStore;
+        if (!store || !store.supported() || !PPP.downloader) {
+            loadDataLegacy();
+            maybeShowOfflineWorkButton();
+            return;
+        }
+        // Rājan field report (2026-07-26): a stuck IndexedDB read here left
+        // the onboarding purpose choice with NO install step at all — the
+        // user landed nowhere, forever, with nothing on screen to explain
+        // why. Raced against a short timeout (_raceTimeout) so a hung
+        // store.open()/getState() degrades to "treat as not installed yet"
+        // (the same as a genuinely fresh device) instead of hanging the
+        // gate closed. getResumeState() is a SEPARATE offlineStore/
+        // downloader read and gets its own timeout for the same reason —
+        // its own default (no resume found) already means "run the normal
+        // first-install flow", so timing it out is safe.
+        var stateRead = store.open().then(function () {
+            return store.getState('localManifest');
+        }).then(function (localManifest) {
+            return store.getState('shards').then(function (shardsInstalled) {
+                return { localManifest: localManifest, shardsInstalled: shardsInstalled };
+            });
+        });
+        _raceTimeout(stateRead, 4000, null).then(function (state) {
+            if (state && state.localManifest && state.shardsInstalled) {
+                return openFromIdb().then(function () {
+                    if (navigator.onLine) backgroundUpdateCheck();
+                });
+            }
+            return _raceTimeout(PPP.downloader.getResumeState(), 4000, null).then(function (resume) {
+                if (resume) {
+                    // An install is already under way (e.g. a reload during
+                    // the mandatory install below, or one begun in an
+                    // earlier session) — loadData() already knows how to
+                    // open a partial library and continue downloading the
+                    // rest in the background.
+                    return loadData();
+                }
+                // True first use (or an unreadable/timed-out state, treated
+                // the same way) — the mandatory install prompt/flow.
+                return startFirstInstallFlow();
+            });
+        }).catch(function (err) {
+            console.warn('Mandatory install gate failed, falling back to online load:', err);
+            loadDataLegacy();
+        });
+    }
+
+    /** Show/hide the .lectures-only / .quotes-only controls (CSS-driven) and
+     *  flip the switch-view button label to the OTHER view. */
+    function _applyPurposeView(purpose) {
+        document.body.classList.remove('view-lectures', 'view-quotes');
+        document.body.classList.add(purpose === 'quotes' ? 'view-quotes' : 'view-lectures');
+        document.body.classList.add('purpose-set');
+        var switchBtn = document.getElementById('viewSwitchBtn');
+        if (switchBtn) {
+            var key = purpose === 'quotes' ? 'switchToLectures' : 'switchToQuotes';
+            switchBtn.setAttribute('data-i18n', key);
+            switchBtn.textContent = i18n.t(key);
+        }
+    }
+
+    /** Utility-row toggle between the two views. Rājan decision: keep whatever
+     *  the user typed, but clear the results (setSearchMode below does both —
+     *  clears the field too — so the typed term is saved and restored after). */
+    function switchView() {
+        var next = _currentPurpose() === 'quotes' ? 'lectures' : 'quotes';
+        try { localStorage.setItem('ppp_purpose', next); } catch (e) {}
+        track('view-switch', { to: next });
+        var input = document.getElementById('searchTerm');
+        var term = input ? input.value : '';
+        // A combo-display label (By Topic, By Verse, ...) left in the field
+        // is not something the user typed — restoring it after setSearchMode
+        // clears it would leave it sitting there as if typed, but ENABLED
+        // (Rājan report, 2026-07-25). Same display-label lookup used by the
+        // language-switch fix (setLanguage, below).
+        var isDisplayLabel = !!term && SEARCH_VALUE_DISPLAY_KEYS.some(function (k) { return i18n.t(k) === term; });
+        _applyPurposeView(next);
+        setSearchMode(next === 'quotes' ? 'sentences' : 'metadata');
+        if (input && !isDisplayLabel) input.value = term;
+        _updateTipStrip();
+    }
+
+    /** Compact language button (utility row) — opens/closes the existing
+     *  6-button language switcher (hidden by default once a purpose is set). */
+    function toggleLangChooser(evt) {
+        if (evt) evt.stopPropagation();
+        var full = document.getElementById('langSwitcherFull');
+        if (!full) return;
+        var willOpen = !full.classList.contains('open');
+        full.classList.toggle('open', willOpen);
+        if (!willOpen) return;
+        // #langSwitcherFull lives inside .hero, which needs overflow:hidden
+        // for its decorative background — that clipped this dropdown when it
+        // was position:absolute (Rājan report, 2026-07-25). It is now
+        // position:fixed (css/styles.css), so anchor it here to the compact
+        // button's live viewport position, clamped so it never runs off
+        // either edge.
+        var btn = document.getElementById('langCompactBtn');
+        if (!btn) return;
+        var br = btn.getBoundingClientRect();
+        // Measure first (panel is display:flex via .open already applied above).
+        var pw = full.offsetWidth;
+        var ph = full.offsetHeight;
+        var left = br.right - pw;
+        var maxLeft = window.innerWidth - pw - 8;
+        if (left > maxLeft) left = maxLeft;
+        if (left < 8) left = 8;
+
+        // Prefer opening below the button, but flip ABOVE it when there isn't
+        // enough room before the results table starts — at narrow (mobile)
+        // widths the utility row sits close above the results header, so the
+        // dropdown used to paint straight over it (Rājan report, 2026-07-25).
+        var resultsEl = document.getElementById('resultsTable');
+        var lowerBound = window.innerHeight - 8;
+        if (resultsEl) lowerBound = Math.min(lowerBound, resultsEl.getBoundingClientRect().top - 8);
+        var top = br.bottom + 6;
+        if (top + ph > lowerBound) {
+            var aboveTop = br.top - 6 - ph;
+            top = aboveTop >= 8 ? aboveTop : Math.max(8, lowerBound - ph);
+        }
+        full.style.top = top + 'px';
+        full.style.left = left + 'px';
+    }
+
+    // ===== "DID YOU KNOW?" TIP STRIPS =====
+    // Each entry is shown at most once ever (localStorage.ppp_seen_tips), one
+    // at a time, only in its matching view, only once its trigger condition
+    // holds. Add more tips later by appending to this array — no special
+    // casing elsewhere.
+    var TIP_DEFS = [
+        {
+            id: 'zip', purpose: 'lectures', textKey: 'tipZip', btnKey: 'tipZipBtn',
+            applies: function () { return searchMode === 'metadata' && totalResults > 0; },
+            action: function () {
+                var cb = document.querySelector('#resultsTable input.select-checkbox:not(:checked)');
+                if (cb) cb.click();
+                openDownloadPanel();
+            }
+        },
+        {
+            id: 'jump', purpose: 'quotes', textKey: 'tipJump', btnKey: 'tipJumpBtn',
+            applies: function () { return searchMode === 'sentences' && !!_sentenceLastRender && _sentenceLastRender.totals.total > 0; },
+            action: function () {
+                var a = document.querySelector('#resultsTable a.script-chip[data-sentence]');
+                if (a) a.click();
+            }
+        }
+    ];
+
+    function _seenTips() {
+        try { return JSON.parse(localStorage.getItem('ppp_seen_tips') || '[]'); } catch (e) { return []; }
+    }
+    function _markTipSeen(id) {
+        var seen = _seenTips();
+        if (seen.indexOf(id) === -1) {
+            seen.push(id);
+            try { localStorage.setItem('ppp_seen_tips', JSON.stringify(seen)); } catch (e) {}
+        }
+    }
+
+    function _updateTipStrip() {
+        var strip = document.getElementById('tipStrip');
+        if (!strip) return;
+        var purpose = _currentPurpose();
+        var seen = _seenTips();
+        var tip = null;
+        for (var i = 0; i < TIP_DEFS.length; i++) {
+            var t = TIP_DEFS[i];
+            if (t.purpose === purpose && seen.indexOf(t.id) === -1 && t.applies()) { tip = t; break; }
+        }
+        if (!tip) { strip.hidden = true; strip.innerHTML = ''; return; }
+        var esc = utils.escapeHtml;
+        strip.innerHTML =
+            '<span class="teach-tag">' + esc(i18n.t('tipTag')) + '</span>' +
+            '<p>' + esc(i18n.t(tip.textKey)) + '</p>' +
+            '<button type="button" class="teach-btn">' + esc(i18n.t(tip.btnKey)) + '</button>' +
+            '<button type="button" class="teach-x" aria-label="Close">&times;</button>';
+        strip.hidden = false;
+        var actionBtn = strip.querySelector('.teach-btn');
+        if (actionBtn) actionBtn.onclick = function () { _markTipSeen(tip.id); tip.action(); _updateTipStrip(); };
+        var xBtn = strip.querySelector('.teach-x');
+        if (xBtn) xBtn.onclick = function () { _markTipSeen(tip.id); _updateTipStrip(); };
+    }
+
     function applyLangFilter(lang) {
         document.getElementById('searchTerm').value = 'lang:' + lang;
         lastSearchTerm = 'lang:' + lang;
@@ -4474,10 +5476,44 @@ PPP.app = (function () {
     }
 
     // ===== LANGUAGE =====
+    // Keys whose translated value gets written directly into #searchTerm's
+    // VALUE (not just the placeholder) by combo/nav buttons — see
+    // setComboDisplay() and the handful of direct assignments above (By
+    // Topic, By Added, Verses, 2026, Favorites, ...). setLanguage() below
+    // must re-translate the field's value if it still holds one of these
+    // display labels in the outgoing language (Rājan report, 2026-07-25:
+    // switching LV -> RU after "By Topic" left the field showing the old
+    // Latvian label while everything else relocalized).
+    var SEARCH_VALUE_DISPLAY_KEYS = [
+        'byCitedVersesDisplay', 'mostCitedVersesDisplay', 'latest20Files',
+        'addedDateDisplay', 'entries2026Display', 'latest20Transcripts',
+        'newestTranscriptsDisplay', 'allTranscriptsByDate', 'transcriptsByDateDisplay',
+        'favorites', 'favoritesBtn', 'recommendations', 'transcriptsByTopicDisplay'
+    ];
     function setLanguage(lang) {
         if (_sentenceSearchBusy) { ui.toast(i18n.t('searchInProgress')); return; }
         track('language', { lang: lang });
+        // Snapshot BEFORE switching: if the search field's current value is
+        // exactly one of the known display labels in the OLD language, we'll
+        // re-translate it below. Anything the user typed themselves won't
+        // match any of these and is left untouched.
+        var searchInputEl = document.getElementById('searchTerm');
+        var _pendingDisplayKey = null;
+        if (searchInputEl) {
+            var oldLang = i18n.getLanguage();
+            var oldDict = (i18n.getTranslations() || {})[oldLang] || {};
+            var curVal = searchInputEl.value;
+            for (var _dk = 0; _dk < SEARCH_VALUE_DISPLAY_KEYS.length; _dk++) {
+                if (oldDict[SEARCH_VALUE_DISPLAY_KEYS[_dk]] === curVal) {
+                    _pendingDisplayKey = SEARCH_VALUE_DISPLAY_KEYS[_dk];
+                    break;
+                }
+            }
+        }
         i18n.setLanguage(lang);
+        if (_pendingDisplayKey && searchInputEl) {
+            searchInputEl.value = i18n.t(_pendingDisplayKey);
+        }
         // A11Y: keep the document language in sync (screen readers, hyphenation).
         // Also covers initial load — init() calls setLanguage(savedLang).
         document.documentElement.lang = lang;
@@ -4494,6 +5530,24 @@ PPP.app = (function () {
             var pval = i18n.t(pkey);
             if (pval !== pkey) el.placeholder = pval;
         });
+        // A handful of onboarding strings carry inline <code> markup (search
+        // examples) — those use innerHTML via a separate attribute so the
+        // generic textContent loop above never HTML-escapes them.
+        document.querySelectorAll('[data-i18n-html]').forEach(function (el) {
+            var hkey = el.getAttribute('data-i18n-html');
+            var hval = i18n.t(hkey);
+            if (hval !== hkey) el.innerHTML = hval;
+        });
+        var langCompact = document.getElementById('langCompactBtn');
+        if (langCompact) langCompact.textContent = lang.toUpperCase();
+        // Close the compact dropdown as soon as a language is picked — without
+        // this the panel stayed open (Rājan report, 2026-07-25) and gave no
+        // closure signal, so the switch looked like it hadn't worked.
+        var langSwitcher = document.getElementById('langSwitcherFull');
+        if (langSwitcher) langSwitcher.classList.remove('open');
+        // The generic data-i18n loop above just wrote the RAW "{count}" template
+        // into #onbIntroText (onbIntro has a placeholder) — fix it up now.
+        updateOnbIntro();
         var luEl = document.getElementById('dbLastUpdate');
         if (luEl && luEl.getAttribute('data-last-update')) {
             luEl.textContent = (i18n.t('lastUpdate') || 'Last update') + ': ' + luEl.getAttribute('data-last-update');
@@ -4550,6 +5604,17 @@ PPP.app = (function () {
             btnEl.setAttribute('onclick', 'PPP.app.showInstallInstruction()');
         }
         banner.style.display = 'block';
+        // The banner sits between .hero and .search-section, and the latter is
+        // pulled up 44px to float over the hero. Without cancelling that pull
+        // the search card climbs over the BANNER, which (z-index 20) then eats
+        // the clicks on the first button row. See styles.css
+        // body.install-banner-visible. Audit 2026-07-26.
+        document.body.classList.add('install-banner-visible');
+    }
+
+    function _hideInstallBanner() {
+        document.getElementById('installBanner').style.display = 'none';
+        document.body.classList.remove('install-banner-visible');
     }
 
     function installApp() {
@@ -4558,7 +5623,7 @@ PPP.app = (function () {
             deferredPrompt.prompt();
             deferredPrompt.userChoice.then(function () {
                 deferredPrompt = null;
-                document.getElementById('installBanner').style.display = 'none';
+                _hideInstallBanner();
             });
         }
     }
@@ -4588,7 +5653,7 @@ PPP.app = (function () {
     }
 
     function dismissInstall() {
-        document.getElementById('installBanner').style.display = 'none';
+        _hideInstallBanner();
         localStorage.setItem('installDismissed', '1');
     }
 
@@ -4596,6 +5661,8 @@ PPP.app = (function () {
     return {
         init: init,
         search: doSearch,
+        searchOrCancel: searchOrCancel,
+        cancelSentenceSearch: cancelSentenceSearch,
         setLanguage: setLanguage,
         showLatestFiles: showLatestFiles,
         showBy2026: showBy2026,
@@ -4630,6 +5697,13 @@ PPP.app = (function () {
         downloadTranscript: downloadTranscript,
         showFavorites: showFavorites,
         updateFavoritesCount: updateFavoritesCount,
+        // Onboarding gate (purpose picker) + the two-view toggle + tip strips
+        onbPickLanguage: onbPickLanguage,
+        setPurpose: setPurpose,
+        switchView: switchView,
+        toggleLangChooser: toggleLangChooser,
+        // Internal (test only) — read/reset gate state without clicking through it.
+        _currentPurposeForTest: _currentPurpose,
         // Multi-select transcripts -> ZIP
         isSelectedPair: isSelectedPair,
         toggleSelectPair: toggleSelectPair,

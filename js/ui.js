@@ -153,7 +153,20 @@ PPP.ui = (function () {
         starSpacer.style.border = 'none';
         starSpacer.style.backgroundColor = 'transparent';
         row0.appendChild(starSpacer);
-        for (var i = 0; i < 11; i++) {
+        // Spacer-cell count must mirror the REAL column count the loop below
+        // builds (Script_LV/Script_RU are skipped, not real columns; Script_EN
+        // becomes a 3-wide block): a hardcoded 11 matched metadata mode's 11
+        // real columns by coincidence, but sentence mode has no Length column
+        // (10 real columns) — the mismatch left this invisible row one column
+        // WIDER than the visible header rows, so the colored header band fell
+        // a column short of the table's actual (rounded) right edge, exposing
+        // a cream notch at the corner (Rājan report, 2026-07-25).
+        var extraCols = 0;
+        for (var ci = 0; ci < cols.length; ci++) {
+            if (cols[ci] === 'Script_LV' || cols[ci] === 'Script_RU') continue;
+            extraCols += (cols[ci] === 'Script_EN') ? 3 : 1;
+        }
+        for (var i = 0; i < extraCols; i++) {
             var c = document.createElement('th');
             c.style.border = 'none';
             c.style.backgroundColor = 'transparent';
@@ -1040,6 +1053,19 @@ PPP.ui = (function () {
         closeSaveToPopup();
         var fav = PPP.favorites;
         var cols = fav.getCollections();
+
+        // A brand-new device has no collections, and this popup is the ONLY way
+        // a user can reach favorites — so the list came up empty and the only
+        // option was "+ New collection", i.e. you had to invent a folder name
+        // before you could star anything. The backward-compatible toggle() API
+        // has always auto-created 'Favorites' in exactly this case; the UI now
+        // matches it. Test "11" passed throughout because it calls that API
+        // directly, bypassing the path a real user has to take.
+        // (Manual audit 2026-07-26.)
+        if (cols.length === 0) {
+            fav.createCollection('Favorites');
+            cols = fav.getCollections();
+        }
 
         var popup = document.createElement('div');
         popup.className = 'save-to-popup';
