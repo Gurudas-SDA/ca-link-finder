@@ -17,6 +17,12 @@ var SQL_JS_CDN = 'vendor/sql-wasm.js';
 // Load sql.js in Worker context
 importScripts(SQL_JS_CDN);
 
+// Artefact codec (gzip native / Brotli WASM). Tiny and always needed; the
+// Brotli decoder itself is NOT loaded here — codec.js pulls it in with its own
+// importScripts the first time a `br` artefact actually arrives, so a gzip-only
+// device never instantiates it.
+importScripts('codec.js');
+
 /**
  * Initialize sql.js WASM engine.
  */
@@ -151,17 +157,17 @@ function fetchWithProgress(dbName, url) {
 }
 
 /**
- * Open a database from a gzipped ArrayBuffer (offline IDB path).
- * Decompresses inside the Worker with the native DecompressionStream, then
- * builds the SQL.Database off the main thread.
+ * Open a database from a COMPRESSED ArrayBuffer (offline IDB path).
+ * Decompresses inside the Worker — gzip through the native
+ * DecompressionStream, Brotli through the vendored WASM decoder — then builds
+ * the SQL.Database off the main thread. `enc` is the codec the caller read
+ * from the artefact's manifest entry / IndexedDB record; missing means gzip.
  */
-function openGz(dbName, buffer) {
-    if (typeof DecompressionStream !== 'function') {
+function openGz(dbName, buffer, enc) {
+    if (PPPCodec.normalize(enc) === 'gzip' && !PPPCodec.gzipSupported()) {
         return Promise.reject(new Error('DecompressionStream unavailable in worker'));
     }
-    return new Response(
-        new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'))
-    ).arrayBuffer().then(function (decompressed) {
+    return PPPCodec.toArrayBuffer(buffer, enc, dbName).then(function (decompressed) {
         databases[dbName] = new SQL.Database(new Uint8Array(decompressed));
     });
 }
@@ -201,14 +207,99 @@ function runQuery(dbName, sql, params) {
 }
 
 /**
+ * Cheap FIRST SIEVE over the SQL a zero-copy shard query may carry.
+ *
+ * Deliberately NOT the real guard. This is a regex against a grammar, and that
+ * is a race we lose: `WITH` may legally be followed by nested CTEs, comments
+ * and string literals full of keywords, and SQLite accepts
+ * `WITH x AS (...) DELETE ... RETURNING` — a write that sails straight through
+ * any prefix test. The guarantee lives in the ENGINE instead: queryCloseBuffer
+ * sets `PRAGMA query_only = 1` on the handle before running anything (see
+ * there). This function stays because it is free, it catches the obvious
+ * mistake at the call site, and it names the invariant instead of leaving the
+ * caller with SQLite's generic "attempt to write a readonly database".
+ *
+ * It runs BEFORE the shadow is installed, so a rejected call leaves the
+ * caller's buffer exactly as it found it.
+ */
+var READ_ONLY_SQL_RE = /^\s*(?:\/\*[\s\S]*?\*\/\s*|--[^\n]*\n\s*)*(?:SELECT|WITH)\b/i;
+
+function assertReadOnlySql(sql, which) {
+    if (typeof sql !== 'string' || !READ_ONLY_SQL_RE.test(sql)) {
+        throw new Error('queryCloseBuffer refuses a non-read-only ' + which +
+            ': the shard is opened zero-copy, so any write would corrupt the ' +
+            "caller's buffer. Only SELECT / WITH are allowed here.");
+    }
+}
+
+/**
  * Build a SQL.Database from an already-decompressed buffer, run the query
  * (and optional count query), dispose the handle, and return the rows.
  * The handle is NEVER stored in `databases` — so no shard leaks across calls;
  * peak memory stays at one shard. Returns { rows, count }.
  */
 function queryCloseBuffer(buffer, sql, countSql, params) {
-    var db = new SQL.Database(new Uint8Array(buffer));
+    assertReadOnlySql(sql, 'sql');
+    if (countSql) assertReadOnlySql(countSql, 'countSql');
+
+    var bytes = new Uint8Array(buffer);
+
+    // --- Why this shadow exists (measured 2026-07-27) ----------------------
+    // `new SQL.Database(bytes)` does NOT keep `bytes`. Inside the vendored
+    // sql-wasm.js the Database constructor inlines FS.createDataFile and ends
+    // in a five-argument FS.write — `oa(n,g,0,g.length,0)` — and FS.write in
+    // turn calls the MEMFS backend as `a.Ga.write(a,b,c,d,e,void 0)`: the
+    // `canOwn` flag is hard-wired to `undefined` in this build, so no caller
+    // can reach the zero-copy branch. MEMFS therefore takes the other one:
+    //     canOwn  -> node.contents = buf.subarray(off, off+len)   (view)
+    //     !canOwn -> node.contents = buf.slice(off, off+len)      (FULL COPY)
+    // That is a SECOND ~28 MB allocation per shard, and `db.close()` does not
+    // release it — it merely becomes garbage and waits for a GC.
+    //
+    // Shadowing `.slice` with an OWN property on this one array makes the
+    // !canOwn branch return exactly the subarray the canOwn branch would have
+    // returned. No vendored file is patched and no global prototype is
+    // touched — the override lives and dies with this single object.
+    // Measured over the 21-shard sentence search: peak renderer working set
+    // 217.4 -> 186.8 MB, settled 210.7 -> 184.5 MB, results bit-identical.
+    //
+    // LIMIT — do NOT carry this into openGz / openBuffer or any other caller.
+    // It is safe here only because MEMFS ends up holding a VIEW into `buffer`,
+    // so (a) `buffer` must outlive the handle — it does, db.close() runs in
+    // the finally below while `bytes` is still on this frame — and (b) any
+    // SQLite WRITE to the file would mutate the caller's buffer underneath it.
+    // Both hold for this read-only, dispose-immediately shard path and for
+    // nothing else in this worker: openGz/openBuffer park the handle in
+    // `databases` long after their caller has dropped the buffer.
+    //
+    // Guards in tests/shard-memory.spec.js hold this together: the copy must
+    // stay gone, the engine must refuse every write (including WITH-prefixed
+    // ones), and this shadow must not appear in any other function here.
+    var wholeLength = bytes.byteLength;
+    bytes.slice = function (begin, end) {
+        return (((begin | 0) === 0) && (end === undefined || end === wholeLength))
+            ? this.subarray(0, wholeLength)
+            : Uint8Array.prototype.slice.call(this, begin, end);
+    };
+
+    var db = new SQL.Database(bytes);
     try {
+        // THE guard. Because MEMFS aliases `buffer`, a SQLite write does not
+        // just corrupt a scratch copy — it writes through into memory the
+        // caller still owns, and the symptom is silently wrong rows rather
+        // than a crash. `query_only` makes the ENGINE refuse every write,
+        // whatever shape the SQL takes, so the invariant no longer depends on
+        // parsing SQL correctly (see assertReadOnlySql for why parsing loses:
+        // `WITH x AS (...) DELETE ... RETURNING` is a legal write that begins
+        // with WITH).
+        // Verified against this exact sql.js build, not assumed: the pragma
+        // reads back 0 -> 1 (so it is accepted, not silently ignored) and then
+        // DELETE / INSERT / UPDATE / CREATE / DROP and the WITH-prefixed
+        // DELETE, INSERT and UPDATE forms all fail with "attempt to write a
+        // readonly database". SELECT is unaffected in results and timing.
+        // Set inside the try so a throw still reaches db.close() below.
+        db.run('PRAGMA query_only = 1');
+
         var out = { rows: runQueryOn(db, sql, params) };
         out.count = countSql ? runQueryOn(db, countSql, params) : null;
         return out;
@@ -218,18 +309,43 @@ function queryCloseBuffer(buffer, sql, countSql, params) {
 }
 
 /**
- * Decompress a gzipped shard buffer inside the Worker, then run + dispose via
- * queryCloseBuffer (one-shard-resident invariant). Returns { rows, count }.
+ * Decompress a compressed shard buffer inside the Worker, then run + dispose
+ * via queryCloseBuffer (one-shard-resident invariant). Returns { rows, count }.
+ * `enc` comes from the shard's own manifest/IndexedDB record, so a search that
+ * crosses a half-applied delta decodes gzip and Brotli shards in the same loop.
  */
-function openQueryClose(gzBuffer, sql, countSql, params) {
-    if (typeof DecompressionStream !== 'function') {
+function openQueryClose(gzBuffer, sql, countSql, params, enc) {
+    if (PPPCodec.normalize(enc) === 'gzip' && !PPPCodec.gzipSupported()) {
         return Promise.reject(new Error('DecompressionStream unavailable in worker'));
     }
-    return new Response(
-        new Blob([gzBuffer]).stream().pipeThrough(new DecompressionStream('gzip'))
-    ).arrayBuffer().then(function (decompressed) {
+    return PPPCodec.toArrayBuffer(gzBuffer, enc, 'shard').then(function (decompressed) {
         return queryCloseBuffer(decompressed, sql, countSql, params);
     });
+}
+
+/**
+ * Reject a call AND hand the source bytes back to the main thread.
+ *
+ * The main thread used to keep a whole second copy of every compressed
+ * artefact (`gzArrayBuffer.slice(0)`) purely so its fallback chain would still
+ * have one after transferring the first — 9.1 MB per gzip shard, 21 shards per
+ * search, on the one budget this app cannot spare. Returning the bytes on the
+ * failure path removes that copy entirely, and costs nothing: the decoder only
+ * ever read VIEWS of this buffer, so it is still intact here.
+ * (Codex audit MEDIUM, 2026-07-27.)
+ *
+ * Transferring it back also detaches it here, which is what we want — the
+ * worker has no further use for a call that just failed.
+ */
+function failWithBuffer(id, cmd, err, buffer, extra) {
+    var msg = { id: id, cmd: cmd, error: (err && err.message) || String(err) };
+    if (extra) { for (var k in extra) msg[k] = extra[k]; }
+    if (buffer && buffer.byteLength) {
+        msg.buffer = buffer;
+        self.postMessage(msg, [buffer]);
+    } else {
+        self.postMessage(msg);
+    }
 }
 
 /**
@@ -260,11 +376,11 @@ self.onmessage = function (e) {
 
         case 'openGz':
             initEngine().then(function () {
-                return openGz(msg.dbName, msg.buffer);
+                return openGz(msg.dbName, msg.buffer, msg.enc);
             }).then(function () {
                 self.postMessage({ id: id, cmd: 'openGz', result: true, dbName: msg.dbName });
             }).catch(function (err) {
-                self.postMessage({ id: id, cmd: 'openGz', error: err.message, dbName: msg.dbName });
+                failWithBuffer(id, 'openGz', err, msg.buffer, { dbName: msg.dbName });
             });
             break;
 
@@ -287,14 +403,15 @@ self.onmessage = function (e) {
             break;
 
         case 'openQueryClose':
-            // Chunked shard search: decompress gz → open → query → dispose.
+            // Chunked shard search: decompress (per-shard codec) → open →
+            // query → dispose.
             // Only ONE shard DB exists at a time (never stored in `databases`).
             initEngine().then(function () {
-                return openQueryClose(msg.buffer, msg.sql, msg.countSql, msg.params);
+                return openQueryClose(msg.buffer, msg.sql, msg.countSql, msg.params, msg.enc);
             }).then(function (res) {
                 self.postMessage({ id: id, cmd: 'openQueryClose', result: res });
             }).catch(function (err) {
-                self.postMessage({ id: id, cmd: 'openQueryClose', error: err.message });
+                failWithBuffer(id, 'openQueryClose', err, msg.buffer);
             });
             break;
 
