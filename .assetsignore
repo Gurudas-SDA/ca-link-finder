@@ -1,5 +1,10 @@
-node_modules/
+# Cloudflare Workers static asset exclusions
 .git/
-data/ppp_lecture_extras.json
-data/ppp_meta.db
+node_modules/
 data/ppp_sentences_en.db
+data/ppp_concepts_en.db
+data/ppp_transcripts_html_ru.db
+data/ppp_lecture_extras.json
+data/ppp_transcripts_html_lv.db
+data/ppp_transcripts_html_en.db
+data/ppp_meta.db

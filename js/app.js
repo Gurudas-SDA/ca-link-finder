@@ -745,9 +745,21 @@ PPP.app = (function () {
     }
 
     /**
-     * Test/CI hook: ppp_install_shards === '1' opts the auto-install path into
-     * the sentence shards (offline text search). Real users choose via the
-     * "Offline text search" checkbox. Default OFF — shards are opt-in.
+     * TEST/CI HOOK ONLY — not a real-user path. `ppp_install_shards` is never
+     * set by any UI in js/ (grepped 2026-07-28: only tests/app.spec.js,
+     * tests/pwa.spec.js and bench/ set it). It exists so Playwright can drive
+     * startBackgroundInstall() with no explicit args (see the `auto` branch
+     * at line ~508 and startBackgroundInstall's `sel == null` branch below)
+     * and still choose whether that synthetic run includes shards.
+     *
+     * Real installs NEVER reach this function: every real entry point
+     * (_startMandatoryInstallGate / the language-selector widget built with
+     * shardsForced: true) passes includeShards explicitly as `true` — the
+     * sentence-shard index is mandatory (Rājan decision 2026-07-26,
+     * reaffirmed 2026-07-28: "Atteikties var tikai no valodām" — only the
+     * extra languages are opt-in, shards never are). So this default-OFF
+     * fallback has no user-facing effect and must NOT be "fixed" to true —
+     * doing so would just change what the test hook itself does.
      */
     function _autoInstallShards() {
         try { return localStorage.getItem('ppp_install_shards') === '1'; } catch (e) { return false; }
@@ -759,18 +771,16 @@ PPP.app = (function () {
      *   baseChecked — prepend a disabled, checked EN "base" row
      *   preselected — languages initially ticked
      *   sizeMode    — 'total' (core+EN+selected) | 'delta' (only selected packs)
-     *   shardToggle — add the opt-in "Offline text search" (sentence shards)
-     *                 checkbox (default unchecked); getIncludeShards() reads it
      *   shardsForced — the sentence shards are MANDATORY (Rājan decision
-     *                 2026-07-26: text search requires them) — no checkbox is
-     *                 rendered and getIncludeShards() always returns true.
-     *                 Mutually exclusive with shardToggle in practice (a
-     *                 caller passing both gets the forced/no-checkbox
-     *                 behaviour, since shardsForced short-circuits first).
+     *                 2026-07-26, reaffirmed 2026-07-28: "Atteikties var tikai
+     *                 no valodām" — the shards are never opt-in, only the
+     *                 extra languages are). Every caller of this selector
+     *                 must pass shardsForced: true; no checkbox is rendered
+     *                 and getIncludeShards() always returns true.
      * Returns { el, getLangs, getIncludeShards }. getLangs() reads the ticked
-     * opt-in langs; getIncludeShards() reads the shard checkbox (false when the
-     * toggle is absent, true when shardsForced). The live size label
-     * recomputes from BOTH the language selection and the shard state via
+     * opt-in langs; getIncludeShards() always returns true (shards are
+     * mandatory — see shardsForced above). The live size label recomputes
+     * from BOTH the language selection and the shard state via
      * computeInstallBytes.
      */
     function _buildLangSelector(manifest, opts) {
@@ -781,7 +791,6 @@ PPP.app = (function () {
 
         var wrap = document.createElement('div');
         wrap.className = 'offline-lang-select';
-        var shardCb = null;   // set when the shard toggle is rendered
         var sizeLabel = document.createElement('div');
         sizeLabel.className = 'offline-lang-size';
 
@@ -794,7 +803,7 @@ PPP.app = (function () {
             }
             return out;
         }
-        function includeShards() { return !!opts.shardsForced || !!(shardCb && shardCb.checked); }
+        function includeShards() { return !!opts.shardsForced; }
         function refreshSize() {
             var sel = selectedLangs();
             var bytes = PPP.downloader.computeInstallBytes(manifest, sel, includeShards());
@@ -818,24 +827,8 @@ PPP.app = (function () {
             wrap.appendChild(lbl);
         }
 
-        function addShardRow() {
-            var lbl = document.createElement('label');
-            lbl.className = 'offline-lang-row offline-shard-row';
-            shardCb = document.createElement('input');
-            shardCb.type = 'checkbox';
-            shardCb.setAttribute('data-shard', '1');
-            shardCb.checked = false;              // opt-in — unchecked by default
-            shardCb.onchange = refreshSize;
-            var span = document.createElement('span');
-            span.textContent = i18n.t('offlineTextSearch');
-            lbl.appendChild(shardCb);
-            lbl.appendChild(span);
-            wrap.appendChild(lbl);
-        }
-
         if (opts.baseChecked) addRow('en', true);
         langList.forEach(function (l) { addRow(l, false); });
-        if (opts.shardToggle && !opts.shardsForced) addShardRow();
         wrap.appendChild(sizeLabel);
         refreshSize();
         return { el: wrap, getLangs: selectedLangs, getIncludeShards: includeShards };
@@ -972,6 +965,26 @@ PPP.app = (function () {
     var _retryLangs = null;         // selection to resume with (null = default)
     var _retryShards = false;
     var _wakeLock = null;
+    // What an automatic resume must run while an install ERROR SCREEN is up.
+    // The gated paths (mandatory install, shards-only top-up) are not resumed
+    // by startBackgroundInstall — each has its own flow — so the error screen
+    // hands over the exact function its own Try again button would call. Set by
+    // _showInstallStalled, consumed once by _installRetryTick.
+    var _pendingResume = null;
+    // True while the attempt in flight was started AUTOMATICALLY. Only such an
+    // attempt may spend a unit of _autoFailCount, and only when it actually
+    // FAILS. Charging the budget for the tick itself meant two tab switches
+    // exhausted it and the listeners came off — precisely the regression the
+    // error screen keeps them armed to avoid.
+    var _autoAttemptPending = false;
+    // Floor between VISIBILITY-driven resumes. Returning to the tab now costs
+    // nothing budget-wise, so it needs its own brake: without one, flicking
+    // between tabs would relaunch a failing install over and over. An 'online'
+    // event is deliberately NOT rate-limited — "the network came back" is the
+    // signal this whole mechanism exists to act on, and repeated REAL failures
+    // still spend the budget and stop the loop.
+    var _VISIBILITY_RESUME_MIN_MS = 30000;
+    var _lastAutoResumeAt = 0;
 
     function _acquireWakeLock() {
         // Advisory only: unsupported browsers, denied permission or a hidden
@@ -993,14 +1006,35 @@ PPP.app = (function () {
         _wakeLock = null;
     }
 
-    function _installRetryTick() {
+    /**
+     * @param {boolean} rateLimited true for the visibility-driven tick, which
+     *        must not be able to relaunch a failing install on every tab switch.
+     */
+    function _installRetryTick(rateLimited) {
         // De-duplication: the guard is the single source of truth, so an
         // 'online' burst plus a visibilitychange can never start two pools.
         if (_installInFlight || !navigator.onLine) return;
+        if (_pendingResume) {
+            // An install error screen is on display. Resuming automatically is
+            // the whole point on a flaky connection — a network blip must not
+            // demote itself into "user has to notice and press a button".
+            // Bounded by the SAME counter that stops the iPad wipe-the-message
+            // loop, but the counter is charged where a failure HAPPENS, not
+            // here: merely looking at the tab is not a failed install.
+            if (_autoFailCount >= AUTO_FAIL_MAX) { _removeInstallListeners(); return; }
+            var now = Date.now();
+            if (rateLimited && (now - _lastAutoResumeAt) < _VISIBILITY_RESUME_MIN_MS) return;
+            _lastAutoResumeAt = now;
+            _autoAttemptPending = true;
+            var fn = _pendingResume;
+            _pendingResume = null;
+            fn();
+            return;
+        }
         startBackgroundInstall(_retryLangs, _retryShards);
     }
 
-    function _onlineRetryHandler() { _installRetryTick(); }
+    function _onlineRetryHandler() { _installRetryTick(false); }
 
     function _visibilityRetryHandler() {
         if (document.visibilityState !== 'visible') return;
@@ -1010,7 +1044,7 @@ PPP.app = (function () {
             _acquireWakeLock();
             return;
         }
-        _installRetryTick();
+        _installRetryTick(true);    // rate-limited: a tab switch is not an event
     }
 
     /**
@@ -1024,6 +1058,21 @@ PPP.app = (function () {
         _installListenersOn = true;
         window.addEventListener('online', _onlineRetryHandler);
         document.addEventListener('visibilitychange', _visibilityRetryHandler);
+    }
+
+    /**
+     * Stop the AUTOMATIC resume for good (until a human presses Retry, which
+     * refills the budget). Used where retrying by itself cannot possibly help
+     * and would only wipe the message off the screen: a device with no storage
+     * left repeats the exact same failing IndexedDB write. Spending the budget
+     * — rather than only unhooking the listeners — also stops the error screen
+     * from re-arming them behind our back (_showInstallStalled).
+     */
+    function _stopAutoResume() {
+        _autoFailCount = AUTO_FAIL_MAX;
+        _autoAttemptPending = false;
+        _pendingResume = null;
+        _removeInstallListeners();
     }
 
     /** Remove the retry listeners — only on a fully successful install. */
@@ -1086,28 +1135,115 @@ PPP.app = (function () {
      * {stalled:true} so the caller can show an error the user can act on.
      */
     var _INSTALL_STALL_MS = 45000;
+    // How long a NEW attempt waits for the cancelled one to actually stop.
+    // The abort kills the fetches at once, so the only thing that can still be
+    // outstanding is an IndexedDB apply — which is exactly the wedge the
+    // watchdog exists for, hence a bound rather than an unlimited wait: a
+    // frozen store must not freeze the Try again button too.
+    var _CANCEL_WAIT_MS = 5000;
+
+    // The install that is running right now, whoever started it (mandatory
+    // gate, shards-only top-up, background resume). Exactly one at a time.
+    var _installJob = null;
+
+    /**
+     * Cancellation handle. A real AbortController when the browser has one —
+     * then fetch() is killed mid-flight; otherwise a plain flag the downloader
+     * polls between items, chunks and retries, so the pool still stops.
+     */
+    function _makeAbortHandle() {
+        var handle = { aborted: false, signal: null, abort: null };
+        var ctrl = null;
+        try { if (typeof AbortController === 'function') ctrl = new AbortController(); } catch (e) { ctrl = null; }
+        if (ctrl) {
+            handle.signal = ctrl.signal;
+            handle.abort = function () { handle.aborted = true; try { ctrl.abort(); } catch (e) {} };
+        } else {
+            var flag = { aborted: false };
+            handle.signal = flag;
+            handle.abort = function () { handle.aborted = true; flag.aborted = true; };
+        }
+        return handle;
+    }
+
+    /** Publish the running install so a later start can cancel AND await it. */
+    function _registerInstallJob(handle, work) {
+        var job = {
+            handle: handle,
+            done: Promise.resolve(work).then(function () {}, function () {})
+        };
+        _installJob = job;
+        job.done.then(function () { if (_installJob === job) _installJob = null; });
+        return job;
+    }
+
+    /**
+     * Stop the install currently running and wait until it has REALLY stopped.
+     *
+     * The stall watchdog used to only drop its promise: the pool underneath
+     * kept downloading, so "Try again" started a SECOND one. Two pools over the
+     * same 342 MB doubled the data bill on exactly the weak connections that
+     * stall, wrote `install` snapshots over each other, and threw away the
+     * stuck download's result if it did finish — leaving the user staring at an
+     * error screen with a complete library on the device (Fable review,
+     * 2026-07-27). Cancelling for real and awaiting the stop is what makes the
+     * retry a retry instead of a duplicate.
+     */
+    function _cancelInstallJob() {
+        var job = _installJob;
+        if (!job) return Promise.resolve();
+        _installJob = null;
+        try { job.handle.abort(); } catch (e) {}
+        return new Promise(function (resolve) {
+            var t = setTimeout(function () {
+                console.warn('Previous install did not stop within ' + _CANCEL_WAIT_MS +
+                    ' ms (wedged storage?) — continuing anyway; its downloads are aborted.');
+                resolve();
+            }, _CANCEL_WAIT_MS);
+            job.done.then(function () { clearTimeout(t); resolve(); });
+        });
+    }
+
     function _withStallWatchdog(start, onTick) {
-        var timer = null, settled = false;
-        return new Promise(function (resolve, reject) {
-            function arm() {
-                if (timer) clearTimeout(timer);
-                timer = setTimeout(function () {
+        // Single flight, enforced where it matters: never begin on top of work
+        // that may still be downloading (see _cancelInstallJob).
+        return _cancelInstallJob().then(function () {
+            return new Promise(function (resolve, reject) {
+                var timer = null, settled = false;
+                var handle = _makeAbortHandle();
+                function disarm() { if (timer) { clearTimeout(timer); timer = null; } }
+                function arm() {
+                    disarm();
+                    timer = setTimeout(function () {
+                        if (settled) return;
+                        settled = true;
+                        // Cancel for real — the promise this rejects is not the
+                        // download, and dropping it never stopped anything.
+                        try { handle.abort(); } catch (e) {}
+                        reject({ stalled: true });
+                    }, _INSTALL_STALL_MS);
+                }
+                arm();
+                var work;
+                try {
+                    work = start(function (p) {
+                        if (settled) return;
+                        arm();              // progress: restart the clock
+                        onTick(p);
+                    }, handle.signal);
+                } catch (e) {
+                    work = Promise.reject(e);
+                }
+                // Registered even after a stall: `done` is how the next attempt
+                // knows the cancelled pool has finished unwinding.
+                _registerInstallJob(handle, work);
+                Promise.resolve(work).then(function (v) {
                     if (settled) return;
-                    settled = true;
-                    reject({ stalled: true });
-                }, _INSTALL_STALL_MS);
-            }
-            arm();
-            start(function (p) {
-                if (settled) return;
-                arm();              // progress: restart the clock
-                onTick(p);
-            }).then(function (v) {
-                if (settled) return;
-                settled = true; clearTimeout(timer); resolve(v);
-            }, function (e) {
-                if (settled) return;
-                settled = true; clearTimeout(timer); reject(e);
+                    settled = true; disarm(); resolve(v);
+                }, function (e) {
+                    if (settled) return;
+                    settled = true; disarm(); reject(e);
+                });
             });
         });
     }
@@ -1116,7 +1252,12 @@ PPP.app = (function () {
      *  NOT a partial state: nothing is unlocked, the library is still required
      *  (Rājan all-or-nothing). It only replaces a silent freeze with a message
      *  and a button. */
-    function _showInstallStalled(langs, includeShards) {
+    function _showInstallStalled(langs, includeShards, retryFn) {
+        // Budget accounting lives HERE, where an attempt has demonstrably
+        // failed — not at the tick that started it. An automatic attempt that
+        // fails costs one unit; a manual one costs nothing (the human already
+        // decided); simply returning to the tab costs nothing at all.
+        if (_autoAttemptPending) { _autoAttemptPending = false; _autoFailCount++; }
         ui.showLoading(i18n.t('installStalled'));
         // Keep the click guard ARMED on this screen. Disarming it (the obvious
         // move, since the freeze we are fixing WAS a stuck guard) left the
@@ -1138,18 +1279,102 @@ PPP.app = (function () {
         btn.className = 'search-button';
         btn.style.marginTop = '8px';
         btn.textContent = i18n.t('installRetryBtn');
-        btn.onclick = function () {
-            btn.remove();
+
+        // ONE way forward, used by both the button and the automatic resume —
+        // so a connection coming back can never start something different (or
+        // something extra) from what Try again would have started.
+        function doRetry() {
+            _pendingResume = null;
+            var b = document.getElementById('installStallRetryBtn');
+            if (b) b.remove();
+            // retryFn wins when given: the shards-only path must resume THAT,
+            // not restart a full 342 MB install.
+            if (retryFn) { retryFn(); return; }
             // langs === null means we never got as far as the language prompt
             // (manifest fetch failed) — restart the whole gate rather than
             // guessing a selection on the user's behalf.
             if (!langs) { startFirstInstallFlow(); return; }
             PPP.downloader.fetchManifest().then(function (m) {
                 if (m) beginInstall(m, langs, includeShards);
-                else _showInstallStalled(langs, includeShards);
-            }).catch(function () { _showInstallStalled(langs, includeShards); });
+                else _showInstallStalled(langs, includeShards, retryFn);
+            }).catch(function () { _showInstallStalled(langs, includeShards, retryFn); });
+        }
+
+        btn.onclick = function () {
+            // A human pressed it: refill the automatic budget so the connection
+            // gets its full allowance again after this attempt, and make sure
+            // this attempt is not billed to the automatic one it replaces.
+            _autoFailCount = 0;
+            _autoAttemptPending = false;
+            _lastAutoResumeAt = Date.now();   // space automatic tries from this one
+            doRetry();
         };
         bar.appendChild(btn);
+
+        // Keep the automatic resume alive ON the error screen. Removing the
+        // 'online'/'visibilitychange' listeners here turned every network blip
+        // into a manual click — the regression landed precisely on the bad
+        // connections that produce this screen in the first place. The resume
+        // runs through doRetry(), i.e. the same single-flight path as the
+        // button, so it cannot become the second pool of A1.
+        _pendingResume = doRetry;
+        if (_autoFailCount < AUTO_FAIL_MAX) _ensureInstallListeners(langs, includeShards);
+    }
+
+    /**
+     * Shards-only top-up for a device that already holds the library.
+     *
+     * Same gate discipline as the full install — click guard, stall watchdog,
+     * error + Try again — but it downloads only what is missing (~191 MB instead
+     * of 342 MB) and says so. Everyone who installed before the shards became
+     * mandatory lands here exactly once.
+     */
+    function _startShardsOnlyInstall() {
+        return PPP.downloader.fetchManifest().then(function (manifest) {
+            var bytes = 0;
+            (manifest.sentenceShards || []).forEach(function (s) { if (s && s.size) bytes += s.size; });
+            var sizeMB = Math.round(bytes / (1024 * 1024));
+            _installPct = 0;
+            _installStarted = true;
+            document.addEventListener('click', _installGuardHandler, true);
+            ui.showLoading(i18n.t('installShardsPrompt').replace('{size}', String(sizeMB)));
+            ui.updateProgress(0);
+            _installInFlight = true;
+            _acquireWakeLock();
+            return _withStallWatchdog(function (onProgress, signal) {
+                return PPP.downloader.addShards(onProgress, signal);
+            }, function (p) {
+                var frac = p.totalBytes ? p.loadedBytes / p.totalBytes : 0;
+                _installPct = Math.round(frac * 100);
+                ui.updateProgress(frac);
+                ui.setLoadingText(i18n.t('installShardsPrompt').replace('{size}', String(sizeMB)) + ' ' +
+                    Math.round(p.loadedBytes / (1024 * 1024)) + ' / ' + sizeMB + ' MB');
+            }).then(function () {
+                _disarmInstallGuard();
+                _installInFlight = false;
+                _pendingResume = null;
+                _autoFailCount = 0;
+                _autoAttemptPending = false;
+                _removeInstallListeners();
+                _releaseWakeLock();
+                db.resetLibraryInstalledCache();
+                return openFromIdb();
+            }).catch(function (err) {
+                if (err && err.aborted) return;   // superseded by a newer attempt
+                _disarmInstallGuard();
+                _installInFlight = false;
+                _releaseWakeLock();
+                console.error('Shards-only install failed:', err);
+                // Same honest dead-end screen, but retry — manual OR automatic
+                // on the next 'online'/visibility tick — resumes THIS path,
+                // never a full 342 MB reinstall.
+                _showInstallStalled(null, true, _startShardsOnlyInstall);
+            });
+        }).catch(function (err) {
+            if (err && err.aborted) return;
+            console.warn('Shards-only install could not start:', err);
+            _showInstallStalled(null, true, _startShardsOnlyInstall);
+        });
     }
 
     function beginInstall(manifest, langs, includeShards) {
@@ -1163,8 +1388,8 @@ PPP.app = (function () {
         _installInFlight = true;
         _ensureInstallListeners(langs, includeShards);
         _acquireWakeLock();
-        return _withStallWatchdog(function (onProgress) {
-            return PPP.downloader.firstInstall(onProgress, langs, includeShards);
+        return _withStallWatchdog(function (onProgress, signal) {
+            return PPP.downloader.firstInstall(onProgress, langs, includeShards, signal);
         }, function (p) {
             var frac = p.totalBytes ? p.loadedBytes / p.totalBytes : 0;
             _installPct = Math.round(frac * 100);
@@ -1175,19 +1400,32 @@ PPP.app = (function () {
             _disarmInstallGuard();
             _installInFlight = false;
             _offlinePartial = false;
+            _pendingResume = null;
+            _autoFailCount = 0;
+            _autoAttemptPending = false;
             _removeInstallListeners();
             _releaseWakeLock();
             PPP.offlineStore.requestPersist();
+            // The library just arrived — db.js memoizes "is it installed?" and
+            // would otherwise keep answering `false` for the rest of the session,
+            // sending a damaged shard quietly to the network instead of showing
+            // the repair notice (Fable review, 2026-07-27).
+            db.resetLibraryInstalledCache();
             return openFromIdb();
         }).catch(function (err) {
+            // Cancelled because a newer attempt took over — it owns the screen
+            // and the flags now.
+            if (err && err.aborted) return;
             _disarmInstallGuard();
             _installInFlight = false;
             _releaseWakeLock();
             console.error('Offline install failed:', err);
             if (err && err.stalled) {
-                // Nothing moved for 45 s — almost always wedged storage. Do not
-                // auto-resume behind a frozen screen; the user drives the retry.
-                _removeInstallListeners();
+                // Nothing moved for 45 s — almost always wedged storage. The
+                // download underneath has been ABORTED by the watchdog (not
+                // merely abandoned), so the error screen can keep its automatic
+                // resume armed: a connection coming back retries through the
+                // same single-flight path as the button, never beside it.
                 _showInstallStalled(langs, includeShards);
                 return;
             }
@@ -1217,7 +1455,7 @@ PPP.app = (function () {
                     // 69%→79%→69% loop). Disarm the auto-resume listeners and
                     // say the real cause; a manual retry / next boot still
                     // resumes from the durable install state.
-                    _removeInstallListeners();
+                    _stopAutoResume();
                     ui.toast(i18n.t('offlineStorageFull').replace('{left}', String(leftMB)));
                 } else {
                     ui.toast(i18n.t('offlineInterrupted').replace('{left}', String(leftMB)) +
@@ -1225,7 +1463,20 @@ PPP.app = (function () {
                 }
                 return PPP.downloader.isCoreReady().then(function (ready) {
                     if (ready) return openFromIdb();
-                    loadDataLegacy();
+                    // Core not on the device yet. This used to drop into
+                    // loadDataLegacy() — the THIRD way a failed install quietly
+                    // turned the mandatory gate into an optional one (28468a2
+                    // closed the other two, 1d). A partial install with no
+                    // usable core is not a working app: "In Text" has no
+                    // shards, transcripts have no records, and the user is
+                    // silently handed the half-app the all-or-nothing design
+                    // exists to prevent. Same honest screen as every other
+                    // install failure — error + Try again, gate still closed.
+                    _showInstallStalled(langs, includeShards);
+                }, function () {
+                    // Even the readiness probe failed — still no reason to open
+                    // an app without data behind it.
+                    _showInstallStalled(langs, includeShards);
                 });
             }
             // A first install that failed outright. It used to drop into the
@@ -1233,8 +1484,9 @@ PPP.app = (function () {
             // optional one, the exact opposite of the decision (Rājan
             // 2026-07-26). Progress is durable, so the retry resumes where it
             // stopped; until it succeeds the app stays gated, but never frozen
-            // and never silent.
-            _removeInstallListeners();
+            // and never silent. The auto-resume listeners stay armed (budgeted
+            // by AUTO_FAIL_MAX inside _installRetryTick) so a network blip
+            // resumes by itself instead of demanding a click.
             _showInstallStalled(langs, includeShards);
         });
     }
@@ -1541,23 +1793,24 @@ PPP.app = (function () {
         selHolder.id = 'offlineOfferLangs';
         panel.appendChild(selHolder);
 
-        // Selection is read at click time; defaults to EN-only + shards OFF
-        // until the manifest arrives and the checkboxes render.
+        // Selection is read at click time; defaults to EN-only, shards ON
+        // (mandatory — Rājan 2026-07-28: only languages are opt-out) until
+        // the manifest arrives and the checkboxes render.
         var getLangs = function () { return []; };
-        var getIncludeShards = function () { return false; };
+        var getIncludeShards = function () { return true; };
         // Set by the resume check below; both blocks are async, so the
         // from-scratch copy must never overwrite the resume copy.
         var hasResume = false;
         PPP.downloader.fetchManifest().then(function (manifest) {
             _cacheBaseMB(manifest);
             if (!document.body.contains(selHolder)) return;
-            var selector = _buildLangSelector(manifest, { baseChecked: true, sizeMode: 'total', shardToggle: true });
+            var selector = _buildLangSelector(manifest, { baseChecked: true, sizeMode: 'total', shardsForced: true });
             selHolder.innerHTML = '';
             selHolder.appendChild(selector.el);
             getLangs = selector.getLangs;
             getIncludeShards = selector.getIncludeShards;
             if (hasResume) { selHolder.style.display = 'none'; return; }
-            var mb = Math.round(PPP.downloader.computeInstallBytes(manifest, []) / 1048576);
+            var mb = Math.round(PPP.downloader.computeInstallBytes(manifest, [], true) / 1048576);
             text.textContent = i18n.t('offlineInfoText')
                 .replace('{size}', String(mb))
                 .replace('{min}', String(Math.max(1, Math.round(mb / 10))));
@@ -1630,8 +1883,12 @@ PPP.app = (function () {
 
         return PPP.downloader.fetchManifest().then(function (manifest) {
             _cacheBaseMB(manifest);
-            // Selection: explicit arg wins; otherwise the auto/CI hook installs
-            // the full library, and a real user with no arg gets the EN base.
+            // Selection: explicit arg wins. The `sel == null` branch below is
+            // a TEST/CI HOOK ONLY (ppp_auto_install) — every real caller
+            // (see grep 2026-07-28) passes langs/includeShards explicitly,
+            // with includeShards always true (shards are mandatory, see
+            // _autoInstallShards() comment above). No real user reaches the
+            // `false` default at the bottom of this branch.
             var sel = langs;
             var incShards = includeShards;
             if (sel == null) {
@@ -1646,7 +1903,11 @@ PPP.app = (function () {
             _retryLangs = sel;
             _retryShards = incShards;
             var totalMB = Math.round(PPP.downloader.computeInstallBytes(manifest, sel, incShards) / 1048576);
-            return PPP.downloader.firstInstall(function (p) {
+            // Cancellable and registered like every other install path, so a
+            // gated install starting later stops this pool instead of running
+            // beside it (A1 — two pools over the same 342 MB).
+            var handle = _makeAbortHandle();
+            var work = PPP.downloader.firstInstall(function (p) {
                 var mb = Math.round(p.loadedBytes / 1048576);
                 var pct = p.totalBytes ? Math.round(p.loadedBytes / p.totalBytes * 100) : 0;
                 var m = document.getElementById('offlineProgressMsg');
@@ -1654,13 +1915,19 @@ PPP.app = (function () {
                     m.textContent = i18n.t('offlineDownloading')
                         .replace('{loaded}', mb).replace('{total}', totalMB).replace('{pct}', pct);
                 }
-            }, sel, incShards).then(function () {
+            }, sel, incShards, handle.signal);
+            _registerInstallJob(handle, work);
+            return work.then(function () {
+                if (handle.aborted) return;     // superseded by a newer attempt
                 _installInFlight = false;
                 _offlinePartial = false;
                 _autoFailCount = 0;
+                _pendingResume = null;
+                _autoAttemptPending = false;
                 _removeInstallListeners();
                 _releaseWakeLock();
                 PPP.offlineStore.requestPersist();
+                db.resetLibraryInstalledCache();   // see beginInstall
                 // Install finished this session — flip the status button to
                 // its installed ✓ state right away.
                 maybeShowOfflineWorkButton(true);
@@ -1679,6 +1946,9 @@ PPP.app = (function () {
                 }
             });
         }).catch(function (err) {
+            // Cancelled because another install path took over — that one owns
+            // the flags and the UI now; touching them here would undo it.
+            if (err && err.aborted) return;
             _installInFlight = false;
             _releaseWakeLock();
             // Listeners stay armed on failure — that is the whole point: the
@@ -1702,7 +1972,7 @@ PPP.app = (function () {
                         // Storage full: retrying automatically only repeats
                         // the same failing IndexedDB write — stop the loop and
                         // name the real cause. Manual Retry stays available.
-                        _removeInstallListeners();
+                        _stopAutoResume();
                         errMsg.textContent = i18n.t('offlineStorageFull').replace('{left}', String(leftMB));
                     } else {
                         _autoFailCount++;
@@ -1740,9 +2010,362 @@ PPP.app = (function () {
      * Background delta check (installed state, online). Applies changed
      * packs/core files to IDB, then refreshes the running app in place.
      */
+    /* ---- Resuming an interrupted delta without a page reload ---------------
+     * checkForUpdates() is resumable as of 2026-07-28 (downloader.js): whatever
+     * a killed migration already fetched stays on disk and the next attempt
+     * pulls only the rest. But "the next attempt" used to mean the next PAGE
+     * LOAD — the only caller is the boot path — so a migration that died when
+     * the connection dropped sat there until the user happened to reopen the
+     * app, which on the measured device meant the whole 236 MB again later.
+     *
+     * So a delta that ends in an error re-arms itself for the next 'online'
+     * event. Bounded three ways, because an unbounded retry over a metered
+     * connection is a worse bug than the one it fixes:
+     *   - one attempt in flight at a time (an 'online' burst cannot start two
+     *     download pools; that was P21's lesson on the install path),
+     *   - the listener is one-shot and only re-armed by another failure,
+     *   - and a hard cap on automatic attempts per session.
+     * A successful (or simply uneventful) check disarms everything.
+     */
+    var _deltaCheckInFlight = false;
+    var _updateGateInFlight = false;   // the consent gate below, one at a time
+    var _deltaRetryHandler = null;
+    var _deltaAutoRetries = 0;
+    var DELTA_MAX_AUTO_RETRIES = 5;
+
+    function _disarmDeltaRetry() {
+        if (!_deltaRetryHandler) return;
+        window.removeEventListener('online', _deltaRetryHandler);
+        _deltaRetryHandler = null;
+    }
+
+    function _armDeltaRetry() {
+        if (_deltaRetryHandler) return;
+        if (_deltaAutoRetries >= DELTA_MAX_AUTO_RETRIES) return;
+        _deltaRetryHandler = function () {
+            _disarmDeltaRetry();
+            _deltaAutoRetries++;
+            backgroundUpdateCheck();
+        };
+        window.addEventListener('online', _deltaRetryHandler);
+    }
+
+    /* ---- The library does not update behind the user's back (2026-07-28) ---
+     * Measured on a real S23 Ultra: an installed device moving to the next
+     * corpus generation downloaded 240 MB with no warning, no progress and no
+     * question. Rājan: "to pārvērst jautājumā — bibliotēka atjaunojas, 240 MB —
+     * tagad vai Wi-Fi tīklā".
+     *
+     * So backgroundUpdateCheck() is now a GATE in front of the delta, not the
+     * delta itself:
+     *   1. getPendingUpdate() — a pure read (manifest + IDB), no /data/ bytes.
+     *   2. Nothing to download (no library, deletions only, plan unavailable)
+     *      -> behave exactly as before. A free update is not worth a question.
+     *   3. Bytes to download -> ask, ONCE per generation, and keep serving the
+     *      previous generation untouched until the answer comes. Nothing is
+     *      deleted and nothing is fetched while the question is open: the delta
+     *      never starts, so the atomic generation switch in downloader.js is
+     *      not entered at all.
+     *
+     * FIRST INSTALL IS NOT AFFECTED. This gate sits only on the path taken by a
+     * device that already holds a `localManifest` (getPendingUpdate returns
+     * null otherwise). A first install is agreed to at install time and its
+     * download stays mandatory — Rājan 2026-07-28: only languages are opt-out.
+     */
+    var UPDATE_CONSENT_KEY = 'updateConsent';
+    // How long a "later" (with no way to detect Wi-Fi) stays silent before the
+    // question is asked again. A deferral must not become a permanent one — the
+    // device would sit on an old corpus forever — but re-asking on every boot
+    // is exactly the nagging the deferral exists to prevent.
+    var UPDATE_DEFER_RECHECK_MS = 24 * 60 * 60 * 1000;
+    // How many times a consented generation may fail before the app stops
+    // retrying it by itself and puts the choice back to the user (Codex
+    // MEDIUM-2). Three covers a bad connection; a fourth means the download
+    // is not going to work and silence would be the wrong answer.
+    var UPDATE_MAX_CONSENTED_ATTEMPTS = 3;
+
+    /**
+     * What kind of connection is this, as far as the browser will actually say?
+     *   'wifi'    — unmetered by declaration (wifi / ethernet).
+     *   'metered' — cellular, or the user asked to save data.
+     *   'unknown' — the browser does not say, and we do not guess.
+     *
+     * WHAT HAPPENS WHEN THE API IS NOT THERE. navigator.connection.type is
+     * Android Chrome (and derivatives); Safari/iOS and desktop Firefox have no
+     * NetworkInformation at all, and several browsers expose `effectiveType`
+     * (a SPEED estimate: '4g', '3g'…) without `type`. effectiveType is
+     * deliberately NOT read here: a fast cellular link reports '4g' and a slow
+     * hotel Wi-Fi reports '2g', so treating it as a medium would tell the user
+     * "we will wait for Wi-Fi" and then spend their mobile data — the precise
+     * lie this whole change exists to remove. Unknown stays unknown, and the
+     * UI says "later" instead of "on Wi-Fi" (see _renderUpdateConsentPrompt).
+     */
+    function _netClass() {
+        var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!c) return 'unknown';
+        if (c.saveData === true) return 'metered';   // explicit user preference
+        var t = c.type;
+        if (typeof t !== 'string' || !t) return 'unknown';
+        if (t === 'wifi' || t === 'ethernet') return 'wifi';
+        if (t === 'cellular' || t === 'wimax') return 'metered';
+        return 'unknown';   // 'none', 'bluetooth', 'other', 'unknown'
+    }
+
+    function _readUpdateConsent() {
+        var store = PPP.offlineStore;
+        if (!store || !store.getState) return Promise.resolve(null);
+        return store.getState(UPDATE_CONSENT_KEY).catch(function () { return null; });
+    }
+
+    function _writeUpdateConsent(rec) {
+        var store = PPP.offlineStore;
+        if (!store || !store.setState) return Promise.resolve();
+        return store.setState(UPDATE_CONSENT_KEY, rec).catch(function () {});
+    }
+
+    // The plan a deferral is waiting on, plus its listeners. Kept in memory
+    // only: the DURABLE half is the consent record in IndexedDB, which is what
+    // survives a reload and stops the question coming back.
+    var _deferredUpdate = null;
+    var _deferredListener = null;
+
+    function _disarmDeferredUpdate() {
+        if (!_deferredListener) return;
+        window.removeEventListener('online', _deferredListener);
+        var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (c && c.removeEventListener) c.removeEventListener('change', _deferredListener);
+        _deferredListener = null;
+        _deferredUpdate = null;
+    }
+
+    /**
+     * Hold a deferred update and start it BY ITSELF the moment the connection
+     * the user asked for appears. Listens to the two events that can change the
+     * answer: NetworkInformation 'change' (the medium changed) and window
+     * 'online' (the device reconnected — the medium may be different now).
+     * When the class cannot be observed at all, nothing is armed: the promise
+     * would be one we cannot keep. That deferral is time-based instead, and is
+     * re-offered by the gate on a later boot (UPDATE_DEFER_RECHECK_MS).
+     */
+    function _armDeferredUpdate(plan) {
+        // A newer generation supersedes whatever was being waited for: keeping
+        // the old listener would start a download for a plan the server has
+        // already moved past.
+        if (_deferredUpdate && _deferredUpdate.generation !== plan.generation) _disarmDeferredUpdate();
+        if (_deferredListener) return;
+        _deferredUpdate = plan;
+        _deferredListener = function () {
+            if (_netClass() !== 'wifi') return;
+            var p = _deferredUpdate;
+            _disarmDeferredUpdate();
+            // Record the promotion to a "yes" BEFORE starting, so an
+            // interrupted auto-start resumes instead of asking again.
+            _writeUpdateConsent({ gen: p.generation, decision: 'now', ts: Date.now() })
+                .then(function () { _startConsentedUpdate(p); });
+        };
+        window.addEventListener('online', _deferredListener);
+        var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (c && c.addEventListener) c.addEventListener('change', _deferredListener);
+    }
+
+    /**
+     * The question itself, in the same non-blocking box the optional install
+     * uses (#offlineProgress). NOT a modal on purpose: requirement 3 is that
+     * the app keeps working on the previous, whole generation while the
+     * question is open — a modal would make "keep using what you have" a lie.
+     */
+    function _renderUpdateConsentPrompt(plan) {
+        var box = document.getElementById('offlineProgress');
+        if (!box) return;
+        var mb = Math.round(plan.bytes / 1048576);
+        var metered = _netClass() === 'metered';
+        // Asking again replaces any earlier deferral — the question on screen
+        // is now the only live one.
+        _disarmDeferredUpdate();
+        box.style.display = 'flex';
+        box.innerHTML = '';
+
+        var msg = document.createElement('span');
+        msg.id = 'libraryUpdatePromptMsg';
+        msg.textContent = i18n.t('libraryUpdateAsk').replace('{size}', String(mb));
+        box.appendChild(msg);
+
+        var now = document.createElement('button');
+        now.type = 'button';
+        now.id = 'libraryUpdateNowBtn';
+        now.className = 'search-button';
+        now.textContent = i18n.t('libraryUpdateNowBtn');
+        now.onclick = function () {
+            _writeUpdateConsent({ gen: plan.generation, decision: 'now', ts: Date.now() })
+                .then(function () { _startConsentedUpdate(plan); });
+        };
+        box.appendChild(now);
+
+        var later = document.createElement('button');
+        later.type = 'button';
+        later.id = 'libraryUpdateLaterBtn';
+        later.className = 'search-button';
+        // Only promise Wi-Fi when the browser is telling us the medium AND it
+        // is currently a metered one. Otherwise the honest word is "later".
+        later.textContent = i18n.t(metered ? 'libraryUpdateWifiBtn' : 'libraryUpdateLaterBtn');
+        later.onclick = function () {
+            box.innerHTML = '';
+            box.style.display = 'none';
+            _writeUpdateConsent({
+                gen: plan.generation,
+                decision: 'later',
+                ts: Date.now(),
+                mode: metered ? 'wifi' : 'time'
+            }).then(function () {
+                if (metered) _armDeferredUpdate(plan);
+            });
+        };
+        box.appendChild(later);
+    }
+
+    /**
+     * Run the delta the user agreed to, with the progress they were promised,
+     * in the same box the question was asked in. Non-blocking throughout — the
+     * app stays usable, exactly as it is during a background install.
+     */
+    function _startConsentedUpdate(plan) {
+        var box = document.getElementById('offlineProgress');
+        var totalMB = Math.round(plan.bytes / 1048576);
+        if (box) {
+            box.style.display = 'flex';
+            box.innerHTML = '';
+            var msg = document.createElement('span');
+            msg.id = 'libraryUpdateProgressMsg';
+            msg.textContent = i18n.t('libraryUpdating')
+                .replace('{loaded}', '0').replace('{total}', String(totalMB)).replace('{pct}', '0');
+            box.appendChild(msg);
+        }
+        _runDeltaUpdate(function (p) {
+            var m = document.getElementById('libraryUpdateProgressMsg');
+            if (!m) return;
+            // The delta's own total is authoritative: a resumed update has less
+            // left to fetch than the plan originally quoted, and a bar that
+            // stops at 60 % because it is measured against the old number is
+            // its own bug report.
+            var total = p.totalBytes || plan.bytes;
+            m.textContent = i18n.t('libraryUpdating')
+                .replace('{loaded}', String(Math.round(p.loadedBytes / 1048576)))
+                .replace('{total}', String(Math.round(total / 1048576)))
+                .replace('{pct}', String(total ? Math.round(p.loadedBytes / total * 100) : 0));
+        }, function (res) {
+            var b = document.getElementById('offlineProgress');
+            if (b) { b.innerHTML = ''; b.style.display = 'none'; }
+            if (!PPP.offlineStore || !PPP.offlineStore.deleteState) return;
+            // `busy` is another tab holding the delta claim (Codex MEDIUM-1):
+            // nothing happened here, so nothing is counted and nothing is
+            // retired — the decision stands and the next check picks it up.
+            if (res && res.busy) return;
+            // A finished generation switch retires its decision: the record is
+            // keyed to a generation that is now the installed one, and leaving
+            // it behind would only be answering a question nobody is asking.
+            if (!res || !res.error) {
+                PPP.offlineStore.deleteState(UPDATE_CONSENT_KEY).catch(function () {});
+                return;
+            }
+            // A FAILED delta keeps the decision so the automatic retry resumes
+            // the download the user already said yes to — but only so many
+            // times (Codex MEDIUM-2). A generation that fails permanently
+            // (server-side corruption, a device out of room) otherwise retried
+            // on every single load, forever, silently spending data on a
+            // download that cannot finish and never asking again. Past the cap
+            // the decision is dropped, which means the next check asks — the
+            // user gets the choice back instead of an invisible loop.
+            _readUpdateConsent().then(function (c) {
+                if (!c || c.gen !== plan.generation || c.decision !== 'now') return;
+                var attempts = (c.attempts || 0) + 1;
+                if (attempts >= UPDATE_MAX_CONSENTED_ATTEMPTS) {
+                    console.warn('Offline update failed ' + attempts +
+                        ' times for this generation — asking again instead of retrying');
+                    return PPP.offlineStore.deleteState(UPDATE_CONSENT_KEY).catch(function () {});
+                }
+                c.attempts = attempts;
+                return _writeUpdateConsent(c);
+            });
+        });
+    }
+
+    /**
+     * The gate. See the block comment above.
+     */
     function backgroundUpdateCheck() {
-        PPP.downloader.checkForUpdates().then(function (res) {
+        if (_deltaCheckInFlight || _updateGateInFlight) return;
+        // Another TAB is already downloading a delta (Codex MEDIUM-1). Do not
+        // even ask: the question would be about a download already under way,
+        // and two "yes"es fetch the same bytes twice. checkForUpdates() refuses
+        // independently of this — the check here only keeps a pointless
+        // question off the screen.
+        if (PPP.downloader.isDeltaRunningElsewhere && PPP.downloader.isDeltaRunningElsewhere()) return;
+        if (!PPP.downloader.getPendingUpdate) { _runDeltaUpdate(); return; }
+        _updateGateInFlight = true;
+        PPP.downloader.getPendingUpdate().then(function (plan) {
+            _updateGateInFlight = false;
+            // The plan could not be made (manifest fetch failed, IDB unreadable).
+            // Fail CLOSED: do not fall through to an unmetered download on a
+            // number we do not have. The retry path re-runs the whole gate.
+            if (plan && plan.error) { _armDeltaRetry(); return; }
+            // Nothing to decide: not installed, or a generation that only
+            // removes things. Same behaviour as before this gate existed.
+            if (!plan || !plan.bytes) { _runDeltaUpdate(); return; }
+            // A download already agreed to and part-done — asking again in the
+            // middle would be worse than not asking at all.
+            if (plan.resumed) { _startConsentedUpdate(plan); return; }
+            _readUpdateConsent().then(function (c) {
+                var sameGen = c && c.gen === plan.generation;
+                if (sameGen && c.decision === 'now') { _startConsentedUpdate(plan); return; }
+                if (sameGen && c.decision === 'later') {
+                    if (c.mode === 'wifi') {
+                        // Conditional deferral: start now if the condition is
+                        // already true on this boot, otherwise wait for it.
+                        if (_netClass() === 'wifi') {
+                            _writeUpdateConsent({ gen: plan.generation, decision: 'now', ts: Date.now() })
+                                .then(function () { _startConsentedUpdate(plan); });
+                        } else {
+                            _armDeferredUpdate(plan);
+                        }
+                        return;
+                    }
+                    // Time-based deferral (Wi-Fi undetectable): stay silent
+                    // until the recheck window has passed, then ask again.
+                    if (Date.now() - (c.ts || 0) < UPDATE_DEFER_RECHECK_MS) return;
+                }
+                _renderUpdateConsentPrompt(plan);
+            });
+        }, function (err) {
+            _updateGateInFlight = false;
+            console.warn('Update gate failed:', err);
+            _armDeltaRetry();
+        });
+    }
+
+    /**
+     * The delta itself — everything backgroundUpdateCheck() used to do inline,
+     * unchanged except for the optional progress/finish callbacks.
+     */
+    function _runDeltaUpdate(onProgress, onSettled) {
+        if (_deltaCheckInFlight) {
+            // Reported as a failure on purpose: the caller must take its
+            // progress box down, and the consent record must NOT be retired —
+            // this update has not happened yet.
+            if (onSettled) onSettled({ error: new Error('a delta is already running') });
+            return;
+        }
+        _deltaCheckInFlight = true;
+        PPP.downloader.checkForUpdates(onProgress).then(function (res) {
+            if (onSettled) onSettled(res);
+            _deltaCheckInFlight = false;
+            // checkForUpdates never rejects — a failed delta comes back as
+            // { changedItems: 0, error }. That is the resume trigger.
+            if (res && res.error) { _armDeltaRetry(); return; }
+            _disarmDeltaRetry();
             if (!res || !res.changedItems) return;
+            // A delta rewrote part of the library, which invalidates db.js's
+            // memoized "is it installed?" answer along with the shard list.
+            db.resetLibraryInstalledCache();
             ui.showUpdateNote(i18n.t('updatedItems').replace('{n}', res.changedItems));
             if (res.coreChanged && res.coreChanged.meta) {
                 // Re-open the meta DB from the fresh IDB copy and re-run the
@@ -1764,18 +2387,25 @@ PPP.app = (function () {
                 if (ui.clearExtrasCache) ui.clearExtrasCache();
                 startExtrasLoad();
             }
-            if (res.coreChanged && res.coreChanged.sentences) {
-                // Swap the sentence DB this session has open for the fresh IDB
-                // copy. No view refresh: sentence results are queried live, so
-                // the next search already sees the new bytes.
-                db.reloadSentencesFromStore()
-                    .catch(function (e) { console.warn('Sentences refresh failed:', e); });
-            }
+            // REMOVED 2026-07-27: the `coreChanged.sentences` branch that called
+            // db.reloadSentencesFromStore(). `sentences` left CORE_KEYS
+            // (downloader.js) because nothing ever opened that whole-file DB, so
+            // the flag can no longer be set and the reload would have nothing to
+            // reload. Sentence freshness rides entirely on the shards — see the
+            // resetSentenceShards() call immediately below, which is the live path.
             // Shard set / shard versions can change in the same delta. The
             // chunked search memoizes them from manifest.json at first use, so
             // drop that cache whenever anything was applied — cost is one
             // small manifest re-fetch on the next sentence search.
             if (db.resetSentenceShards) db.resetSentenceShards();
+        }, function (err) {
+            // Defensive: checkForUpdates() is written never to reject, but a
+            // throw here must not leave the in-flight latch stuck true and the
+            // delta path dead for the rest of the session.
+            if (onSettled) onSettled({ error: err });
+            _deltaCheckInFlight = false;
+            console.warn('Offline update check threw:', err);
+            _armDeltaRetry();
         });
     }
 
@@ -2607,7 +3237,7 @@ PPP.app = (function () {
             : Promise.resolve(null);
         return fromStore.then(function (txt) {
             if (txt && txt.trim()) return txt;
-            return fetch('transcripts/' + lang + '/' + encodeURIComponent(String(nr)) + '.html', { signal: signal })
+            return fetch(PPP.dataUrl('transcripts/' + lang + '/' + encodeURIComponent(String(nr)) + '.html'), { signal: signal })
                 .then(function (r) { return r.ok ? r.text() : ''; })
                 .catch(function (e) {
                     if (e && e.name === 'AbortError') throw e;
@@ -2726,11 +3356,21 @@ PPP.app = (function () {
     }
 
     function downloadSelectedZip(zipName) {
-        // Offline guard: ZIP assembly fetches transcript bodies (and raw
-        // fallbacks from the Drive API) over the network.
+        // Offline guard — but only where it is still true. Transcript bodies now
+        // come from the installed library first (_zipPremiumHtml / _zipRawText),
+        // so a device with the library can build a transcript ZIP with no
+        // network at all. This guard used to reject that outright, which meant
+        // the "read from the library" change did nothing for offline users —
+        // exactly what its commit message claimed it fixed (Fable review,
+        // 2026-07-27). MP3s are the genuine exception: audio is not in the
+        // library and only Drive has it.
         if (!net.online) {
-            ui.toast(i18n.t('requiresInternet'));
-            return Promise.resolve();
+            var hasLibrary = !!(PPP.offlineStore && PPP.offlineStore.supported() && _offlineInstalled);
+            var mp3Only = Array.from(selectedNrs).every(function (k) { return k.split('|')[1] === 'mp3'; });
+            if (!hasLibrary || mp3Only) {
+                ui.toast(i18n.t('requiresInternet'));
+                return Promise.resolve();
+            }
         }
         if (typeof JSZip === 'undefined') {
             _showZipSummary(i18n.t('zipNothing'));
@@ -4080,7 +4720,7 @@ PPP.app = (function () {
     var _currentTranscriptCtx = null;
 
     function _sanitizeFilename(s) {
-        return String(s || '').replace(/[<>:"/\\|?* -]/g, '_').replace(/\s+/g, '_').slice(0, 120) || 'transcript';
+        return String(s || '').replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/\s+/g, '_').slice(0, 120) || 'transcript';
     }
 
     function _escapeHtmlAttr(s) {
@@ -4208,7 +4848,7 @@ PPP.app = (function () {
             // what marks the network as truly down, not the unreliable flag.
             // A resolved-but-!ok response (e.g. 404) means the server WAS
             // reached — that is a real miss, not an offline state.
-            return fetch('transcripts/' + lang + '/' + encodeURIComponent(String(nr)) + '.html')
+            return fetch(PPP.dataUrl('transcripts/' + lang + '/' + encodeURIComponent(String(nr)) + '.html'))
                 .then(function (r) { return r.ok ? r.text() : ''; })
                 .catch(function () { _netFetchFailed = true; return ''; });
         }
@@ -4917,6 +5557,19 @@ PPP.app = (function () {
             }
             console.error('Sentence search error:', err);
             var infoEl = document.getElementById('resultsInfo');
+            if (err && err.libraryUpdating) {
+                // A delta is rewriting the sentence shards right now. Nothing is
+                // damaged and nothing needs repairing — the honest answer is
+                // that the library is mid-update and search works again in a
+                // moment. Checked BEFORE shardRepairNeeded so an update can
+                // never be reported to the user as damage.
+                var upd = document.createElement('div');
+                upd.className = 'quotes-require-install';
+                upd.textContent = i18n.t('libraryUpdatingSearch');
+                infoEl.innerHTML = '';
+                infoEl.appendChild(upd);
+                return;
+            }
             if (err && err.shardRepairNeeded) {
                 // A piece of the INSTALLED library is missing or damaged. It is
                 // no longer silently re-fetched (that made "all-or-nothing" a
@@ -4967,6 +5620,11 @@ PPP.app = (function () {
             : i18n.t('libraryPartDamagedOffline');
         info.appendChild(msg);
         if (!navigator.onLine) return;
+        // No shardId: the localManifest record itself is unreadable, so there is
+        // no single shard to re-download and repairShard() could only fail. A
+        // button that can never work is the dead end this whole pass is
+        // removing, so it is not offered.
+        if (!shardId) return;
         var btn = document.createElement('button');
         btn.id = 'shardRepairBtn';
         btn.type = 'button';
@@ -5068,6 +5726,10 @@ PPP.app = (function () {
             track('export-excel', { query: _sentenceTerm, mode: 'sentences', rows: rows.length });
         }).catch(function (err) {
             console.error('Excel export error:', err);
+            // The export runs the SAME chunked search, so a delta in flight
+            // rejects it too. Console-only here meant the Excel button just did
+            // nothing at all — the same silence the on-screen message removes.
+            if (err && err.libraryUpdating) ui.toast(i18n.t('libraryUpdatingSearch'));
         });
     }
 
@@ -5209,7 +5871,7 @@ PPP.app = (function () {
     var _manifestPromise = null;
     function _getManifest() {
         if (!_manifestPromise) {
-            _manifestPromise = fetch('data/manifest.json')
+            _manifestPromise = fetch(PPP.dataUrl('data/manifest.json'))
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .catch(function () { return null; });
         }
@@ -5301,6 +5963,17 @@ PPP.app = (function () {
                 return openFromIdb().then(function () {
                     if (navigator.onLine) backgroundUpdateCheck();
                 });
+            }
+            // Library present, only the sentence shards missing. This is the
+            // normal state of EVERY user who installed before tonight: shards
+            // used to be an opt-in checkbox, unchecked by default. Sending them
+            // through startFirstInstallFlow() would re-download all 342 MB,
+            // including the ~150 MB already sitting in their IndexedDB, because
+            // the install state is cleared once an install completes and
+            // _buildWorkList therefore sees nothing as done. Add just the shards
+            // instead (Fable review, 2026-07-27).
+            if (state && state.localManifest && !state.shardsInstalled) {
+                return _startShardsOnlyInstall();
             }
             return _raceTimeout(PPP.downloader.getResumeState(), 4000, null).then(function (resume) {
                 if (resume) {
@@ -5729,6 +6402,10 @@ PPP.app = (function () {
         // per-core-key reload branches can be exercised with a stubbed
         // checkForUpdates instead of a real remote manifest change (P14c).
         _backgroundUpdateCheckForTest: backgroundUpdateCheck,
+        // Read-only view of the sentence-search busy lock. A stuck lock is
+        // invisible from the DOM (F5 was shipped because of that), and asserting
+        // on button labels alone would not have caught it.
+        _sentenceSearchBusyForTest: function () { return _sentenceSearchBusy; },
         // Internal (test only) — unit-test the MP3 ZIP count cap in
         // _addOneToZip / toggleSelectPair without fetching real audio.
         _addOneToZip: _addOneToZip,
