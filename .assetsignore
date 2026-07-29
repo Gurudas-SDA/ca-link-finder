@@ -1,4 +1,5 @@
 node_modules/
+.git/
 data/ppp_lecture_extras.json
 data/ppp_meta.db
 data/ppp_sentences_en.db
