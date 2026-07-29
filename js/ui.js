@@ -1191,13 +1191,19 @@ PPP.ui = (function () {
             : Promise.resolve({});
         return versionsP
             .then(function (v) {
-                var url = 'data/ppp_lecture_extras.json' +
+                if (typeof DecompressionStream !== 'function') {
+                    throw new Error('This browser cannot decompress lecture extras');
+                }
+                var url = 'data/ppp_lecture_extras.json.gz' +
                     (v && v.extras ? ('?v=' + v.extras) : '');
                 return fetch(url);
             })
             .then(function (r) {
                 if (!r.ok) throw new Error('extras HTTP ' + r.status);
-                return r.json();
+                if (!r.body) throw new Error('extras response body unavailable');
+                return new Response(
+                    r.body.pipeThrough(new DecompressionStream('gzip'))
+                ).json();
             });
     }
 

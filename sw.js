@@ -1,4 +1,4 @@
-// Service Worker v10 — offline app shell (precache + cache-first)
+// Service Worker v11 — offline app shell (precache + cache-first)
 // Versija: 2026-07-26
 //
 // 2026-07-26: bumped alongside sw-precache.js (js/app.js, js/i18n.js and
@@ -27,6 +27,9 @@
 // library. data/manifest.json and data/db-versions.json stay network-first
 // (no ?v= hash of their own — db-versions.json IS the hash source, and
 // manifest.json drives delta-update checks, so both must be read fresh).
+//
+// v11: Cloudflare deploy serves only the pre-compressed core data files.
+// The oversized uncompressed compatibility copies are excluded from assets.
 
 importScripts('sw-precache.js');
 

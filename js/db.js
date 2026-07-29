@@ -414,14 +414,10 @@ PPP.db = (function () {
             if (opened) return;
             return getDbVersions().then(function (versions) {
                 var v = versions.meta ? '?v=' + versions.meta : '';
-                if (_gzSupported()) {
-                    return fetchGzDB(META, 'data/ppp_meta.db.gz' + v, progressCallback)
-                        .catch(function (err) {
-                            console.warn('Gz meta fetch failed, falling back to uncompressed:', err);
-                            return loadDB(META, 'data/ppp_meta.db' + v, progressCallback);
-                        });
+                if (!_gzSupported()) {
+                    throw new Error('This browser cannot decompress the metadata database');
                 }
-                return loadDB(META, 'data/ppp_meta.db' + v, progressCallback);
+                return fetchGzDB(META, 'data/ppp_meta.db.gz' + v, progressCallback);
             });
         });
     }
@@ -449,14 +445,14 @@ PPP.db = (function () {
             if (opened) return;
             return getDbVersions().then(function (versions) {
                 var v = versions.sentences ? '?v=' + versions.sentences : '';
-                if (_gzSupported()) {
-                    return fetchGzDB('sentences_en', 'data/ppp_sentences_en.db.gz' + v, progressCallback)
-                        .catch(function (err) {
-                            console.warn('Gz sentences fetch failed, falling back to uncompressed:', err);
-                            return loadDB('sentences_en', 'data/ppp_sentences_en.db' + v, progressCallback);
-                        });
+                if (!_gzSupported()) {
+                    throw new Error('This browser cannot decompress the sentence database');
                 }
-                return loadDB('sentences_en', 'data/ppp_sentences_en.db' + v, progressCallback);
+                return fetchGzDB(
+                    'sentences_en',
+                    'data/ppp_sentences_en.db.gz' + v,
+                    progressCallback
+                );
             });
         });
     }
