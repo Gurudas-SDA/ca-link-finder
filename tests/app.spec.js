@@ -77,6 +77,15 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await page.goto('./');
     await waitForAppReady(page);
 
+    // The 2026-07-26 onboarding gate splits the UI into "lectures" vs
+    // "quotes" views (css/styles.css `body.view-lectures .quotes-only {
+    // display: none }`); this button is quotes-only, so it stays hidden
+    // under the shared beforeEach's 'lectures' purpose until #viewSwitchBtn
+    // is clicked. (Setting ppp_purpose='quotes' up front instead breaks
+    // waitForAppReady — the default mode for that purpose is 'sentences',
+    // whose placeholder has no lecture-count digits for it to match.)
+    await page.click('#viewSwitchBtn');
+
     // Click Quotes (all) button
     await page.click('.search-mode-btn[data-mode="citations"]');
 
@@ -91,6 +100,9 @@ test.describe('CA Link Finder — Daily Health Check', () => {
   test('4. Top 108 — list renders', async ({ page }) => {
     await page.goto('./');
     await waitForAppReady(page);
+
+    // Same quotes-only gating as test 3 — see comment there.
+    await page.click('#viewSwitchBtn');
 
     // Click Top 108 button
     await page.click('.search-mode-btn[data-mode="citationsTop"]');
@@ -135,7 +147,11 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await page.goto('./');
     await waitForAppReady(page);
 
-    // Switch to Russian
+    // Language switcher became a collapsed dropdown behind #langCompactBtn
+    // once a purpose is chosen (css/styles.css `body.purpose-set
+    // .language-switcher { display: none }`, 2026-07-25/26 UI change) —
+    // open it before clicking the RU button.
+    await page.click('#langCompactBtn');
     await page.click('.lang-btn[data-lang="ru"]');
 
     // Search placeholder should now be in Russian
@@ -169,24 +185,20 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(parseInt(info)).toBeGreaterThan(0);
   });
 
-  test('10. Dark mode toggle works', async ({ page }) => {
+  test('10. Dark mode toggle — intentionally removed from UI', async ({ page }) => {
+    // Rājan decision, 2026-07-25 (see js/app.js initTheme() comment): the
+    // dark mode toggle button was removed from the UI; body always renders
+    // light, and the .dark CSS rules are left dormant but unused. This test
+    // now guards that removal instead of exercising a control that no
+    // longer exists (#themeToggle is gone from index.html).
     await page.goto('./');
     await waitForAppReady(page);
 
-    // Initially body should not have 'dark' class (or have it from prefers-color-scheme)
-    const initialDark = await page.evaluate(() => document.body.classList.contains('dark'));
+    const toggleCount = await page.locator('#themeToggle').count();
+    expect(toggleCount).toBe(0);
 
-    // Click theme toggle button
-    await page.click('#themeToggle');
-
-    // Class should have toggled
-    const afterToggle = await page.evaluate(() => document.body.classList.contains('dark'));
-    expect(afterToggle).toBe(!initialDark);
-
-    // Toggle back
-    await page.click('#themeToggle');
-    const afterSecondToggle = await page.evaluate(() => document.body.classList.contains('dark'));
-    expect(afterSecondToggle).toBe(initialDark);
+    const isDark = await page.evaluate(() => document.body.classList.contains('dark'));
+    expect(isDark).toBe(false);
   });
 
   test('11. Favorites — save and show', async ({ page }) => {
@@ -270,12 +282,19 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     await page.keyboard.press('Enter');
     await page.waitForTimeout(2000);
 
+    // citations / citationsTop are quotes-only, metadata is lectures-only
+    // (2026-07-26 view split, css/styles.css .view-lectures/.view-quotes) —
+    // the two groups are never visible at the same time, so switch view
+    // with #viewSwitchBtn between them instead of clicking through a
+    // hidden button.
+    await page.click('#viewSwitchBtn');
     await page.locator('.search-mode-btn[data-mode="citations"]').click({ force: true });
     await page.waitForTimeout(2000);
 
     await page.locator('.search-mode-btn[data-mode="citationsTop"]').click({ force: true });
     await page.waitForTimeout(2000);
 
+    await page.click('#viewSwitchBtn');
     await page.locator('.search-mode-btn[data-mode="metadata"]').click({ force: true });
     await page.waitForTimeout(1000);
 
