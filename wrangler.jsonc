@@ -1,0 +1,34 @@
+{
+  // CA Link Finder — Cloudflare Workers static-assets deployment.
+  //
+  // WHY this file exists: until 2026-07-31 the Cloudflare Worker that actually
+  // serves the app's data (ca-link-finder.guru-das-sda.workers.dev) was created
+  // by hand in the Cloudflare dashboard. There was no script, no config and no
+  // record of the procedure anywhere in the repo (audit P2), so the daily
+  // pipeline kept publishing to GitHub Pages while users read stale data from
+  // the Worker. This config makes the Worker deployment reproducible.
+  //
+  // WHAT it is: an assets-only Worker (no `main` / no Worker script). Cloudflare
+  // serves everything under `assets.directory` straight from the edge; the
+  // exclusion list lives in `.assetsignore` next to this file.
+  //
+  // HOW it is used: `backup/daily_update.py` runs `wrangler deploy` (prod) and
+  // `wrangler deploy --env staging` from this directory after a successful
+  // `git push`, then verifies the live `data/db-versions.json`.
+  "name": "ca-link-finder",
+  "account_id": "eefded34b8f833b56207ca3c744a7018",
+  "compatibility_date": "2026-07-01",
+  "assets": {
+    "directory": "."
+  },
+  "env": {
+    // Staging Worker — same asset tree, separate workers.dev hostname, so a
+    // deploy can be smoke-tested before prod is touched.
+    "staging": {
+      "name": "ca-link-finder-staging",
+      "assets": {
+        "directory": "."
+      }
+    }
+  }
+}
