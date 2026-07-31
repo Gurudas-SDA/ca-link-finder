@@ -25,6 +25,14 @@ function trackConsoleErrors(page) {
 
 test.describe('CA Link Finder — Daily Health Check', () => {
 
+  // Pre-seed the onboarding "purpose picker" choice so a clean Playwright
+  // context (no localStorage) skips the mandatory install gate added
+  // 2026-07-26 (see js/app.js ~line 500-506) and proceeds straight to the
+  // online DB load path that these tests expect.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('ppp_purpose', 'lectures'));
+  });
+
   test('1. App loads and SQLite DB initializes', async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto('./');
