@@ -8,3 +8,6 @@ data/ppp_lecture_extras.json
 data/ppp_transcripts_html_lv.db
 data/ppp_transcripts_html_en.db
 data/ppp_meta.db
+
+# transcripts served from GitHub Pages own-origin since phase2 (2026-07-31); not needed on Worker
+transcripts/
