@@ -2973,7 +2973,11 @@ PPP.app = (function () {
             '<strong>' + totalResults + ' ' + i18n.t('filesFound') + '</strong>&nbsp;&nbsp;&nbsp;' +
             i18n.t('showingResults') + ' ' + (totalResults === 0 ? 0 : (startIndex + 1)) + '-' + endIndex;
 
-        ui.renderResults(allResults, lastSearchTerm, startIndex, endIndex, matchHints);
+        // Pass navView so the "By Added" list can show the added date
+        // under the title (the visible Date column is the LECTURE date,
+        // not when it was added — that ambiguity was the root of Rājan's
+        // "By Added looks wrong" report, 2026-07-31).
+        ui.renderResults(allResults, lastSearchTerm, startIndex, endIndex, matchHints, navView === 'byAdded');
         ui.renderPagination(totalResults, currentPage, pageSize, changePage);
 
         _showSelectToggle(totalResults > 0);
@@ -3545,18 +3549,30 @@ PPP.app = (function () {
     var _filterOptions = null;   // cached {years, countries} derived from data
 
     function _buildFilterOptions(rows) {
-        var years = {}, countries = {};
+        var cfg = (window.PPP && PPP.config) || {};
+        var years = {}, countries = {}, langs = {}, sources = {};
         rows.forEach(function (r) {
             var ym = String(r.date || '').match(/^(\d{4})/);
             if (ym) years[ym[1]] = true;
-            var code = (window.PPP && PPP.config && PPP.config.normalizeCountry)
-                ? PPP.config.normalizeCountry(r.country) : null;
+            var code = cfg.normalizeCountry ? cfg.normalizeCountry(r.country) : null;
             if (code) countries[code] = true;
+            var lv = cfg.isFilterableLang ? cfg.isFilterableLang(r.lang) : null;
+            if (lv) langs[lv] = true;
+            var sv = String(r.source || '').trim();
+            if (sv) sources[sv] = true;
         });
         return {
             years: Object.keys(years).sort(function (a, b) { return b - a; }),   // newest first
-            countries: Object.keys(countries).sort(function (a, b) {             // by 3-letter code
+            // Alphabetical by 3-letter code, with "Online" pinned to the end
+            // (Rājan: it is not a place, so it reads as the tail option).
+            countries: Object.keys(countries).sort(function (a, b) {
+                if (a === 'Online') return 1;
+                if (b === 'Online') return -1;
                 return a.toUpperCase() < b.toUpperCase() ? -1 : 1;
+            }),
+            langs: Object.keys(langs).sort(),
+            sources: Object.keys(sources).sort(function (a, b) {
+                return a.toLowerCase() < b.toLowerCase() ? -1 : 1;
             })
         };
     }
@@ -3564,52 +3580,121 @@ PPP.app = (function () {
     function _getFilterOptions() {
         if (_filterOptions) return Promise.resolve(_filterOptions);
         if (usingSqlite) {
-            return db.queryMetaAsync("SELECT date, country FROM lectures WHERE nr != ''")
+            return db.queryMetaAsync("SELECT date, country, lang, source FROM lectures WHERE nr != ''")
                 .then(function (rows) { _filterOptions = _buildFilterOptions(rows); return _filterOptions; });
         }
-        var mem = (DB || []).map(function (r) { return { date: r['Date'] || r.date, country: r['Country'] || r.country }; });
+        var mem = (DB || []).map(function (r) {
+            return {
+                date: r['Date'] || r.date,
+                country: r['Country'] || r.country,
+                lang: r['Lang.'] || r.lang,
+                source: r['Source'] || r.source
+            };
+        });
         _filterOptions = _buildFilterOptions(mem);
         return Promise.resolve(_filterOptions);
+    }
+
+    // One checkbox row. `cls` is the facet class the Apply reader queries.
+    function _fltItem(cls, value, label, extra) {
+        var esc = utils.escapeHtml;
+        return '<label class="flt-item' + (extra ? ' flt-extra' : '') + '"' + (extra ? ' hidden' : '') + '>' +
+            '<input type="checkbox" class="' + cls + '" value="' + esc(value) + '">' +
+            '<span>' + esc(label) + '</span></label>';
+    }
+
+    // Amazon-style collapsible category: the first option is always visible,
+    // the rest sit behind "See more (N)" / "See less". Every option stays in
+    // the DOM (only `hidden`), so Apply reads a stable checkbox set whether a
+    // section is open or closed.
+    function _fltSection(id, title, options) {
+        if (!options.length) return '';
+        var esc = utils.escapeHtml;
+        var items = options.map(function (o, i) {
+            return _fltItem(o.cls, o.value, o.label, i > 0);
+        }).join('');
+        var hiddenCount = options.length - 1;
+        var more = hiddenCount > 0
+            ? '<button type="button" class="flt-more" aria-expanded="false" ' +
+                'onclick="PPP.app.toggleFilterSection(\'' + id + '\', event)">' +
+                '<span class="flt-more-label">' + esc(i18n.t('filtersShowMore')) + ' (' + hiddenCount + ')</span>' +
+                '<span class="flt-chev" aria-hidden="true">▾</span>' +
+              '</button>'
+            : '';
+        return '<div class="flt-sec" data-sec="' + id + '">' +
+            '<div class="flt-title">' + esc(title) + '</div>' +
+            '<div class="flt-grid flt-' + id + '">' + items + '</div>' +
+            more + '</div>';
+    }
+
+    function toggleFilterSection(id, evt) {
+        if (evt) evt.stopPropagation();
+        var panel = document.getElementById('filtersPanel');
+        if (!panel) return;
+        var sec = panel.querySelector('.flt-sec[data-sec="' + id + '"]');
+        if (!sec) return;
+        var extras = sec.querySelectorAll('.flt-extra');
+        var btn = sec.querySelector('.flt-more');
+        var wasOpen = !!(btn && btn.getAttribute('aria-expanded') === 'true');
+        Array.prototype.forEach.call(extras, function (el) { el.hidden = wasOpen; });
+        sec.classList.toggle('flt-open', !wasOpen);
+        if (!btn) return;
+        btn.setAttribute('aria-expanded', wasOpen ? 'false' : 'true');
+        var label = btn.querySelector('.flt-more-label');
+        if (label) {
+            label.textContent = wasOpen
+                ? i18n.t('filtersShowMore') + ' (' + extras.length + ')'
+                : i18n.t('filtersShowLess');
+        }
+        var chev = btn.querySelector('.flt-chev');
+        if (chev) chev.textContent = wasOpen ? '▾' : '▴';
     }
 
     function _renderFiltersPanel(panel, opts) {
         var esc = utils.escapeHtml;
         var lang = i18n.getLanguage() || 'en';
-        // The transcript-sentence DB carries date but NOT country, so in the
-        // "In Text" mode only the Years section is offered.
+        var cfg = PPP.config;
+        // The transcript-sentence DB carries date but NOT country/type/lang/
+        // source/links/length, so in "In Text" mode only Years is offered.
         var sentenceMode = (searchMode === 'sentences');
-        var years = opts.years.map(function (y) {
-            return '<label class="flt-item"><input type="checkbox" class="flt-year" value="' + y + '"><span>' + y + '</span></label>';
-        }).join('');
-        var countrySec = '';
-        var typeSec = '';
+
+        var sections = '';
         if (!sentenceMode) {
-            var countries = opts.countries.map(function (code) {
-                var name = PPP.config.countryName(code, lang);
-                return '<label class="flt-item"><input type="checkbox" class="flt-country" value="' + esc(code) +
-                    '"><span>' + esc(code) + ' (' + esc(name) + ')</span></label>';
-            }).join('');
-            countrySec =
-                '<div class="flt-sec"><div class="flt-title">' + esc(i18n.t('filtersCountries')) + '</div>' +
-                    '<div class="flt-grid flt-countries">' + countries + '</div></div>';
-            // Record-type filter (Filters panel). Same metadata-only scope as
-            // Countries — the sentence DB has no type column either.
-            var types = PPP.config.TYPE_ORDER.map(function (key) {
-                var labelKey = PPP.config.TYPE_I18N_KEY[key];
-                return '<label class="flt-item"><input type="checkbox" class="flt-type" value="' + esc(key) +
-                    '"><span>' + esc(i18n.t(labelKey)) + '</span></label>';
-            }).join('');
-            typeSec =
-                '<div class="flt-sec"><div class="flt-title">' + esc(i18n.t('filtersTypes')) + '</div>' +
-                    '<div class="flt-grid flt-types">' + types + '</div></div>';
+            // Country — "LVA — Latvija" in the active UI language (Rājan,
+            // 2026-07-31); sorted by code with "Online" last.
+            sections += _fltSection('countries', i18n.t('filtersCountries'),
+                opts.countries.map(function (code) {
+                    return { cls: 'flt-country', value: code, label: code + ' — ' + cfg.countryName(code, lang) };
+                }));
+            // Language — only "... only" / "a; b" cells (see config.isFilterableLang).
+            // The token carries '+' instead of "; " so it survives the field's
+            // ';' AND-split.
+            sections += _fltSection('langs', i18n.t('filtersLangs'),
+                opts.langs.map(function (v) {
+                    return { cls: 'flt-lang', value: cfg.encodeLangToken(v), label: v };
+                }));
         }
+        sections += _fltSection('years', i18n.t('filtersYears'),
+            opts.years.map(function (y) { return { cls: 'flt-year', value: y, label: y }; }));
+        if (!sentenceMode) {
+            sections += _fltSection('types', i18n.t('filtersTypes'),
+                cfg.TYPE_ORDER.map(function (value) {
+                    // TYPE_ORDER holds the exact DB `Type` strings (Rājan,
+                    // 2026-07-31) — no i18n label for these, shown as-is.
+                    return { cls: 'flt-type', value: value, label: value };
+                }));
+            sections += _fltSection('sources', i18n.t('filtersSources'),
+                opts.sources.map(function (s) { return { cls: 'flt-source', value: s, label: s }; }));
+            sections += _fltSection('links', i18n.t('filtersLinks'),
+                cfg.LINKS_ORDER.map(function (p) { return { cls: 'flt-link', value: p, label: p }; }));
+            sections += _fltSection('lengths', i18n.t('filtersLength'),
+                cfg.LENGTH_RANGES.map(function (r) {
+                    return { cls: 'flt-length', value: r.key, label: cfg.lengthRangeLabel(r.key, i18n.t('filtersLengthUnit')) };
+                }));
+        }
+
         panel.innerHTML =
-            '<div class="flt-cols">' +
-                '<div class="flt-sec"><div class="flt-title">' + esc(i18n.t('filtersYears')) + '</div>' +
-                    '<div class="flt-grid flt-years">' + years + '</div></div>' +
-                countrySec +
-                typeSec +
-            '</div>' +
+            '<div class="flt-cols">' + sections + '</div>' +
             '<div class="flt-actions">' +
                 '<button type="button" class="flt-apply" onclick="PPP.app.applyFilters()">' + esc(i18n.t('filtersApply')) + '</button>' +
                 '<button type="button" class="flt-clear" onclick="PPP.app.clearFilters()">' + esc(i18n.t('filtersClear')) + '</button>' +
@@ -3655,17 +3740,25 @@ PPP.app = (function () {
     // keeping only free text the user typed (or other tokens like lang:/
     // has:/subject: that these two functions don't own). One parser so both
     // callers can never drift apart on what counts as "a filter token".
+    var _FILTER_TOKEN_RE = /^(year|country|type|lang|source|links|length):/i;
     function _keepNonFilterTokens(value) {
         return (value || '').split(';').map(function (s) { return s.trim(); }).filter(Boolean)
-            .filter(function (seg) { return !/^year:/i.test(seg) && !/^country:/i.test(seg) && !/^type:/i.test(seg); });
+            .filter(function (seg) { return !_FILTER_TOKEN_RE.test(seg); });
     }
 
     function applyFilters() {
         var panel = document.getElementById('filtersPanel');
         if (!panel) return;
-        var years = Array.prototype.map.call(panel.querySelectorAll('.flt-year:checked'), function (c) { return c.value; });
-        var countries = Array.prototype.map.call(panel.querySelectorAll('.flt-country:checked'), function (c) { return c.value; });
-        var types = Array.prototype.map.call(panel.querySelectorAll('.flt-type:checked'), function (c) { return c.value; });
+        function picked(cls) {
+            return Array.prototype.map.call(panel.querySelectorAll(cls + ':checked'), function (c) { return c.value; });
+        }
+        var years = picked('.flt-year');
+        var countries = picked('.flt-country');
+        var types = picked('.flt-type');
+        var langs = picked('.flt-lang');
+        var sources = picked('.flt-source');
+        var links = picked('.flt-link');
+        var lengths = picked('.flt-length');
         var input = document.getElementById('searchTerm');
         var sentenceMode = (searchMode === 'sentences');
 
@@ -3679,6 +3772,10 @@ PPP.app = (function () {
         // neither column), so neither is ever emitted in "In Text" mode.
         if (countries.length && !sentenceMode) tokens.push('country:' + countries.join(','));
         if (types.length && !sentenceMode) tokens.push('type:' + types.join(','));
+        if (langs.length && !sentenceMode) tokens.push('lang:' + langs.join(','));
+        if (sources.length && !sentenceMode) tokens.push('source:' + sources.join(','));
+        if (links.length && !sentenceMode) tokens.push('links:' + links.join(','));
+        if (lengths.length && !sentenceMode) tokens.push('length:' + lengths.join(','));
         closeFilters();
 
         if (sentenceMode) {
@@ -3769,8 +3866,16 @@ PPP.app = (function () {
             if (mode === 'sentences') dbLastUpdate.style.display = 'none';
             else if (dbLastUpdate.getAttribute('data-last-update')) dbLastUpdate.style.display = '';
         }
-        // Clear results and search field when switching modes
-        if (prevMode !== mode) {
+        // Clear results and search field when switching modes.
+        // Also force the clear for the two plain-text buttons (In Titles /
+        // In Text) even when prevMode === mode: a browse view (e.g. Top
+        // Searches) can be showing its own results/count/download button
+        // while searchMode itself never changed, and clearComboDisplay()
+        // below already always empties the field regardless of this guard —
+        // leaving the OLD results/count visible under an empty field
+        // (Rājan principle, 2026-07-31: clicking In Titles/In Text must
+        // land on a fully clean page, not just an empty search box).
+        if (prevMode !== mode || mode === 'metadata' || mode === 'sentences') {
             document.getElementById('searchTerm').value = '';
             document.getElementById('resultsInfo').innerHTML = '';
             document.getElementById('pagination').innerHTML = '';
@@ -3828,8 +3933,12 @@ PPP.app = (function () {
             db.queryMetaAsync(
                 "SELECT * FROM lectures WHERE added != '' AND nr != '' ORDER BY added DESC LIMIT 20"
             ).then(function (rows) {
+                // NOTE: rows already arrive in SQL "added DESC" order — do NOT
+                // re-sort by utils.compareDates (lecture date), that silently
+                // undoes the added-date ordering and old lectures added
+                // recently can jump above newer additions (Rājan report,
+                // 2026-07-31).
                 var uiRows = rows.map(mapSqlRowToUI);
-                uiRows.sort(utils.compareDates);
                 lastSearchTerm = i18n.t('latest20Files');
                 allResults = uiRows;
                 totalResults = uiRows.length;
@@ -3858,9 +3967,12 @@ PPP.app = (function () {
         var top20 = withAdded.slice(0, 20);
         var nrSet = new Set(top20.map(function (r) { return (r['Nr.'] || '').toString().trim(); }));
 
+        // NOTE: use top20 directly — it is already sorted by Added DESC.
+        // Re-filtering DB and re-sorting by utils.compareDates (lecture date)
+        // was the same bug as the SQLite branch above: it silently discarded
+        // the added-date order (Rājan report, 2026-07-31).
         lastSearchTerm = 'latest_files:' + Array.from(nrSet).join(',');
-        allResults = DB.filter(function (r) { return nrSet.has((r['Nr.'] || '').toString().trim()); });
-        allResults.sort(utils.compareDates);
+        allResults = top20;
         totalResults = allResults.length;
         currentPage = 1;
         matchHints = new Map();
@@ -3881,6 +3993,9 @@ PPP.app = (function () {
                 "SELECT * FROM lectures WHERE date LIKE '2026%' AND nr != '' ORDER BY date DESC"
             ).then(function (rows) {
                 var uiRows = rows.map(mapSqlRowToUI);
+                // OK here (unlike showLatestFiles above): SQL already orders by
+                // `date DESC` and compareDates also sorts by lecture date, so
+                // this resort is redundant but not a bug — both agree.
                 uiRows.sort(utils.compareDates);
                 lastSearchTerm = '2026';
                 allResults = uiRows;
@@ -5805,6 +5920,14 @@ PPP.app = (function () {
         document.getElementById('topicsList').style.display = 'none';
         document.getElementById('recommendationsList').style.display = 'none';
         var _rt = document.getElementById('resultsTable'); if (_rt) _rt.style.display = '';
+        // Picking a recommendation item leaves the Top Searches browse view
+        // (navView stayed 'topSearches' otherwise, since performSearch() never
+        // touches it) — a second Top Searches click then read the stale value
+        // and toggled OFF instead of reopening the list, while the In Titles
+        // button lit up instead (Rājan report, 2026-07-31). Reset it exactly
+        // like _runSearch() does for a typed search.
+        navView = null; transcriptView = null;
+        _refreshButtonGroups();
         performSearch();
     }
 
@@ -5831,6 +5954,38 @@ PPP.app = (function () {
         document.body.classList.remove('onboarding-active');
     }
 
+    /** The close (X) control on the start screen exists ONLY for a returning
+     *  user who re-opened it via the Home button: on a first visit the purpose
+     *  choice is mandatory (Rājan), so there is deliberately no way out. */
+    function _updateOnbCloseBtn() {
+        var btn = document.getElementById('onbCloseBtn');
+        if (btn) btn.hidden = !_currentPurpose();
+    }
+
+    /** Home button (utility row, always visible): re-open the start screen
+     *  WITHOUT clearing ppp_purpose. From there the user can switch mode
+     *  (setPurpose, as before), open "List Of Sources", or close and land back
+     *  exactly where they were. */
+    function showHome() {
+        document.body.classList.add('onboarding-active');
+        var overlay = document.getElementById('onboardingOverlay');
+        if (overlay) overlay.hidden = false;
+        // Language is already chosen for anyone who can reach this button, so
+        // go straight to the intro/purpose stage rather than asking again.
+        _onbShowStage(_currentPurpose() ? 'intro' : 'lang');
+        _updateOnbCloseBtn();
+        updateOnbIntro();
+        track('home-open', {});
+        try { window.scrollTo(0, 0); } catch (e) {}
+    }
+
+    /** Close the start screen and return to the working UI. No-op while no
+     *  purpose has been chosen yet (first visit — the gate is absolute). */
+    function closeHome() {
+        if (!_currentPurpose()) return;
+        _hideOnboarding();
+    }
+
     /** Called once from init(): shows the gate on first run, or applies the
      *  already-chosen view immediately (no flash of the wrong UI). */
     function initOnboarding() {
@@ -5844,6 +5999,14 @@ PPP.app = (function () {
             _hideOnboarding();
             _applyPurposeView(purpose);
         }
+        _updateOnbCloseBtn();
+        // Escape is the keyboard twin of the X — same guard, so it cannot be
+        // used to skip the first-visit gate.
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape') return;
+            var overlay = document.getElementById('onboardingOverlay');
+            if (overlay && !overlay.hidden) closeHome();
+        });
         updateOnbIntro();
     }
 
@@ -6137,6 +6300,9 @@ PPP.app = (function () {
         currentPage = 1;
         document.getElementById('recommendationsList').style.display = 'none';
         var _rt = document.getElementById('resultsTable'); if (_rt) _rt.style.display = '';
+        // Same stale-navView fix as applySubjectFilter() above — see comment there.
+        navView = null; transcriptView = null;
+        _refreshButtonGroups();
         performSearch();
     }
 
@@ -6340,6 +6506,7 @@ PPP.app = (function () {
         showLatestFiles: showLatestFiles,
         showBy2026: showBy2026,
         toggleFilters: toggleFilters,
+        toggleFilterSection: toggleFilterSection,
         applyFilters: applyFilters,
         clearFilters: clearFilters,
         showLatestTranscripts: showLatestTranscripts,
@@ -6373,6 +6540,8 @@ PPP.app = (function () {
         // Onboarding gate (purpose picker) + the two-view toggle + tip strips
         onbPickLanguage: onbPickLanguage,
         setPurpose: setPurpose,
+        showHome: showHome,
+        closeHome: closeHome,
         switchView: switchView,
         toggleLangChooser: toggleLangChooser,
         // Internal (test only) — read/reset gate state without clicking through it.

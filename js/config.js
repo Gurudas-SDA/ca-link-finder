@@ -102,43 +102,94 @@ PPP.config.countryName = function (code, lang) {
 
 /* ---------------------------------------------------------------------------
    RECORD-TYPE FILTER DATA
-   The `lectures.type` column has 25+ raw variants (verified against the live
-   meta DB), most of them one-off outliers. This block groups the handful of
-   meaningful ones into 5 canonical keys — applied in the APP layer only, so
-   the Google Sheets source is never touched. Anything not listed here (n/a,
-   empty, "Promo", and the long tail of rare one-off values) is never offered
-   as a filter checkbox.
+   Rājan's decision (2026-07-31): the Type filter offers exactly these 8
+   `lectures.type` column values, shown in alphabetical order — NOT grouped
+   into families. Each checkbox matches ONLY its own exact DB value ("Lecture"
+   never also matches "Lecture (event)"). The other 30+ rare/one-off values
+   (n/a, empty, "Promo", Practice/Commentary variants, etc.) are still never
+   offered as a filter checkbox.
 
-   TYPE_GROUPS:  canonical key -> raw `type_norm` values that fold into it
-                 (type_norm is already lower-cased in the DB, same convention
-                 as country_norm).
-   TYPE_ORDER:   fixed display order for the Filters panel checkboxes.
+   TYPE_ORDER: the exact display strings, alphabetical — also used as the
+               checkbox value and as the visible label (no i18n: these are
+               literal DB cell contents, not translatable UI copy).
 --------------------------------------------------------------------------- */
-PPP.config.TYPE_GROUPS = {
-    lecture: ['lecture', 'lecture (event)', 'lecture (public)'],
-    parikrama: ['parikrama', 'parikrama_radhakunda'],
-    seminar: ['lecture (seminar)'],
-    qa: ['istagosthi_q&a'],
-    kirtan: ['practice (kirtan)', 'practice_?_ (kirtan)', 'practice (bhajan)', 'practice (arati)', 'explanation (bhajan)']
+PPP.config.TYPE_ORDER = [
+    'Explanation (bhajan)',
+    'Istagosthi_Q&A',
+    'Lecture',
+    'Lecture (event)',
+    'Lecture (public)',
+    'Lecture (seminar)',
+    'Parikrama',
+    'Short talk'
+];
+
+/* ---------------------------------------------------------------------------
+   LANGUAGE FILTER DATA
+   The `lang` column mixes real audio-language cells ("eng only", "eng; rus")
+   with non-language notes ("singing", "chanting", "multi", "Promo") and a
+   large empty tail. Rājan's rule (2026-07-31): offer ONLY the cells that end
+   in "only" or contain a semicolon — those are exactly the ones that state
+   which language(s) the recording is in.
+
+   A value like "eng; rus" cannot travel through the search field as-is,
+   because the field splits AND-terms on ';'. So the token carries '+' where
+   the raw cell has "; " (lang:eng+rus) and search.js decodes it back.
+--------------------------------------------------------------------------- */
+PPP.config.isFilterableLang = function (raw) {
+    var v = String(raw || '').trim().replace(/\s+/g, ' ');
+    if (!v) return null;
+    if (/only$/i.test(v) || v.indexOf(';') !== -1) return v.toLowerCase();
+    return null;
 };
 
-PPP.config.TYPE_ORDER = ['lecture', 'parikrama', 'seminar', 'qa', 'kirtan'];
+/** "eng; rus" -> "eng+rus" (safe inside a ';'-separated search field). */
+PPP.config.encodeLangToken = function (value) {
+    return String(value || '').split(/\s*;\s*/).join('+');
+};
 
-// i18n key for each canonical type's checkbox label.
-PPP.config.TYPE_I18N_KEY = {
-    lecture: 'typeLecture',
-    parikrama: 'typeParikrama',
-    seminar: 'typeSeminar',
-    qa: 'typeQA',
-    kirtan: 'typeKirtan'
+/** "eng+rus" -> "eng; rus" (inverse of encodeLangToken). */
+PPP.config.decodeLangToken = function (token) {
+    return String(token || '').split('+').map(function (s) { return s.trim(); }).join('; ');
+};
+
+/* ---------------------------------------------------------------------------
+   LINKS FILTER DATA
+   The `links` column is a platform label, not a URL ("YouTube", "Soundcloud",
+   "Mixcloud", "Facebook", "N/A"). Rājan asked for three fixed options.
+--------------------------------------------------------------------------- */
+PPP.config.LINKS_ORDER = ['YouTube', 'Soundcloud', 'Mixcloud'];
+
+/* ---------------------------------------------------------------------------
+   LENGTH FILTER DATA
+   The `length` column is human text ("45min", "1h 15min"), so the ranges are
+   resolved to minutes in SQL (see search.js LENGTH_MINUTES_SQL).
+--------------------------------------------------------------------------- */
+PPP.config.LENGTH_RANGES = [
+    { key: '0-30', min: 1, max: 30 },
+    { key: '31-45', min: 31, max: 45 },
+    { key: '46-60', min: 46, max: 60 },
+    { key: '61-90', min: 61, max: 90 },
+    { key: '91+', min: 91, max: null }
+];
+
+PPP.config.lengthRange = function (key) {
+    var all = PPP.config.LENGTH_RANGES;
+    for (var i = 0; i < all.length; i++) if (all[i].key === key) return all[i];
+    return null;
+};
+
+/** "0-30" -> "0-30 min", "91+" -> "91+ min" (unit comes from i18n). */
+PPP.config.lengthRangeLabel = function (key, unit) {
+    return key + ' ' + (unit || 'min');
 };
 
 /**
- * Every raw `type_norm` value that must match a canonical type key.
- * Returns lower-cased values (type_norm is lower-cased), same shape as
- * countryMatchCodes.
+ * The single `type_norm` value a Type checkbox must match. The checkbox
+ * value IS the exact DB display string (see TYPE_ORDER), so this just
+ * lower-cases it to compare against the already-lower-cased type_norm
+ * column — no family expansion, exactly one value in, one value out.
  */
-PPP.config.typeMatchValues = function (canonical) {
-    var raws = PPP.config.TYPE_GROUPS[canonical];
-    return raws ? raws.slice() : [];
+PPP.config.typeMatchValues = function (exactValue) {
+    return exactValue ? [String(exactValue).toLowerCase()] : [];
 };
