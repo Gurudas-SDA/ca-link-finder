@@ -29,8 +29,8 @@ self.PRECACHE = [
   'guide/ru/index.html?v=eb6fe36b',
   'icon-192.png?v=fab41429',
   'icon-512.png?v=88196aa7',
-  'index.html?v=e983d03e',
-  'js/app.js?v=019c9c0f',
+  'index.html?v=ef3e06f6',
+  'js/app.js?v=6f0a09f0',
   'js/auth-modal.js?v=2ba0f1fc',
   'js/auth.js?v=a4f11a49',
   'js/codec.js?v=c4091679',
@@ -63,4 +63,4 @@ self.REQUIRED_SHELL = [
   'js/vendor/sql-wasm.js',
   'js/vendor/sql-wasm.wasm',
 ];
-self.SHELL_VERSION = '40ea15ad2ba0';
+self.SHELL_VERSION = '730d3e22c5a8';
