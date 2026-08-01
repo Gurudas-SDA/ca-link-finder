@@ -29,8 +29,8 @@ self.PRECACHE = [
   'guide/ru/index.html?v=eb6fe36b',
   'icon-192.png?v=fab41429',
   'icon-512.png?v=88196aa7',
-  'index.html?v=454efd81',
-  'js/app.js?v=94aee6a1',
+  'index.html?v=e983d03e',
+  'js/app.js?v=019c9c0f',
   'js/auth-modal.js?v=2ba0f1fc',
   'js/auth.js?v=a4f11a49',
   'js/codec.js?v=c4091679',
@@ -40,7 +40,7 @@ self.PRECACHE = [
   'js/downloader.js?v=5ef805a1',
   'js/favorites.js?v=92275512',
   'js/firebase-config.js?v=3db6511a',
-  'js/i18n.js?v=431eb469',
+  'js/i18n.js?v=3a623a1a',
   'js/offline-store.js?v=c3bdcad3',
   'js/search.js?v=fc36b085',
   'js/ui.js?v=a672d503',
@@ -63,4 +63,4 @@ self.REQUIRED_SHELL = [
   'js/vendor/sql-wasm.js',
   'js/vendor/sql-wasm.wasm',
 ];
-self.SHELL_VERSION = '214363056f26';
+self.SHELL_VERSION = '40ea15ad2ba0';
