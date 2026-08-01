@@ -1,23 +1,23 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-08-01T05:32:16.646626+00:00",
+  "generated": "2026-08-01T07:39:39.581663+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "c08502228b",
-      "sha256": "b5c623fe141413d4829c80801c7eab3dd88e389dadc92a6ba11a687b4c4a4367",
-      "size": 4017468,
-      "raw": 34267136
+      "hash": "6bae921be2",
+      "sha256": "4ec452e9bea8f063b0a912f62ee551de18b10f459ca57700911e52d846864ccf",
+      "size": 4014555,
+      "raw": 34443264
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
       "enc": "br",
-      "hash": "ea928122e6",
-      "sha256": "583c8229fae737624b8493e52914aae0155308abb7b80d6dff94a88e040a65be",
-      "size": 7862293,
-      "raw": 45959251
+      "hash": "9b56a83742",
+      "sha256": "6a3ff0a25df03e36b59bfe78bc53bff846d2959bca1a8c29e0874fbd7ef6a907",
+      "size": 7876446,
+      "raw": 46028040
     },
     "sentences": {
       "path": "data/ppp_sentences_en.db.br",
@@ -460,7 +460,7 @@
     }
   ],
   "totals": {
-    "bytes": 165008653,
+    "bytes": 165019893,
     "files": 11091
   },
   "sentenceShards": [
