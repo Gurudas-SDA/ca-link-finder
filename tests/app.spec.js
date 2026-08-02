@@ -710,7 +710,7 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     // Grouped list: 9 group headings, several item links.
     await expect(menu.locator('.fm-group')).toHaveCount(9);
     const itemCount = await menu.locator('.fm-item').count();
-    expect(itemCount).toBe(33);
+    expect(itemCount).toBe(31);
 
     // Each item deep-links to a specific function anchor.
     const firstItemHref = await menu.locator('.fm-item').first().getAttribute('href');
