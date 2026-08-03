@@ -1,23 +1,23 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-08-02T05:28:27.584517+00:00",
+  "generated": "2026-08-03T05:32:59.442659+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "34a25e5977",
-      "sha256": "c5a64c495f211bc726d4c755c75de31b585545fc3c1db1b259ef6563e43bcb1b",
-      "size": 4023312,
-      "raw": 34476032
+      "hash": "7d97352f22",
+      "sha256": "dfa50f1d6160ecb7454c4da6eb1797d0db0054e9f73b6725dfa1b203164d1a17",
+      "size": 4022573,
+      "raw": 34484224
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
       "enc": "br",
-      "hash": "37415e7e8b",
-      "sha256": "0eb62201dd60f2af1c835395db0d0bf2661a7a45915c51b96f04033ad42ae7d9",
-      "size": 7881602,
-      "raw": 46053051
+      "hash": "fd66d327c4",
+      "sha256": "909c0c10b02d12b047416dae41b44f414b856e65d9993e5ea3d7cdd2ef52b70f",
+      "size": 7881835,
+      "raw": 46054431
     },
     "sentences": {
       "path": "data/ppp_sentences_en.db.br",
@@ -460,7 +460,7 @@
     }
   ],
   "totals": {
-    "bytes": 165033806,
+    "bytes": 165033300,
     "files": 11091
   },
   "sentenceShards": [
@@ -664,7 +664,7 @@
     }
   ],
   "catalog": {
-    "lectures": 9868,
+    "lectures": 9870,
     "sources": {
       "@AnandaGopal108": 5,
       "@ChaitanyaAcademy": 2588,
@@ -688,7 +688,7 @@
       "@sripremprayojanprabhu5690": 67,
       "@vedukeliult4107": 2,
       "@vrndavanavilasinidasi3937": 272,
-      "Guru_das": 396,
+      "Guru_das": 398,
       "Private_mp3": 27,
       "Private_mp3_Bihari": 2328,
       "Telegram": 930,
