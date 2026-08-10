@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-08-09T05:29:23.440822+00:00",
+  "generated": "2026-08-10T05:33:04.799184+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "b0b0b1e514",
-      "sha256": "5122f603f2ded3f12b0d35da714066e862655adf30718e52abcbe21c9248dfb7",
-      "size": 4026465,
-      "raw": 34504704
+      "hash": "c70f676aa9",
+      "sha256": "b167e26f7da9dfcc58978eebe29c624b992ccb954fcd5c7314d3d1000cf9ad6a",
+      "size": 4037550,
+      "raw": 34545664
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -22,9 +22,9 @@
     "sentences": {
       "path": "data/ppp_sentences_en.db.br",
       "enc": "br",
-      "hash": "d27cf85849",
-      "sha256": "860aa000da2a2b83b159ba0a25986325d66e344add7b3012b367f4d46e51fc74",
-      "size": 13697048,
+      "hash": "0cf8c9479d",
+      "sha256": "601f07966bd2847a761782791ae96f647e232437651c83e2bdb3d99cdc764fee",
+      "size": 13697535,
       "raw": 67932160
     }
   },
@@ -460,7 +460,7 @@
     }
   ],
   "totals": {
-    "bytes": 165064277,
+    "bytes": 165075849,
     "files": 11091
   },
   "sentenceShards": [
@@ -657,17 +657,17 @@
       "id": "ppp_sentences_shard_021",
       "path": "data/shards/ppp_sentences_shard_021.db.br",
       "enc": "br",
-      "sha256": "470b2d00df911498f311ff40d3cef50138d79ca7dc3d3a93987beab8f4300dbb",
-      "size": 152990,
+      "sha256": "bc3d83c2fec74ad24fb05017a296194be4ef69ebd0121644002d99086385b923",
+      "size": 152573,
       "nrLo": 10268,
       "nrHi": 10282
     }
   ],
   "catalog": {
-    "lectures": 9876,
+    "lectures": 9895,
     "sources": {
       "@AnandaGopal108": 5,
-      "@ChaitanyaAcademy": 2588,
+      "@ChaitanyaAcademy": 2607,
       "@DasMadhavananda": 1,
       "@Freedomspiral1111": 1,
       "@Freedomspiral1112": 1,
