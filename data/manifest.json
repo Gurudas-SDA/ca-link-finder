@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-08-13T05:38:03.940742+00:00",
+  "generated": "2026-08-14T05:55:08.941038+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "929a39865b",
-      "sha256": "515b8fbdc1ba5709a0c3bb7a1c09b8d333499dd7d4cbb11ed0047021d739919d",
-      "size": 3983754,
-      "raw": 34041856
+      "hash": "b98e3451ba",
+      "sha256": "05723a37bff477947bd2d3210e8f6f2fcf7d511510f1f092da1496d2fcbaee2d",
+      "size": 3983938,
+      "raw": 34045952
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -101,10 +101,10 @@
       "lang": "lv",
       "path": "packs/prem-lv-0000.pack",
       "enc": "br",
-      "hash": "d041618928",
-      "sha256": "a24f00fc8fb75f085f18cd2649ed07241d03918313a56a66550f6483e44e31b2",
-      "size": 1242917,
-      "count": 72
+      "hash": "1cb19be403",
+      "sha256": "434aaf6b74cab62e99cb36a986cff4a3e47f9f7a5cf005ad4a50dd50d5f6f0c5",
+      "size": 1485067,
+      "count": 80
     },
     {
       "id": "prem-lv-0001",
@@ -167,10 +167,10 @@
       "lang": "ru",
       "path": "packs/prem-ru-0000.pack",
       "enc": "br",
-      "hash": "c8fea493ff",
-      "sha256": "27c8751bba22f3a85894c067b9e7b3926f4ef5519c34e56717bd777c303113bf",
-      "size": 1389834,
-      "count": 72
+      "hash": "bbe6abe576",
+      "sha256": "15c7ea15dd69aeaa771d76599790eb5726ca119b9ab59c6f8315decb63126fc1",
+      "size": 1661760,
+      "count": 80
     },
     {
       "id": "prem-ru-0001",
@@ -460,8 +460,8 @@
     }
   ],
   "totals": {
-    "bytes": 165516822,
-    "files": 11148
+    "bytes": 166031082,
+    "files": 11164
   },
   "sentenceShards": [
     {
@@ -486,8 +486,8 @@
       "id": "ppp_sentences_shard_002",
       "path": "data/shards/ppp_sentences_shard_002.db.br",
       "enc": "br",
-      "sha256": "ef4a65ef0c99a8b43f1fabe9570ec5a3cf1a970a7b35e2312156d67b4c152133",
-      "size": 5679270,
+      "sha256": "a0d0bb1ad4b0f3a5a41afe430d5a18d64ef4193da07ef90e4449970cab839dfb",
+      "size": 5354565,
       "nrLo": 785,
       "nrHi": 1158
     },
