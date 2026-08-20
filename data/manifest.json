@@ -1,23 +1,23 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-08-19T05:49:12.353656+00:00",
+  "generated": "2026-08-20T05:40:02.681494+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "6a47811c04",
-      "sha256": "af55634101f7584f3102e74b36ae794808c66279b84dae20e87de60a2080f644",
-      "size": 3894849,
-      "raw": 33288192
+      "hash": "7136a6dde5",
+      "sha256": "e3d73382fc22299af82a6ba7b71b2dc786ee9bb88703b09a7313438a967f8a8b",
+      "size": 3903022,
+      "raw": 33333248
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
       "enc": "br",
-      "hash": "7ba26c79d2",
-      "sha256": "36fa4e4ad356b5c0504ece4e439cff29328c23d2c98c448821f0ca492e0cfbee",
-      "size": 7577564,
-      "raw": 44220610
+      "hash": "804bfc9b3b",
+      "sha256": "031fed79eb094fa49b737602d218e3aeaf05a3c29a1eb4c0a5274c95a1da5d0a",
+      "size": 7597079,
+      "raw": 44199011
     },
     "sentences": {
       "path": "data/ppp_sentences_en.db.br",
@@ -460,7 +460,7 @@
     }
   ],
   "totals": {
-    "bytes": 167057511,
+    "bytes": 167085199,
     "files": 11208
   },
   "sentenceShards": [
@@ -567,8 +567,8 @@
       "id": "ppp_sentences_shard_011",
       "path": "data/shards/ppp_sentences_shard_011.db.br",
       "enc": "br",
-      "sha256": "3420672b9aee12c3f28995a9a011effd16a4d24d126e3ad446fbc6d621884ded",
-      "size": 5250605,
+      "sha256": "fe213e4f8795bd2bc8482b33853916f307113f1cf3927d0b5181dd0ae91e3b27",
+      "size": 5246020,
       "nrLo": 5572,
       "nrHi": 5914
     },
@@ -612,8 +612,8 @@
       "id": "ppp_sentences_shard_016",
       "path": "data/shards/ppp_sentences_shard_016.db.br",
       "enc": "br",
-      "sha256": "645cb7b3263632b26510a11b7f4f5e149a3d5ce828279368f00ead12f568886a",
-      "size": 6070578,
+      "sha256": "3cc49678ef0f7f7e308944383fe119409c0f38e1ee7c6be87a6613ed799825ca",
+      "size": 5985166,
       "nrLo": 7395,
       "nrHi": 7803
     },
@@ -664,10 +664,10 @@
     }
   ],
   "catalog": {
-    "lectures": 9524,
+    "lectures": 9507,
     "sources": {
       "@AnandaGopal108": 5,
-      "@ChaitanyaAcademy": 2606,
+      "@ChaitanyaAcademy": 2605,
       "@DasMadhavananda": 1,
       "@Freedomspiral1111": 1,
       "@Freedomspiral1112": 1,
@@ -677,7 +677,7 @@
       "@SuChandrakanta": 1,
       "@TheSundaramadhavadas": 1,
       "@anupamalowe7634": 26,
-      "@chaitanyaacademylive6700": 598,
+      "@chaitanyaacademylive6700": 595,
       "@doyalhari": 3,
       "@hemadri108": 155,
       "@jayadevdas6939": 188,
