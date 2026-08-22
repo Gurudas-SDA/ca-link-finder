@@ -11,3 +11,14 @@ data/ppp_meta.db
 
 # transcripts served from GitHub Pages own-origin since phase2 (2026-07-31); not needed on Worker
 transcripts/
+
+# UNCOMPRESSED shard intermediates. build_sentence_shards.py writes a ~26 MB raw
+# SQLite per shard before compressing it; on 2026-08-22 a killed step 8a2 left
+# deploy/data/shards/ppp_sentences_shard_018.db (29.4 MiB) behind, and because
+# wrangler uploads deploy/ FROM DISK (not from git) the next `wrangler deploy`
+# died with rc=1 — Workers rejects any asset over 25 MiB, and the error never
+# reached the log. The builder now writes those intermediates outside deploy/,
+# so this line is the second, independent guard.
+# NB: ONLY the raw .db — the published shards are .db.br / .db.gz, they are
+# referenced by data/shards_manifest.json and MUST stay uploaded.
+data/shards/*.db
