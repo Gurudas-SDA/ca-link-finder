@@ -4,7 +4,7 @@
     {
       "name": "ca-link-finder",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8091", "-d", "C:/Users/gurud/OneDrive/Dators/Claude code testi/CA-Web/deploy"],
+      "runtimeArgs": ["-m", "http.server", "8091"],
       "port": 8091
     }
   ]
