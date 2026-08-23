@@ -1517,6 +1517,13 @@ th.transcripts-block {
     font-weight: 700;
 }
 #resultsTable thead th.transcript-lang {
+    /* EN carries a second line (Raw) — keep LV/RU on the SAME line as EN
+       instead of centering them against the taller EN cell (Rajan, 2026-08-22). */
+    vertical-align: top;
+    /* All three labels get the same indent inside their column, so EN (which
+       carries the Raw sub-line under it) does not hug the left edge while
+       LV/RU float free (Rajan, 2026-08-22). */
+    text-align: center;
     font-size: 11px;
     font-weight: 700;
     color: var(--saffron);
@@ -1526,6 +1533,15 @@ th.transcripts-block {
     width: 1%;
     white-space: nowrap;
     transition: color 0.15s;
+}
+/* Raw transcripts are English and live in the EN column, so their count is a
+   black sub-line under the EN label (Rajan, 2026-08-22) — deliberately NOT the
+   saffron of a language header. */
+#resultsTable thead th.transcript-lang .tl-raw {
+    color: #222;
+    font-weight: 600;
+    text-transform: none;
+    margin-top: 2px;
 }
 #resultsTable thead th.transcript-lang:hover {
     text-decoration: underline;

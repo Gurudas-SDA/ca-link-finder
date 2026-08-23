@@ -140,11 +140,112 @@ PPP.ui = (function () {
     }
 
     /**
+     * Per-language transcript counts for the header row ("EN - 1,234").
+     * Counted over the CURRENT result set (the same rows the table renders),
+     * not over the whole database. EN/LV/RU count real, original transcripts
+     * (duplicates, "Not relevant" and auto "Raw" cells excluded); Raw counts
+     * the Script_EN cells marked "Raw".
+     */
+    var DUP_LABELS_H = { 'Duplicate': 1, 'Dublik\u0101ts': 1, '\u0414\u0443\u0431\u043b\u0438\u043a\u0430\u0442': 1, '\u0414\u0443\u0431\u0438\u043a\u0430\u0442': 1 };
+    var NOT_REL_LABELS_H = { 'Not relevant': 1, 'Neattiecas': 1, '\u041d\u0435 \u043e\u0442\u043d\u043e\u0441\u0438\u0442\u0441\u044f': 1 };
+    /** "EN - 676" (or a bare "EN" while the number is not known yet). */
+    function _langCountLabel(lang, n) {
+        return (typeof n === 'number') ? (lang + ' - ' + n.toLocaleString()) : lang;
+    }
+
+    // Whole-database totals, used whenever the header has no result set to
+    // describe (empty search box / empty table). Loaded once, then cached.
+    var _totalCounts = null;
+    var _totalsPending = false;
+    var _totalsTries = 0;
+
+    /**
+     * Count the transcripts of the WHOLE database (one SQL pass) and put the
+     * numbers into any header already on screen. Safe to call repeatedly.
+     */
+    function loadTotalScriptCounts() {
+        if (_totalCounts || _totalsPending) return;
+        if (!PPP.db || !PPP.db.queryMetaAsync) return;
+        _totalsPending = true;
+        var lvDup = 'Dublik' + String.fromCharCode(257) + 'ts';
+        var ruDup = String.fromCharCode(1044, 1091, 1073, 1083, 1080, 1082, 1072, 1090);
+        var ruDupTypo = String.fromCharCode(1044, 1091, 1073, 1080, 1082, 1072, 1090);
+        var ruNotRel = String.fromCharCode(1053, 1077, 32, 1086, 1090, 1085, 1086, 1089, 1080, 1090, 1089, 1103);
+        function q(list) {
+            return list.map(function (v) { return "'" + v.replace(/'/g, "''") + "'"; }).join(',');
+        }
+        var enSkip = q(['', 'N/A', '0', 'Raw', 'Duplicate', 'Not relevant']);
+        var lvSkip = q(['', 'N/A', '0', 'Duplicate', lvDup, 'Not relevant', 'Neattiecas']);
+        var ruSkip = q(['', 'N/A', '0', 'Duplicate', ruDup, ruDupTypo, 'Not relevant', ruNotRel]);
+        var sql =
+            'SELECT ' +
+            "SUM(CASE WHEN TRIM(COALESCE(script_en,'')) NOT IN (" + enSkip + ') THEN 1 ELSE 0 END) AS en, ' +
+            "SUM(CASE WHEN TRIM(COALESCE(script_lv,'')) NOT IN (" + lvSkip + ') THEN 1 ELSE 0 END) AS lv, ' +
+            "SUM(CASE WHEN TRIM(COALESCE(script_ru,'')) NOT IN (" + ruSkip + ') THEN 1 ELSE 0 END) AS ru, ' +
+            "SUM(CASE WHEN TRIM(COALESCE(script_en,'')) = 'Raw' THEN 1 ELSE 0 END) AS raw " +
+            'FROM lectures';
+        PPP.db.queryMetaAsync(sql).then(function (res) {
+            var r = (res && res[0]) || null;
+            if (!r) { _totalsPending = false; return; }
+            _totalCounts = {
+                'Script_EN': parseInt(r.en, 10) || 0,
+                'Script_LV': parseInt(r.lv, 10) || 0,
+                'Script_RU': parseInt(r.ru, 10) || 0,
+                'Script_RAW': parseInt(r.raw, 10) || 0
+            };
+            _totalsPending = false;
+            _fillHeaderCounts();
+        }).catch(function (e) {
+            _totalsPending = false;
+            // The header is built before the meta DB finishes loading, so the
+            // first attempts legitimately fail with 'Database "meta" not
+            // loaded'. Retry quietly until it is there (~1 min ceiling).
+            if (++_totalsTries < 40) { setTimeout(loadTotalScriptCounts, 1500); return; }
+            console.warn('transcript totals failed:', e);
+        });
+    }
+
+    /**
+     * Patch the totals into a header that was rendered before they arrived
+     * (first paint) — only where no result-set count is shown yet.
+     */
+    function _fillHeaderCounts() {
+        if (!_totalCounts) return;
+        var LABEL = { 'Script_EN': 'EN', 'Script_LV': 'LV', 'Script_RU': 'RU', 'Script_RAW': 'Raw' };
+        var nodes = document.querySelectorAll('#resultsTable thead [data-count-col]');
+        for (var i = 0; i < nodes.length; i++) {
+            var el = nodes[i];
+            if (el.textContent.indexOf('-') !== -1) continue;   // already counted
+            var key = el.getAttribute('data-count-col');
+            el.textContent = _langCountLabel(LABEL[key], _totalCounts[key]);
+        }
+    }
+
+    function countScriptCols(rows) {
+        var c = { 'Script_EN': 0, 'Script_LV': 0, 'Script_RU': 0, 'Script_RAW': 0 };
+        if (!rows) return c;
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            ['Script_EN', 'Script_LV', 'Script_RU'].forEach(function (col) {
+                var v = (r[col] || '').toString().trim();
+                if (v === '' || v === 'N/A' || v === '0') return;
+                if (DUP_LABELS_H[v] || NOT_REL_LABELS_H[v]) return;
+                if (col === 'Script_EN' && v === 'Raw') { c['Script_RAW']++; return; }
+                c[col]++;
+            });
+        }
+        return c;
+    }
+
+    /**
      * Build the multi-row table header (same structure as original).
      * mode 'sentences' swaps in the sentence-search column set (no Length
      * column, "File title / Sentence" header on the name column).
      */
-    function buildHeader(thead, totalCount, mode) {
+    function buildHeader(thead, totalCount, mode, counts) {
+        // Empty search box -> the header describes the whole database; make sure
+        // those totals are on their way (no-op once loaded).
+        if (!counts) loadTotalScriptCounts();
         var cols = (mode === 'sentences') ? sentenceColumnHeaders : columnHeaders;
         var row0 = thead.insertRow();
         // Extra spacer for star + share columns
@@ -277,13 +378,39 @@ PPP.ui = (function () {
                 }
 
                 row1.appendChild(thBlock);
-                ['EN', 'LV', 'RU'].forEach(function (lang) {
+                // Transcript counts in the language headers (Rajan,
+                // 2026-08-22): "EN - 676". With an empty search box the numbers
+                // describe the WHOLE database; with results they describe the
+                // current result set.
+                //
+                // Raw transcripts ARE English and live in the EN column itself,
+                // so their count is a SUB-LINE under EN (black, not saffron) —
+                // not a fourth language.
+                var _cnt = counts || _totalCounts || {};
+                [['EN', 'Script_EN'], ['LV', 'Script_LV'], ['RU', 'Script_RU']].forEach(function (pair) {
+                    var lang = pair[0], colKey = pair[1];
                     var thL = document.createElement('th');
-                    thL.textContent = lang;
                     thL.className = 'transcript-lang';
-                    thL.onclick = function () {
-                        if (PPP.app && PPP.app.applyHasFilter) PPP.app.applyHasFilter('Script_' + lang);
+
+                    var line = document.createElement('div');
+                    line.className = 'tl-lang';
+                    line.setAttribute('data-count-col', colKey);
+                    line.textContent = _langCountLabel(lang, _cnt[colKey]);
+                    line.onclick = function () {
+                        if (PPP.app && PPP.app.applyHasFilter) PPP.app.applyHasFilter(colKey);
                     };
+                    thL.appendChild(line);
+
+                    if (colKey === 'Script_EN') {
+                        var rawLine = document.createElement('div');
+                        rawLine.className = 'tl-raw';
+                        rawLine.setAttribute('data-count-col', 'Script_RAW');
+                        rawLine.textContent = _langCountLabel('Raw', _cnt['Script_RAW']);
+                        rawLine.onclick = function () {
+                            if (PPP.app && PPP.app.applyHasFilter) PPP.app.applyHasFilter('Script_RAW');
+                        };
+                        thL.appendChild(rawLine);
+                    }
                     row3.appendChild(thL);
                 });
                 idx += 2; // skip Script_LV and Script_RU
@@ -328,7 +455,7 @@ PPP.ui = (function () {
         var origCount = rows ? rows.filter(function (r) {
             return isOrig(r['Script_EN']) || isOrig(r['Script_LV']) || isOrig(r['Script_RU']);
         }).length : 0;
-        buildHeader(thead, origCount);
+        buildHeader(thead, origCount, null, countScriptCols(rows));
         var tbody = table.createTBody();
 
         if (rows.length === 0) {
@@ -1504,6 +1631,7 @@ PPP.ui = (function () {
         showUpdateNote: showUpdateNote,
         getColumnHeader: getColumnHeader,
         columnHeaders: columnHeaders,
+        loadTotalScriptCounts: loadTotalScriptCounts,
         openSummaryModal: openSummaryModal,
         closeSummaryModal: closeSummaryModal
     };

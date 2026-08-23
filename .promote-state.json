@@ -2,7 +2,7 @@
  "files": {
   "_headers": "fcf134a0f707b398a2281f8fcc9622a086e1ff78dbd1a5c8754e13f8490c023a",
   "apple-touch-icon.png": "9fc34f3ee54ca8a9e2f82a37dd87a00921377f7406292ea6635531241a53c2a1",
-  "css/styles.css": "9bed798e3aed3fcc56e6ab03af9be15b318cf44895291db94286ae8664527f52",
+  "css/styles.css": "6ff26ed3ad30c267144db6837b9313d3c4b83c5cfa641f70fa07b28618aff23f",
   "guide/en/images/_results.json": "bca1d7b4b74511f763bc686f298d84ffbc94ff5613dd41cb79bffccf833f7721",
   "guide/en/images/collections-picker.png": "b27e283a39e36dfa0b8c33862e84092e3cbb8893cd311d2edbd44926434a9a24",
   "guide/en/images/combo-by-2026.png": "4868cab3049797b0dd33ab2d8ee845e52b9f581c1fc101182c067a1482ee6b94",
@@ -294,7 +294,7 @@
   "guide/ru/index.html": "2dc35da1233e8483eb8d9e7151453fb36430b3c8d927151fc5493267238b188a",
   "icon-192.png": "fab41429f2dd7ac368de28c8fc22260b9aca88ba461fe908ad9de6b11688c4ea",
   "icon-512.png": "88196aa73d4fb098490adf3937a2ef522073c9f9f2de64f593b3f27a84b2ebb8",
-  "index.html": "4863df601545833b68d910d8eda5eecd6853a76408f49517d4de3ca5613dd890",
+  "index.html": "42456b7526d42ed7194c3d1dbae69f87af52aa0304d0f20561465ed34bef9e1d",
   "js/app.js": "6f0a09f01d6a39901a795c95e92c729ac9647d6673193b58f65079b4599bf84f",
   "js/auth-modal.js": "2ba0f1fc85aa19a5bf9073a61a477a4972fa5dce32316b70796c19e00a5b4c6f",
   "js/auth.js": "a4f11a49bc58965d0be49a51884f280cfc75ebd20c753cd3ecb40ab1043758a8",
@@ -307,12 +307,12 @@
   "js/firebase-config.js": "3db6511a382279ca42a835f5cacfc45c3d8a0c7f2936524fcb5ddd461d0dcbc6",
   "js/i18n.js": "68f7594c06ccccd6f4cb86e0bdc3c03f81c055bd282df6a657744877f0aec5e6",
   "js/offline-store.js": "c3bdcad334a4ff09aa841dff8c795bc06e6dd4fe57c922935fd4796e638c5c0b",
-  "js/search.js": "fc36b085e461b1a0e50dd928a43958bfd31c6cb5106be2a84ba4781242581c9b",
-  "js/ui.js": "a672d5036781bace714537fd79dbe95eb4da80eae5fb6160435082784804eca7",
-  "js/utils.js": "7a7a09484b8ac9f395b41228d516670afa7da95b2201193646fa4fb501463ca1",
+  "js/search.js": "43a6798874254b981a0bbb8c8d67b246ed2c45fd9c4baf666378f0f8d4205f7b",
+  "js/ui.js": "535e7c0e6cb99cc6a0470805e3ec530402ca47cd238533e0d842699b5dd52eac",
+  "js/utils.js": "96951df31f1e6df5fffc43acbcf3b8342be35e150d2b49eae52545cc032038c5",
   "manifest.json": "abe52cf27cc447a4e29fda49b3732201df3f523ce09837968e21f570623888fd",
-  "sw-precache.js": "43abd606c1a2dc780902bf153c4b976ed37e7942819633dfec4e8d90e432ad4b",
-  "sw.js": "680af334b981ef7e773cf8e2195d7b3c191e16ac4a7565fa96ae04f99025ed29"
+  "sw-precache.js": "49a9ec9f39919af3b6298a813279eca90b2eff0acbb4541e68d15ee454970bda",
+  "sw.js": "71033d45457300ac986ad425cba3e6801f1eee0d47d8c2cdf13d0f8a8373c6af"
  },
- "staging_head": "7e964222f8d4d6d1a6e33e7d5abef5c4dd5ca669"
+ "staging_head": "05b92423d16434ad46409e54eb582fe60f4edbeb"
 }
