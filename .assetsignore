@@ -9,6 +9,16 @@ data/ppp_transcripts_html_lv.db
 data/ppp_transcripts_html_en.db
 data/ppp_meta.db
 
+# 2026-08-24: the compressed sentence core crossed the 25 MiB Worker asset
+# limit (13.7 -> 35.2 MiB) when the EN premium rebuild grew the sentence DB
+# from ~677 to 1828 lectures. NOTHING fetches it from the Worker: the app's
+# search reads the SHARDS (data/shards/*.db.br), and the offline installer's
+# CORE_KEYS = ['meta','extras'] (js/downloader.js:34) dropped 'sentences' on
+# 2026-07-27. The file stays in git / GitHub Pages; it is only excluded from
+# the Worker asset upload, where its size is a hard deploy blocker.
+data/ppp_sentences_en.db.br
+data/ppp_sentences_en.db.gz
+
 # transcripts served from GitHub Pages own-origin since phase2 (2026-07-31); not needed on Worker
 transcripts/
 
