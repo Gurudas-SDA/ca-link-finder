@@ -18,6 +18,7 @@ data/ppp_meta.db
 # the Worker asset upload, where its size is a hard deploy blocker.
 data/ppp_sentences_en.db.br
 data/ppp_sentences_en.db.gz
+# 2026-08-25: the file is no longer built into deploy/ at all (dropped from the publish chain) — these two lines are now a dormant guard.
 
 # transcripts served from GitHub Pages own-origin since phase2 (2026-07-31); not needed on Worker
 transcripts/
