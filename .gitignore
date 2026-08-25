@@ -2,3 +2,10 @@ node_modules/
 test-results/
 test-results.json
 playwright-report/
+
+# 2026-08-25: no consumer (db.js loadSentencesDB() removed 2026-07-27; live
+# sentence-search path is data/shards/*.db.br) and exceeds GitHub's 100 MB
+# hard file limit (grew to 190 MB with the EN premium rebuild). Do not
+# re-add — see scripts/promote_to_deploy.py and backup/daily_update.py.
+data/ppp_sentences_en.db
+data/ppp_sentences_en.db.br
