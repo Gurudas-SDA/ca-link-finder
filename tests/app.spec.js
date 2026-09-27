@@ -308,16 +308,16 @@ test.describe('CA Link Finder — Daily Health Check', () => {
     expect(critical).toHaveLength(0);
   });
 
-  test('14. Top combo row has 6 buttons in single row', async ({ page }) => {
+  test('14. Top combo row has 7 buttons in single row', async ({ page }) => {
     await page.goto('./');
     await waitForAppReady(page);
 
     const buttons = page.locator('.search-quick-buttons.main-button-row .combo-btn');
-    await expect(buttons).toHaveCount(6);
+    await expect(buttons).toHaveCount(7);
 
     const texts = await buttons.allTextContents();
     const joined = texts.join(' | ');
-    for (const needle of ['Filters', 'By Added', 'Top Searches', 'By Verse', 'Verses (Top)', 'Favorites']) {
+    for (const needle of ['Filters', 'Calendar', 'By Added', 'Top Searches', 'By Verse', 'Verses (Top)', 'Favorites']) {
       expect(joined).toContain(needle);
     }
 
