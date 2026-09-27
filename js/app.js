@@ -84,6 +84,15 @@ PPP.app = (function () {
     // replace navView: closing the panel restores the underlying view's
     // highlight untouched.
     var _filtersOpen = false;
+    // Same idea for the Vaiṣṇava calendar panel (Fāze 4, 2026-09-26): it
+    // lives in the Filters flow and lights the Calendar button while open,
+    // without replacing navView. _calOffset = how many 4-week pages away from
+    // the current week the grid shows. _resultSections = "This day" / "About
+    // this personality" split for the result set it was computed for (tied
+    // to that exact allResults array, so any other loader drops it).
+    var _calendarOpen = false;
+    var _calOffset = 0;
+    var _resultSections = null;
     var deferredPrompt = null;
     var installMode = 'ios';
     var totalLectures = (function () {
@@ -2843,14 +2852,42 @@ PPP.app = (function () {
     }
 
     /**
+     * An event: search whose calendar JSON could not be loaded: an empty
+     * result set with the calendar load error in place of "0 found", so a
+     * failure is never presented as a valid empty answer.
+     */
+    function _showCalendarSearchError() {
+        allResults = [];
+        matchHints = new Map();
+        totalResults = 0;
+        currentPage = 1;
+        displayResults();
+        document.getElementById('resultsInfo').innerHTML =
+            '<strong class="cal-search-error">' + utils.escapeHtml(i18n.t('calendarLoadError')) + '</strong>';
+    }
+
+    /**
      * SQLite-powered metadata search.
      */
-    function performSqliteSearch(startTime) {
+    function performSqliteSearch(startTime, calendarFailed) {
         var parsed = search.parseSearchQuery(lastSearchTerm);
+        // An event: token resolves through the calendar JSON — make sure it is
+        // loaded before the SQL is built (a shared link or a typed token can
+        // arrive before the calendar panel was ever opened). A failed load is
+        // NOT latched: it is reported for THIS search (calendarLoadError, not a
+        // silent "0 found"), and the next event: search tries to load again
+        // (Codex high, 2026-09-27 — a transient failure used to disable event
+        // searches for the whole session).
+        if (parsed.filters.event.length && PPP.calendar && !PPP.calendar.isLoaded()) {
+            if (calendarFailed) { _showCalendarSearchError(); return; }
+            PPP.calendar.load().then(function () { performSqliteSearch(startTime); },
+                function () { performSqliteSearch(startTime, true); });
+            return;
+        }
         var q = search.buildMetaSQL(parsed);
 
         db.queryMetaAsync(q.sql, q.params).then(function (sqlRows) {
-            var uiRows = sqlRows.map(mapSqlRowToUI);
+            var uiRows = _eventSections(parsed, sqlRows.map(mapSqlRowToUI));
 
             // Build match hints for hidden columns
             matchHints = new Map();
@@ -2886,9 +2923,16 @@ PPP.app = (function () {
     /**
      * In-memory search (XLSX/CSV fallback).
      */
-    function performInMemorySearch(startTime) {
+    function performInMemorySearch(startTime, calendarFailed) {
+        var parsedMem = search.parseSearchQuery(lastSearchTerm);
+        if (parsedMem.filters.event.length && PPP.calendar && !PPP.calendar.isLoaded()) {
+            if (calendarFailed) { _showCalendarSearchError(); return; }
+            PPP.calendar.load().then(function () { performInMemorySearch(startTime); },
+                function () { performInMemorySearch(startTime, true); });
+            return;
+        }
         var result = search.searchInMemory(DB, lastSearchTerm);
-        allResults = result.results;
+        allResults = _eventSections(parsedMem, result.results);
         matchHints = result.matchHints;
         totalResults = allResults.length;
         currentPage = 1;
@@ -2997,7 +3041,10 @@ PPP.app = (function () {
         // under the title (the visible Date column is the LECTURE date,
         // not when it was added — that ambiguity was the root of Rājan's
         // "By Added looks wrong" report, 2026-07-31).
-        ui.renderResults(allResults, lastSearchTerm, startIndex, endIndex, matchHints, navView === 'byAdded');
+        var sections = (_resultSections && _resultSections.rows === allResults)
+            ? { split: _resultSections.split, labels: [i18n.t('calendarSectionDay'), i18n.t('calendarSectionPerson')] }
+            : null;
+        ui.renderResults(allResults, lastSearchTerm, startIndex, endIndex, matchHints, navView === 'byAdded', sections);
         ui.renderPagination(totalResults, currentPage, pageSize, changePage);
 
         _showSelectToggle(totalResults > 0);
@@ -3549,7 +3596,7 @@ PPP.app = (function () {
         // the two lights up still follows textSearchMode — in "In Text" mode
         // the panel only offers Years, and claiming "In Titles" there would
         // be a lie.
-        var groupAOn = _filtersOpen || (!navView && !transcriptView);
+        var groupAOn = _filtersOpen || _calendarOpen || (!navView && !transcriptView);
         if (kw) kw.classList.toggle('active', groupAOn && textSearchMode === 'metadata');
         if (tx) tx.classList.toggle('active', groupAOn && textSearchMode === 'sentences');
         // Group B: top nav row — exactly one active. Filters wins while its
@@ -3559,7 +3606,9 @@ PPP.app = (function () {
             var view = btn.getAttribute('data-navview');
             btn.classList.toggle('active', _filtersOpen
                 ? view === 'filters'
-                : (!!navView && view === navView));
+                : _calendarOpen
+                    ? view === 'calendar'
+                    : (!!navView && view === navView));
         });
         // Group C (By Date/Topic/Newest) is rebuilt inside the results header on
         // every render, reading transcriptView via getTranscriptView() — so no
@@ -3724,7 +3773,15 @@ PPP.app = (function () {
                 }));
         }
 
-        panel.innerHTML =
+        // Calendar entry inside the Filters flow (Rājan 2026-09-23: the
+        // calendar belongs to Filters, not a separate page). Lecture view
+        // only — event results are lecture rows.
+        var calLink = (!sentenceMode && !document.body.classList.contains('view-quotes'))
+            ? '<div class="flt-cal-link"><button type="button" class="flt-cal-btn" ' +
+                'onclick="PPP.app.openCalendarFromFilters(event)">' + esc(i18n.t('calendarOpenLink')) + '</button></div>'
+            : '';
+
+        panel.innerHTML = calLink +
             '<div class="flt-cols">' + sections + '</div>' +
             '<div class="flt-actions">' +
                 '<button type="button" class="flt-apply" onclick="PPP.app.applyFilters()">' + esc(i18n.t('filtersApply')) + '</button>' +
@@ -3738,6 +3795,7 @@ PPP.app = (function () {
         if (!panel) return;
         if (!panel.hidden) { closeFilters(); return; }
         if (!dataLoaded) return;
+        if (_calendarOpen) closeCalendar();
         _getFilterOptions().then(function (opts) {
             _renderFiltersPanel(panel, opts);
             panel.hidden = false;
@@ -3804,6 +3862,234 @@ PPP.app = (function () {
         if (input.classList.contains('combo-display')) return true;
         var v = String(input.value || '').trim();
         return !!v && v === String(_comboDisplayValue || '').trim();
+    }
+
+    // ===== VAIṢṆAVA CALENDAR (Fāze 4, 2026-09-26) =====
+    //
+    // 4 full weeks, Monday-first, starting with the current week's Monday.
+    // Data + grid maths: js/calendar.js (PPP.calendar). A click on an event
+    // writes a readable `event:<title>` token into the search field (Rājan:
+    // the field must show which event was searched) and runs the normal
+    // metadata search; results come back split "This day" / "About this
+    // personality" (see _eventSections). Paran and fasting/period notes are
+    // shown but are not links — they never have lectures.
+    var _CAL_LOCALES = { en: 'en-GB', ru: 'ru-RU', lv: 'lv-LV', it: 'it-IT', fr: 'fr-FR', es: 'es-ES' };
+
+    function toggleCalendar(evt) {
+        if (evt) evt.stopPropagation();
+        var panel = document.getElementById('calendarPanel');
+        if (!panel) return;
+        if (!panel.hidden) { closeCalendar(); return; }
+        openCalendar();
+    }
+
+    function openCalendar() {
+        var panel = document.getElementById('calendarPanel');
+        if (!panel || !PPP.calendar) return;
+        var fp = document.getElementById('filtersPanel');
+        if (fp && !fp.hidden) closeFilters();
+        _calOffset = 0;
+        panel.innerHTML = '<div class="cal-loading">' + utils.escapeHtml(i18n.t('loadingDB')) + '</div>';
+        panel.hidden = false;
+        _calendarOpen = true;
+        _refreshButtonGroups();
+        document.addEventListener('click', _calendarOutside, true);
+        document.addEventListener('keydown', _calendarEsc, true);
+        PPP.calendar.load().then(function () {
+            if (!panel.hidden) _renderCalendarPanel(panel);
+        }, function (err) {
+            console.warn('Calendar load failed:', err);
+            if (!panel.hidden) {
+                panel.innerHTML = '<div class="cal-error">' + utils.escapeHtml(i18n.t('calendarLoadError')) + '</div>';
+            }
+        });
+    }
+
+    function openCalendarFromFilters(evt) {
+        if (evt) evt.stopPropagation();
+        openCalendar();
+    }
+
+    function closeCalendar() {
+        var panel = document.getElementById('calendarPanel');
+        if (panel) panel.hidden = true;
+        _calendarOpen = false;
+        _refreshButtonGroups();
+        document.removeEventListener('click', _calendarOutside, true);
+        document.removeEventListener('keydown', _calendarEsc, true);
+    }
+
+    function _calendarOutside(e) {
+        var panel = document.getElementById('calendarPanel');
+        var btn = document.querySelector('.main-button-row [data-navview="calendar"]');
+        if (!panel || panel.hidden) return;
+        if (panel.contains(e.target) || (btn && btn.contains(e.target))) return;
+        closeCalendar();
+    }
+    function _calendarEsc(e) { if (e.key === 'Escape' || e.key === 'Esc') closeCalendar(); }
+
+    /** Move the grid by `pages` x 4 weeks; 0 = back to the current weeks. */
+    function calendarShift(pages) {
+        _calOffset = pages === 0 ? 0 : _calOffset + pages;
+        var panel = document.getElementById('calendarPanel');
+        if (panel && !panel.hidden && PPP.calendar.isLoaded()) _renderCalendarPanel(panel);
+    }
+
+    function _renderCalendarPanel(panel) {
+        var cal = PPP.calendar;
+        var esc = utils.escapeHtml;
+        var loc = _CAL_LOCALES[i18n.getLanguage() || 'en'] || 'en-GB';
+        var days = cal.getGrid(null, _calOffset * cal.WEEKS);
+        var fmtWd = new Intl.DateTimeFormat(loc, { weekday: 'short' });
+        var fmtMon = new Intl.DateTimeFormat(loc, { month: 'short' });
+        var fmtRange = new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short', year: 'numeric' });
+        var first = days[0], last = days[days.length - 1];
+        var rng = cal.range() || {};
+        var canPrev = !rng.from || first.iso > rng.from;
+        var canNext = !rng.to || last.iso < rng.to;
+        var anyEvents = days.some(function (d) { return d.events.length > 0; });
+
+        var h = '<div class="cal-head">' +
+            '<div class="cal-title">' + esc(i18n.t('calendarTitle')) + '</div>' +
+            '<div class="cal-nav">' +
+                '<button type="button" class="cal-prev"' + (canPrev ? '' : ' disabled') +
+                    ' onclick="PPP.app.calendarShift(-1)">&#8249; ' + esc(i18n.t('calendarPrev')) + '</button>' +
+                '<button type="button" class="cal-today-btn"' + (_calOffset === 0 ? ' disabled' : '') +
+                    ' onclick="PPP.app.calendarShift(0)">' + esc(i18n.t('calendarToday')) + '</button>' +
+                '<button type="button" class="cal-next"' + (canNext ? '' : ' disabled') +
+                    ' onclick="PPP.app.calendarShift(1)">' + esc(i18n.t('calendarNext')) + ' &#8250;</button>' +
+            '</div></div>' +
+            '<div class="cal-range">' + esc(fmtRange.format(first.date)) + ' – ' + esc(fmtRange.format(last.date)) + '</div>' +
+            '<div class="cal-hint">' + esc(i18n.t(anyEvents ? 'calendarHint' : 'calendarOutOfRange')) + '</div>' +
+            _calendarLegendHtml();
+
+        h += '<div class="cal-weekdays" aria-hidden="true">';
+        for (var w = 0; w < 7; w++) h += '<div>' + esc(fmtWd.format(days[w].date)) + '</div>';
+        h += '</div><div class="cal-grid" role="list">';
+
+        days.forEach(function (d, i) {
+            var cls = 'cal-day' + (d.isPast ? ' cal-past' : '') + (d.isToday ? ' cal-today' : '') +
+                (d.events.length ? '' : ' cal-empty') + (i % 7 === 0 ? ' cal-week-start' : '');
+            var showMon = i === 0 || d.date.getDate() === 1;
+            h += '<div class="' + cls + '" role="listitem" data-date="' + d.iso + '">' +
+                '<div class="cal-date"><span class="cal-wd">' + esc(fmtWd.format(d.date)) + '</span>' +
+                '<span class="cal-dnum">' + d.date.getDate() + '</span>' +
+                (showMon ? '<span class="cal-mon">' + esc(fmtMon.format(d.date)) + '</span>' : '') +
+                '</div><div class="cal-evs">';
+            d.events.forEach(function (ev) {
+                var kindCls = ' cal-kind-' + esc(ev.kind || 'other');
+                var n = cal.lectureCount(ev);   // whole personality set (Rajan 2026-09-27)
+                if (ev.note) {
+                    var tm = ev.times && ev.times[d.iso];
+                    h += '<div class="cal-note' + kindCls + '" data-slug="' + esc(ev.slug) + '" title="' +
+                        esc(ev.title + (tm ? ' ' + tm : '') + ' (' + i18n.t('calendarNoLectures') + ')') + '">' +
+                        '<span class="cal-note-text">' + esc(ev.title) + '</span>' +
+                        (tm ? '<span class="cal-time">' + esc(tm) + '</span>' : '') + '</div>';
+                } else if (n > 0) {
+                    h += '<a href="#" class="cal-ev' + kindCls + '" data-slug="' + esc(ev.slug) + '">' +
+                        esc(ev.title) + ' ' + _calCountsHtml(ev, n) + '</a>';
+                } else {
+                    h += '<div class="cal-ev cal-ev-nolect' + kindCls + '" data-slug="' + esc(ev.slug) + '" title="' +
+                        esc(i18n.t('calendarNoLectures')) + '">' + esc(ev.title) + '</div>';
+                }
+            });
+            h += '</div></div>';
+        });
+        h += '</div>';
+
+        panel.innerHTML = h;
+        panel.onclick = function (e) {
+            var a = e.target.closest && e.target.closest('a.cal-ev');
+            if (!a) return;
+            e.preventDefault();
+            searchEvent(a.getAttribute('data-slug'));
+        };
+    }
+
+    /**
+     * Lecture badge(s) of a calendar cell (Rājan 2026-09-27). A personality
+     * with several days (appearance + disappearance ...) shows TWO badges
+     * "day / personality": this day's own lectures (may be 0 — then it is
+     * plain that the lectures come from the personality) and the whole
+     * personality set that a click opens. Everything else keeps one badge.
+     * Colours match the legend and the "This day" / "About this
+     * personality" result headings (.cal-count-day / .cal-count-person).
+     */
+    function _calCountsHtml(ev, total) {
+        var esc = utils.escapeHtml;
+        var cal = PPP.calendar;
+        if (!cal.hasPersonSet(ev)) {
+            return '<span class="cal-count cal-count-day" title="' + esc(i18n.t('calendarLectures')) +
+                '" aria-label="' + esc(total + ' ' + i18n.t('calendarLectures')) + '">' + total + '</span>';
+        }
+        var day = cal.dayCount(ev);
+        var tDay = i18n.t('calendarCountDay'), tPer = i18n.t('calendarCountPerson');
+        return '<span class="cal-counts">' +
+            '<span class="cal-count cal-count-day" title="' + esc(tDay) + '" aria-label="' + esc(tDay + ': ' + day) + '">' + day + '</span>' +
+            '<span class="cal-count-sep" aria-hidden="true">/</span>' +
+            '<span class="cal-count cal-count-person" title="' + esc(tPer) + '" aria-label="' + esc(tPer + ': ' + total) + '">' + total + '</span>' +
+            '</span>';
+    }
+
+    /** Permanent legend above the grid: border colours, notes, badges. */
+    function _calendarLegendHtml() {
+        var esc = utils.escapeHtml;
+        function sw(kind, key) {
+            return '<span class="cal-lg cal-lg-kind cal-kind-' + kind + '">' + esc(i18n.t(key)) + '</span>';
+        }
+        return '<div class="cal-legend" role="note" aria-label="' + esc(i18n.t('calendarLegendTitle')) + '">' +
+            sw('appearance', 'calendarLegendAppearance') +
+            sw('disappearance', 'calendarLegendDisappearance') +
+            sw('ekadasi', 'calendarLegendEkadasi') +
+            sw('festival', 'calendarLegendFestival') +
+            sw('other', 'calendarLegendOther') +
+            '<span class="cal-lg cal-lg-note">' + esc(i18n.t('calendarLegendNotes')) + '</span>' +
+            '<span class="cal-lg cal-lg-count"><span class="cal-count cal-count-day" aria-hidden="true">7</span>' +
+                esc(i18n.t('calendarCountDay')) + '</span>' +
+            '<span class="cal-lg cal-lg-count"><span class="cal-count cal-count-person" aria-hidden="true">12</span>' +
+                esc(i18n.t('calendarCountPerson')) + '</span>' +
+            '</div>';
+    }
+
+    /** Calendar event -> its lectures, via a readable event: token. */
+    function searchEvent(slug) {
+        var ev = PPP.calendar && PPP.calendar.getEvent(slug);
+        if (!ev) return;
+        closeCalendar();
+        var input = document.getElementById('searchTerm');
+        if (!input) return;
+        if (searchMode !== 'metadata') setSearchMode('metadata');
+        if (_isComboDisplayValue(input)) clearComboDisplay();
+        input.value = 'event:' + ev.title;
+        track('calendar-event', { slug: slug });
+        doSearch();
+    }
+
+    /**
+     * Order rows "This day" first, then "About this personality", and record
+     * the split for displayResults(). Only when the event: token names ONE
+     * event whose personality has other days with lectures (appearance <->
+     * disappearance ...) with lectures beyond this day; otherwise the plain
+     * list is returned and no headings are drawn. An empty "This day" block
+     * gets no heading (split 0).
+     */
+    function _eventSections(parsed, rows) {
+        _resultSections = null;
+        if (!parsed || !parsed.filters.event || !parsed.filters.event.length) return rows;
+        if (!PPP.calendar || !PPP.calendar.isLoaded()) return rows;
+        var set = PPP.calendar.lectureSet(parsed.filters.event);
+        if (!set.dayNrs) return rows;
+        var day = [], other = [];
+        rows.forEach(function (r) {
+            (set.dayNrs[String(r['Nr.'] || '').trim()] ? day : other).push(r);
+        });
+        // Nothing beyond this day -> plain list. Nothing ON this day (e.g. an
+        // appearance whose lectures all sit on the disappearance) -> only the
+        // "About this personality" heading (split 0), no empty "This day".
+        if (!other.length) return rows;
+        var out = day.concat(other);
+        _resultSections = { rows: out, split: day.length };
+        return out;
     }
 
     function applyFilters() {
@@ -3880,7 +4166,10 @@ PPP.app = (function () {
             // misses the paths where setSearchMode() already stripped it.
             clearComboDisplay();
         } else {
-            input.value = _keepNonFilterTokens(input.value).join('; ');
+            // Clear also drops a calendar event: token (Apply keeps it, so a
+            // year/country can narrow an event's lectures).
+            input.value = _keepNonFilterTokens(input.value)
+                .filter(function (seg) { return !/^event:/i.test(seg); }).join('; ');
         }
 
         if (input.value.trim()) {
@@ -6607,6 +6896,11 @@ PPP.app = (function () {
         showLatestFiles: showLatestFiles,
         showBy2026: showBy2026,
         toggleFilters: toggleFilters,
+        toggleCalendar: toggleCalendar,
+        openCalendarFromFilters: openCalendarFromFilters,
+        closeCalendar: closeCalendar,
+        calendarShift: calendarShift,
+        searchEvent: searchEvent,
         toggleFilterSection: toggleFilterSection,
         applyFilters: applyFilters,
         clearFilters: clearFilters,

@@ -24,7 +24,7 @@ PPP.search = (function () {
      * Supports: AND (;), OR (//), has:, subject:, lang:, source: (@), latest_files:, latest_transcripts:
      */
     function parseSearchQuery(input) {
-        if (!input) return { terms: [], filters: { source: [], sourceSel: [], has: [], subject: [], lang: [], year: [], country: [], type: [], links: [], length: [], latestTranscripts: [], latestFiles: [] }, isLatestFiles: false, isLatestTranscripts: false, otherTerms: [], orGroups: [] };
+        if (!input) return { terms: [], filters: { source: [], sourceSel: [], has: [], subject: [], lang: [], year: [], country: [], type: [], links: [], length: [], event: [], latestTranscripts: [], latestFiles: [] }, isLatestFiles: false, isLatestTranscripts: false, otherTerms: [], orGroups: [] };
 
         var searchTerms = input.split(';').map(function (s) { return s.trim(); }).filter(Boolean);
 
@@ -38,6 +38,7 @@ PPP.search = (function () {
         var yearTerms = [];
         var countryTerms = [];
         var typeTerms = [];
+        var eventTerms = [];
         var latestTranscriptsTerms = [];
         var latestFilesTerms = [];
         var otherTerms = [];
@@ -91,6 +92,13 @@ PPP.search = (function () {
                     rv = rv.trim();
                     if (rv) lengthTerms.push(rv);
                 });
+            } else if (tl.startsWith('event:')) {
+                // event:<Vaiṣṇava calendar event title> — written by the
+                // calendar view (PPP.app.searchEvent). ONE title per token and
+                // no comma split: titles contain commas. Resolved to lecture
+                // numbers through PPP.calendar (js/calendar.js).
+                var ev = t.slice(6).trim();
+                if (ev) eventTerms.push(ev);
             } else if (tl.startsWith('latest_transcripts:')) {
                 latestTranscriptsTerms.push(t);
             } else if (tl.startsWith('latest_files:')) {
@@ -118,6 +126,7 @@ PPP.search = (function () {
                 year: yearTerms,
                 country: countryTerms,
                 type: typeTerms,
+                event: eventTerms,
                 latestTranscripts: latestTranscriptsTerms,
                 latestFiles: latestFilesTerms
             },
@@ -154,6 +163,13 @@ PPP.search = (function () {
         "    + CAST(REPLACE(SUBSTR(LOWER(l.length),INSTR(LOWER(l.length),'h')+1),'min','') AS INTEGER)" +
         " ELSE CAST(REPLACE(LOWER(l.length),'min','') AS INTEGER) END)";
     var LENGTH_HAS_TIME_SQL = "(LOWER(l.length) LIKE '%min%' OR LOWER(l.length) LIKE '%h%')";
+
+    /** Digit-only lecture numbers for a list of event: token values. */
+    function eventNrs(values) {
+        var cal = window.PPP && PPP.calendar;
+        if (!cal || !cal.isLoaded || !cal.isLoaded()) return [];
+        return cal.lectureSet(values).nrs.filter(function (n) { return /^\d+$/.test(n); });
+    }
 
     /**
      * Build SQL query for metadata search using LIKE on normalized columns.
@@ -303,6 +319,20 @@ PPP.search = (function () {
             if (typeConds.length > 0) conditions.push('(' + typeConds.join(' OR ') + ')');
         }
 
+        // event: filter (calendar view). The token's lecture numbers come from
+        // PPP.calendar.lectureSet() — the whole personality set when the
+        // token names ONE event (Rājan 2026-09-23). The caller must have
+        // awaited PPP.calendar.load() first (app.js performSqliteSearch does).
+        // Numbers are inlined as quoted digit strings (validated /^\d+$/, so
+        // no injection surface and no bound-parameter limit). An unknown title
+        // or a not-loaded calendar matches NOTHING — never silently everything.
+        if (parsed.filters.event && parsed.filters.event.length > 0) {
+            var evNrs = eventNrs(parsed.filters.event);
+            conditions.push(evNrs.length
+                ? "l.nr IN (" + evNrs.map(function (n) { return "'" + n + "'"; }).join(',') + ")"
+                : "0");
+        }
+
         // has: filter (AND). Script_EN/LV/RU require the EXACT status string
         // (Rājan rule, 2026-08-26) — no "not empty" blacklist, so Duplicate /
         // Not necessary / Not relevant / xx / Raw etc. never match has:Script_EN.
@@ -412,6 +442,11 @@ PPP.search = (function () {
     function searchInMemory(DB, searchTerm) {
         var parsed = parseSearchQuery(searchTerm);
         var matchHints = new Map();
+        var evSetMem = null;
+        if (parsed.filters.event && parsed.filters.event.length > 0) {
+            evSetMem = {};
+            eventNrs(parsed.filters.event).forEach(function (n) { evSetMem[n] = true; });
+        }
 
         var results = DB.filter(function (row) {
             // @source: OR
@@ -439,6 +474,9 @@ PPP.search = (function () {
                     });
                 })) return false;
             }
+
+            // event: (calendar view) — same lecture set as buildMetaSQL.
+            if (evSetMem && !evSetMem[(row['Nr.'] || '').toString().trim()]) return false;
 
             // latest_transcripts: match Nr.
             if (parsed.filters.latestTranscripts.length > 0) {

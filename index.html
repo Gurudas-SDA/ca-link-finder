@@ -40,7 +40,7 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="e50b4fd4-578a-4674-944d-4fefcb6999e1"></script>
 
     <!-- Application CSS -->
-    <link rel="stylesheet" href="css/styles.css?v=6ff26ed3">
+    <link rel="stylesheet" href="css/styles.css?v=13e26f3b">
 </head>
 <body>
 
@@ -192,6 +192,9 @@
                      the sentence DB carries no country/type column), so Filters must
                      stay reachable in the quotes view too, not just lectures. -->
                 <button class="combo-btn combo-btn-1" data-navview="filters" onclick="PPP.app.toggleFilters(event)" data-i18n="filtersBtn">Filters</button>
+                <!-- Vaishnava calendar (Faze 4, 2026-09-26): part of the Filters flow
+                     (Rajan 2026-09-23). Lectures view only: an event opens lecture rows. -->
+                <button class="combo-btn combo-btn-7 lectures-only" data-navview="calendar" onclick="PPP.app.toggleCalendar(event)" data-i18n="calendarBtn">Calendar</button>
                 <button class="combo-btn combo-btn-2 lectures-only" data-navview="byAdded" onclick="PPP.app.showLatestFiles()" data-i18n="latest20Files">By Added</button>
                 <button class="combo-btn combo-btn-3 lectures-only" data-navview="topSearches" onclick="PPP.app.showRecommendations()" data-i18n="recommendations">Top Searches</button>
                 <button class="combo-btn combo-btn-4 search-mode-btn quotes-only" data-navview="citations" data-mode="citations" data-i18n="searchModeCitations">By Verses</button>
@@ -200,6 +203,8 @@
             </div>
             <!-- Filters panel (toggled by the Filters button; empty on every load) -->
             <div id="filtersPanel" class="filters-panel" hidden></div>
+            <!-- Vaishnava calendar panel: 4 weeks from the current Monday (js/calendar.js + app.js toggleCalendar) -->
+            <div id="calendarPanel" class="filters-panel calendar-panel" hidden></div>
             <div class="search-row">
                 <button class="search-mode-btn active keywords-search-btn lectures-only" data-mode="metadata" data-i18n="searchModeMetadata">Key words</button>
                 <button class="search-mode-btn text-search-btn quotes-only" data-mode="sentences" data-i18n="searchModeSentences">Text</button>
@@ -330,7 +335,7 @@
     <!-- ===== APPLICATION SCRIPTS ===== -->
     <!-- Load order matters: utils first, then i18n, db, search, ui, app last -->
     <script src="js/utils.js?v=96951df3"></script>
-    <script src="js/i18n.js?v=68f7594c"></script>
+    <script src="js/i18n.js?v=ca133ff8"></script>
     <!-- codec must precede offline-store/downloader/db: they read PPP.codec at
          call time, but the Brotli decoder it may pull in is fetched lazily,
          only when a `br` artefact is actually decoded. -->
@@ -338,13 +343,14 @@
     <script src="js/offline-store.js?v=c3bdcad3"></script>
     <script src="js/downloader.js?v=5ef805a1"></script>
     <script src="js/db.js?v=3ddce523"></script>
-    <script src="js/search.js?v=8b66be05"></script>
-    <script src="js/ui.js?v=ce267c44"></script>
+    <script src="js/search.js?v=a96e2072"></script>
+    <script src="js/calendar.js?v=f005a550"></script>
+    <script src="js/ui.js?v=56675a7a"></script>
     <script src="js/favorites.js?v=92275512"></script>
     <script src="js/config.js?v=72dc8f5f"></script>
     <script src="js/vendor/jszip.min.js?v=acc7e414"></script>
     <script src="guide/menu-data.js?v=4b11f0e5"></script>
-    <script src="js/app.js?v=6f0a09f0"></script>
+    <script src="js/app.js?v=7883979e"></script>
 
 </body>
 </html>

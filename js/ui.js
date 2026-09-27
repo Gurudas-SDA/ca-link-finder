@@ -438,13 +438,13 @@ PPP.ui = (function () {
     /**
      * Render results table rows.
      */
-    function renderResults(rows, searchTermStr, startIndex, endIndex, matchHints, showAddedDate) {
+    function renderResults(rows, searchTermStr, startIndex, endIndex, matchHints, showAddedDate, sections) {
         // Language switch: the extras cache holds only the previously active
         // language, so re-scope it from core:extras and render again when it
         // lands. Rendering continues immediately with what is cached (EN
         // fallback) rather than blanking the essence/summary column.
         _syncExtrasLang(function () {
-            renderResults(rows, searchTermStr, startIndex, endIndex, matchHints, showAddedDate);
+            renderResults(rows, searchTermStr, startIndex, endIndex, matchHints, showAddedDate, sections);
         });
         var table = document.getElementById('resultsTable');
         table.innerHTML = '';
@@ -479,7 +479,43 @@ PPP.ui = (function () {
         var searchTerms = searchTermStr ? searchTermStr.split(';') : [];
 
         for (var i = startIndex; i < endIndex && i < rows.length; i++) {
+            // Optional two-block split (calendar event results: "This day" /
+            // "About this personality", Rājan 2026-09-23). `rows` arrive
+            // already ordered block 1 then block 2; a heading row opens each
+            // block and is repeated at the top of a page that starts mid-block.
+            if (sections) {
+                var sec = i < sections.split ? 0 : 1;
+                if (i === startIndex || i === sections.split) {
+                    // Block 1 badge = ALL personality lectures (rows.length),
+                    // the same number as the violet calendar badge; the
+                    // "other days only" count follows in grey text when a
+                    // "This day" block exists (Rājan 2026-09-27).
+                    _renderSectionRow(tbody, sections.labels[sec], sec,
+                        sec === 0 ? sections.split : rows.length,
+                        sec === 1 && sections.split > 0 ? rows.length - sections.split : null);
+                }
+            }
             _renderLectureRow(tbody, rows[i], searchTerms, columnHeaders, null, showAddedDate);
+        }
+    }
+
+    function _renderSectionRow(tbody, label, idx, count, otherDays) {
+        var tr = tbody.insertRow();
+        tr.className = 'cal-section-row cal-section-' + idx;
+        var td = tr.insertCell();
+        td.colSpan = columnHeaders.length + 2;
+        // Count in the same coloured badge as the calendar cell (day = block
+        // 0, whole personality = block 1), so the link is obvious.
+        td.appendChild(document.createTextNode(label + ' '));
+        var badge = document.createElement('span');
+        badge.className = 'cal-sec-count ' + (idx === 0 ? 'cal-count-day' : 'cal-count-person');
+        badge.textContent = String(count);
+        td.appendChild(badge);
+        if (otherDays != null) {
+            var note = document.createElement('span');
+            note.className = 'cal-sec-other';
+            note.textContent = ' (' + t('calendarSectionPersonOther').replace('{n}', String(otherDays)) + ')';
+            td.appendChild(note);
         }
     }
 
@@ -988,7 +1024,7 @@ PPP.ui = (function () {
         searchTerms.forEach(function (term) {
             if (!term) return;
             term = term.trim();
-            if (!term || term.startsWith('subject:') || term.startsWith('lang:') || term.startsWith('latest_') || term.startsWith('has:')) return;
+            if (!term || term.startsWith('subject:') || term.startsWith('lang:') || term.startsWith('latest_') || term.startsWith('has:') || term.startsWith('event:')) return;
             if (term.startsWith('@')) {
                 var re = new RegExp('(' + utils.escapeRegex(term.slice(1)) + ')', 'gi');
                 result = result.replace(re, '<span style="background-color: #d4edda; border-radius: 2px; padding: 0 2px;">$1</span>');

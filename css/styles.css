@@ -48,6 +48,14 @@
     --btn-blue-dark: #0f2847;
     /* Keyboard focus ring — 4.98:1 vs --bg (needs >= 3:1 non-text) */
     --focus-ring: #aa5210;
+    /* Calendar lecture badges (Rājan 2026-09-27): "this day" = the gold the
+       single badge always had (darkened to the a11y button gold, 4.96:1 with
+       white); "whole personality" = plum, a hue no event border uses, so the
+       two badges never read as event kinds. #6b3fa0 vs #fff = 7.4:1. */
+    --cal-day-bg: #8f6a09;
+    --cal-day-fg: #ffffff;
+    --cal-person-bg: #6b3fa0;
+    --cal-person-fg: #ffffff;
 }
 
 /* ===== DARK MODE ===== */
@@ -73,6 +81,12 @@ body.dark {
     --tulasi: #4caf50;
     /* Focus ring on dark surfaces — #f4a54b is 8.39:1 vs #1a1a2e */
     --focus-ring: #f4a54b;
+    /* Light fills + dark text on dark surfaces: gold #d4a843 / plum #c3a6ea
+       with #1a1a2e text = 7.7:1 / 8.1:1. */
+    --cal-day-bg: #d4a843;
+    --cal-day-fg: #1a1a2e;
+    --cal-person-bg: #c3a6ea;
+    --cal-person-fg: #1a1a2e;
 }
 body.dark .hero {
     background: linear-gradient(160deg, #0a0a1a 0%, #111133 40%, #1a1a44 100%);
@@ -2458,6 +2472,7 @@ body.dark .transcript-deep-highlight {
        the viewport instead of wrapping (S: mobile horizontal-overflow
        regression, 375px). Span both columns and allow the box to shrink. */
     #filtersPanel,
+    #calendarPanel,
     #offlineInfoPanel,
     #offlineProgress {
         grid-column: 1 / -1;
@@ -2953,3 +2968,277 @@ body.purpose-set .language-switcher.open .lang-btn.active {
     padding: 0 2px;
 }
 .teach-strip .teach-x:hover { color: var(--text); }
+
+/* ===== Vaiṣṇava calendar (Fāze 4, 2026-09-26) =====
+   Panel sits in the search card next to #filtersPanel and reuses its
+   .filters-panel frame. Colours come ONLY from the :root / body.dark
+   variables, so dark mode needs no separate rules. */
+.search-quick-buttons .combo-btn-7 {
+    background: linear-gradient(135deg, #a3540f, #9c4a0e);
+}
+.filters-panel .flt-cal-link {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-light);
+}
+.filters-panel .flt-cal-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+}
+.filters-panel .flt-cal-btn:hover { text-decoration: underline; }
+
+.calendar-panel { padding: 12px 14px; }
+.calendar-panel .cal-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.calendar-panel .cal-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--primary-dark);
+}
+.calendar-panel .cal-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+.calendar-panel .cal-nav button {
+    border: 1px solid var(--border);
+    background: var(--bg-warm);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.calendar-panel .cal-nav button:hover:not(:disabled) { border-color: var(--primary); }
+.calendar-panel .cal-nav button:disabled { opacity: 0.45; cursor: default; }
+.calendar-panel .cal-range {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+.calendar-panel .cal-hint {
+    margin: 2px 0 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.calendar-panel .cal-weekdays,
+.calendar-panel .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+}
+.calendar-panel .cal-weekdays div {
+    padding: 2px 0;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.calendar-panel .cal-day {
+    min-width: 0;
+    min-height: 84px;
+    padding: 4px 5px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+.calendar-panel .cal-day.cal-past { opacity: 0.55; }
+.calendar-panel .cal-day.cal-past .cal-dnum { color: var(--text-muted); }
+.calendar-panel .cal-day.cal-today {
+    border: 2px solid var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+.calendar-panel .cal-date {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 3px;
+    font-size: 12px;
+    color: var(--text);
+}
+.calendar-panel .cal-dnum { font-weight: 700; }
+.calendar-panel .cal-today .cal-dnum { color: var(--primary-dark); }
+.calendar-panel .cal-mon { font-size: 11px; color: var(--text-muted); }
+.calendar-panel .cal-wd { display: none; }
+.calendar-panel .cal-evs { display: flex; flex-direction: column; gap: 3px; }
+.calendar-panel .cal-ev {
+    display: block;
+    padding: 2px 4px;
+    border-left: 3px solid var(--primary);
+    border-radius: 4px;
+    background: var(--bg-warm);
+    color: var(--accent);
+    font-size: 11px;
+    line-height: 1.25;
+    text-decoration: none;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+.calendar-panel a.cal-ev:hover,
+.calendar-panel a.cal-ev:focus-visible { background: var(--border); }
+.calendar-panel .cal-ev.cal-kind-appearance { border-left-color: var(--saffron); }
+.calendar-panel .cal-ev.cal-kind-disappearance { border-left-color: var(--accent); }
+.calendar-panel .cal-ev.cal-kind-ekadasi { border-left-color: var(--tulasi); }
+.calendar-panel .cal-ev.cal-kind-festival { border-left-color: var(--vermillion); }
+.calendar-panel .cal-ev.cal-ev-nolect {
+    background: transparent;
+    color: var(--text-muted);
+}
+.calendar-panel .cal-count {
+    display: inline-block;
+    min-width: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--cal-day-bg);
+    color: var(--cal-day-fg);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 15px;
+    text-align: center;
+}
+.calendar-panel .cal-count.cal-count-person { background: var(--cal-person-bg); color: var(--cal-person-fg); }
+.calendar-panel .cal-counts { display: inline-flex; align-items: center; gap: 1px; white-space: nowrap; vertical-align: baseline; }
+.calendar-panel .cal-count-sep { color: var(--text-muted); font-size: 10px; font-weight: 700; }
+.calendar-panel .cal-note {
+    padding: 1px 4px;
+    border-left: 3px dotted var(--border);
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-style: italic;
+    line-height: 1.25;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+/* Long fasting instructions: 3 lines in the grid, full text on hover (title
+   attribute) and in the phone list layout. The Paran time stays visible. */
+.calendar-panel .cal-note-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+}
+.calendar-panel .cal-time { display: block; font-style: normal; font-weight: 600; white-space: nowrap; }
+/* Wide screens: the search card is narrow for a 7-column month, so the panel
+   breaks out of it (centred on the card) up to 1100 px. */
+@media (min-width: 900px) {
+    .filters-panel.calendar-panel {
+        position: relative;
+        left: 50%;
+        width: min(1100px, calc(100vw - 48px));
+        box-sizing: border-box;
+        transform: translateX(-50%);
+        z-index: 5;
+    }
+}
+/* Permanent legend (Rājan 2026-09-27): above the grid and sticky, so it
+   stays in view while the 4 weeks scroll past (phones: a long day list). */
+.calendar-panel .cal-legend {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin: 0 0 8px;
+    padding: 5px 6px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.3;
+}
+.calendar-panel .cal-lg { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.calendar-panel .cal-lg-kind::before,
+.calendar-panel .cal-lg-note::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 12px;
+    border-radius: 2px;
+    background: var(--bg-warm);
+    border-left: 3px solid var(--primary);
+}
+.calendar-panel .cal-lg-kind.cal-kind-appearance::before { border-left-color: var(--saffron); }
+.calendar-panel .cal-lg-kind.cal-kind-disappearance::before { border-left-color: var(--accent); }
+.calendar-panel .cal-lg-kind.cal-kind-ekadasi::before { border-left-color: var(--tulasi); }
+.calendar-panel .cal-lg-kind.cal-kind-festival::before { border-left-color: var(--vermillion); }
+.calendar-panel .cal-lg-note { font-style: italic; white-space: normal; }
+.calendar-panel .cal-lg-note::before { background: transparent; border-left: 3px dotted var(--text-muted); }
+.calendar-panel .cal-loading,
+.calendar-panel .cal-error { padding: 8px 0; font-size: 13px; color: var(--text-muted); }
+
+/* Result split for a calendar event: "This day" / "About this personality" */
+#resultsTable tr.cal-section-row td {
+    padding: 8px 10px;
+    border-top: 2px solid var(--primary);
+    background: var(--bg-warm);
+    color: var(--primary-dark);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+}
+/* Same colours as the calendar badges: block 0 = this day, 1 = personality. */
+#resultsTable tr.cal-section-0 td { border-top-color: var(--cal-day-bg); }
+#resultsTable tr.cal-section-1 td { border-top-color: var(--cal-person-bg); }
+#resultsTable .cal-sec-count {
+    display: inline-block;
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 18px;
+    text-align: center;
+    vertical-align: 1px;
+}
+#resultsTable .cal-sec-count.cal-count-day { background: var(--cal-day-bg); color: var(--cal-day-fg); }
+#resultsTable .cal-sec-count.cal-count-person { background: var(--cal-person-bg); color: var(--cal-person-fg); }
+#resultsTable .cal-sec-other { color: var(--text-muted); font-weight: normal; font-size: 12px; }
+
+/* Phones: the 7-column grid would leave ~45 px per day, so the 4 weeks
+   become a day list (weekday shown in each row, weeks separated). */
+@media (max-width: 640px) {
+    .calendar-panel { padding: 10px; }
+    .calendar-panel .cal-weekdays { display: none; }
+    .calendar-panel .cal-grid { display: flex; flex-direction: column; gap: 3px; }
+    .calendar-panel .cal-day {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        min-height: 0;
+        padding: 4px 6px;
+    }
+    .calendar-panel .cal-day.cal-week-start:not(:first-child) { margin-top: 8px; }
+    .calendar-panel .cal-date {
+        flex: 0 0 100px;
+        flex-wrap: wrap;
+        margin-bottom: 0;
+    }
+    /* The old fixed 2.4em was narrower than long LV names ("Ceturtd.",
+       "Piektd.") and they overflowed onto the day number; size to the
+       content with a minimum so the numbers still line up (Rājan 2026-09-27). */
+    .calendar-panel .cal-wd {
+        display: inline-block;
+        flex: 0 0 auto;
+        min-width: 4.4em;
+        color: var(--text-muted);
+        font-size: 11px;
+    }
+    .calendar-panel .cal-evs { flex: 1 1 auto; min-width: 0; }
+    .calendar-panel .cal-ev { font-size: 12px; }
+    .calendar-panel .cal-note { font-size: 11px; }
+    .calendar-panel .cal-note-text { display: inline; -webkit-line-clamp: unset; line-clamp: none; }
+    .calendar-panel .cal-time { display: inline; margin-left: 4px; }
+    #resultsTable.lecture-cards tr.cal-section-row { display: block; }
+    #resultsTable.lecture-cards tr.cal-section-row td { display: block; }
+}
