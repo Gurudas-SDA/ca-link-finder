@@ -5247,15 +5247,140 @@ PPP.app = (function () {
         setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
     }
 
+    // Standalone transcript document (download on iOS / offline, ZIP export).
+    // It must LOOK like the in-app transcript modal, with no network: the
+    // premium HTML carries its own colours inline (IAST blue, VERSE CHECKED
+    // green, …) but the layout that makes verse blocks two even columns
+    // (table-layout:fixed, width:100%), the body font, line height and the
+    // [N]/paragraph spacing come from styles.css rules scoped to
+    // .transcript-modal-body / #transcriptModalBody. Those rules are copied
+    // out of the LIVE stylesheet (CSSOM), together with the light-theme :root
+    // variables they reference, so the file can never drift from the app.
+    // body.dark rules are skipped (the file is always light), and any rule
+    // containing url() is dropped so the document stays fully self-contained.
+    // Webfonts (Inter, Cormorant) are NOT embedded — ~160 KB of woff2 would
+    // double the file; the same fallback stack as the app applies
+    // (-apple-system on iOS, Segoe UI on Windows).
+    var _TRANSCRIPT_CSS_FALLBACK =
+        ':root{--text:#3e2723;--saffron:#e8842c;--primary-dark:#8b6914}' +
+        '.transcript-modal-body{font-size:14px;line-height:1.7;color:var(--text);word-wrap:break-word;' +
+        'font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}' +
+        '.transcript-modal-body p{margin:0.4em 0}' +
+        '.transcript-modal-body table{border-collapse:collapse;margin:0.5em 0;width:100%;table-layout:fixed}' +
+        '.transcript-modal-body td,.transcript-modal-body th{padding:4px 8px;vertical-align:top;word-wrap:break-word}' +
+        '#transcriptModalBody mark.tr-sentence{background-color:#fff3a0}' +
+        '#transcriptModalBody mark.tr-word{background-color:#b6f5c0}';
+    var _transcriptCssCache = null;
+
+    function _transcriptDocCss() {
+        if (_transcriptCssCache) return _transcriptCssCache;
+        var out = [];
+        var rootVars = '';
+        var wanted = /\.transcript-modal-body\b|#transcriptModalBody\b|\.transcript-highlight\b|\.transcript-deep-highlight\b/;
+        function walk(rules, mediaText) {
+            for (var i = 0; i < rules.length; i++) {
+                var r = rules[i];
+                if (r.type === 4 && r.cssRules) {            // @media
+                    walk(r.cssRules, r.media && r.media.mediaText);
+                    continue;
+                }
+                if (r.type !== 1 || !r.selectorText) continue; // style rules only
+                var sel = r.selectorText;
+                if (!mediaText && sel === ':root') { rootVars += r.cssText + '\n'; continue; }
+                if (!wanted.test(sel)) continue;
+                if (/body\.dark|#summaryModalBody/.test(sel)) continue;
+                if (/url\(/i.test(r.cssText)) continue;
+                out.push(mediaText ? '@media ' + mediaText + '{' + r.cssText + '}' : r.cssText);
+            }
+        }
+        try {
+            var sheets = document.styleSheets;
+            for (var s = 0; s < sheets.length; s++) {
+                var rules;
+                try { rules = sheets[s].cssRules; } catch (e) { continue; } // cross-origin
+                if (rules) walk(rules, null);
+            }
+        } catch (e) { /* no CSSOM — use fallback */ }
+        // The modal body rule is required; without it the CSSOM read failed.
+        if (!out.some(function (t) { return /^\.transcript-modal-body\s*\{/.test(t); })) {
+            return _TRANSCRIPT_CSS_FALLBACK;
+        }
+        _transcriptCssCache = rootVars.replace(/url\([^)]*\)/gi, 'none') + out.join('\n');
+        return _transcriptCssCache;
+    }
+
     function _buildHtmlDoc(ctx) {
         var titleText = ctx.title || ('Nr_' + ctx.nr);
+        // Page frame: white paper, the modal's max width (1100px), and a
+        // scrolling document instead of the modal's flex/overflow container.
+        var pageCss =
+            'html{background:#fff}' +
+            'body{margin:0;background:#fff;-webkit-text-size-adjust:100%}' +
+            '.transcript-doc{max-width:1100px;margin:0 auto;padding:16px 20px 32px;box-sizing:border-box}' +
+            '.transcript-doc-title{font-family:"Cormorant Garamond",Georgia,serif;font-size:20px;font-weight:700;' +
+            'color:var(--primary-dark,#8b6914);margin:0 0 10px;padding-bottom:10px;' +
+            'border-bottom:1px solid var(--border-light,#efe8d8);line-height:1.3}' +
+            '.transcript-doc .transcript-modal-body{overflow:visible;padding:0;flex:none;background:#fff}';
         return '<!DOCTYPE html>\n<html lang="' + _escapeHtmlAttr(ctx.lang) + '">\n<head>\n' +
             '<meta charset="utf-8">\n' +
             '<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
+            '<meta name="color-scheme" content="light">\n' +
             '<title>' + _escapeHtmlAttr(titleText) + '</title>\n' +
-            '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;max-width:820px;margin:1.5em auto;padding:0 1em;line-height:1.55;color:#222;background:#fff}h1,h2,h3{color:#7a1f00}a{color:#c97a00}p{margin:0.6em 0}mark.tr-sentence{background:#fff3a0}mark.tr-word{background:#b6f5c0}</style>\n' +
-            '</head>\n<body>\n<h1>' + _escapeHtmlAttr(titleText) + '</h1>\n' +
-            ctx.html + '\n</body>\n</html>';
+            '<style>\n' + _transcriptDocCss() + '\n' + pageCss + '\n</style>\n' +
+            '</head>\n<body>\n<div class="transcript-doc">\n' +
+            '<h1 class="transcript-doc-title">' + _escapeHtmlAttr(titleText) + '</h1>\n' +
+            '<div class="transcript-modal-body" id="transcriptModalBody">\n' +
+            ctx.html + '\n</div>\n</div>\n</body>\n</html>';
+    }
+
+    // iOS / iPadOS. iPadOS 13+ Safari reports a desktop Mac UA, so a Mac UA
+    // with a multi-touch screen is an iPad (no real Mac has touch points > 1).
+    function _isIOSDevice() {
+        var ua = navigator.userAgent || '';
+        if (/iPad|iPhone|iPod/.test(ua)) return true;
+        return /Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1;
+    }
+
+    // Drive naming convention: "<LANG>_<title>.<ext>" (spaces kept; only the
+    // characters no file system accepts are replaced).
+    function _transcriptFileName(ctx, ext) {
+        var base = String(ctx.title || ('Nr_' + ctx.nr)).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim().slice(0, 120) || ('Nr_' + ctx.nr);
+        return String(ctx.lang || '').toUpperCase() + '_' + base + '.' + ext;
+    }
+
+    // Transcript body for the download when the viewer context lacks it —
+    // same order as the viewer: installed library first, then the network.
+    function _loadTranscriptHtml(ctx) {
+        if (ctx.html) return Promise.resolve(ctx.html);
+        var key = 't:' + ctx.lang + ':' + String(ctx.nr);
+        var fromStore = (PPP.offlineStore && PPP.offlineStore.supported && PPP.offlineStore.supported())
+            ? PPP.offlineStore.getText(key).catch(function () { return null; })
+            : Promise.resolve(null);
+        return fromStore.then(function (txt) {
+            if (txt) return txt;
+            return fetch('transcripts/' + ctx.lang + '/' + encodeURIComponent(String(ctx.nr)) + '.html')
+                .then(function (r) { return r.ok ? r.text() : ''; })
+                .catch(function () { return ''; });
+        });
+    }
+
+    function _downloadStyledHtml(ctx, html) {
+        var doc = _buildHtmlDoc({ nr: ctx.nr, lang: ctx.lang, title: ctx.title, html: html });
+        _triggerBlobDownload(new Blob([doc], { type: 'text/html;charset=utf-8' }), _transcriptFileName(ctx, 'html'));
+        track('transcript-download', { nr: String(ctx.nr), lang: ctx.lang, format: 'html' });
+    }
+
+    function _downloadDriveDocx(ctx, driveId) {
+        var dlUrl = 'https://drive.usercontent.google.com/download?id=' + encodeURIComponent(driveId) + '&export=download';
+        var a = document.createElement('a');
+        a.href = dlUrl;
+        a.rel = 'noopener';
+        // Note: cross-origin <a download> attribute is ignored by Chrome, but
+        // the server's Content-Disposition: attachment header takes effect.
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        track('transcript-download', { nr: String(ctx.nr), lang: ctx.lang, format: 'docx' });
     }
 
     function downloadTranscript() {
@@ -5263,36 +5388,30 @@ PPP.app = (function () {
         if (!ctx) return;
         var driveId = _driveIdFromUrl(ctx.driveUrl);
 
-        // Preferred path: navigate to drive.usercontent.google.com which sends
-        // Content-Disposition: attachment. Chrome saves the original DOCX without
-        // leaving the page. drive.usercontent.google.com is NOT registered for the
-        // Android Drive app intent filter, so the file lands directly in Downloads.
-        // Offline guard: the Drive download needs the network. Fall through to
-        // the client-side HTML fallback when we have the content locally.
-        if (driveId && !net.online && !ctx.html) {
-            ui.toast(i18n.t('requiresInternet'));
+        // Desktop / Android online: the original DOCX from Drive. Navigating to
+        // drive.usercontent.google.com sends Content-Disposition: attachment, so
+        // Chrome saves the file without leaving the page, and that host is NOT
+        // in the Android Drive app intent filter (file lands in Downloads).
+        //
+        // iOS / iPadOS: the Files preview renders the newer RU/LV docx (verse
+        // blocks in auto-width tables) broken — fonts fall back to Times and the
+        // columns shift (Rājan 2026-09-27). There, and whenever offline (Drive
+        // unreachable), download a self-contained HTML that looks exactly like
+        // the in-app transcript view instead.
+        var wantHtml = _isIOSDevice() || !net.online || !driveId;
+        if (!wantHtml) {
+            _downloadDriveDocx(ctx, driveId);
             return;
         }
-        if (driveId && net.online) {
-            var dlUrl = 'https://drive.usercontent.google.com/download?id=' + encodeURIComponent(driveId) + '&export=download';
-            var a = document.createElement('a');
-            a.href = dlUrl;
-            a.rel = 'noopener';
-            // Note: cross-origin <a download> attribute is ignored by Chrome, but
-            // the server's Content-Disposition: attachment header takes effect.
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            track('transcript-download', { nr: String(ctx.nr), lang: ctx.lang, format: 'docx' });
-            return;
-        }
-
-        // Fallback (no Drive URL): client-side HTML
-        if (ctx.html) {
-            var fileName = _sanitizeFilename(ctx.title || ('Nr_' + ctx.nr)) + '_' + ctx.lang + '.html';
-            _triggerBlobDownload(new Blob([_buildHtmlDoc(ctx)], { type: 'text/html;charset=utf-8' }), fileName);
-            track('transcript-download', { nr: String(ctx.nr), lang: ctx.lang, format: 'html' });
-        }
+        _loadTranscriptHtml(ctx).then(function (html) {
+            if (html) {
+                _downloadStyledHtml(ctx, html);
+            } else if (driveId && net.online) {
+                _downloadDriveDocx(ctx, driveId); // no HTML anywhere — docx is better than nothing
+            } else {
+                ui.toast(i18n.t('requiresInternet'));
+            }
+        });
     }
 
     function openHtmlTranscriptViewer(lectureNr, lang, blockIndex, reference, driveUrl, highlightText) {
