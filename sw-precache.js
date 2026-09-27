@@ -20,7 +20,7 @@ self.PRECACHE = [
   'css/fonts/montserrat_v31_JTUSjIg1_i6t8kCHKm459Wdhyzbi.woff2?v=54d9a78b',
   'css/fonts/montserrat_v31_JTUSjIg1_i6t8kCHKm459Wlhyw.woff2?v=06b16db7',
   'css/styles.css?v=13e26f3b',
-  'data-static/ppp_calendar.json?v=faa576c1',
+  'data-static/ppp_calendar.json?v=5f348175',
   'guide/en/index.html?v=c412ad05',
   'guide/es/index.html?v=097596d0',
   'guide/fr/index.html?v=2ebdf7d0',
@@ -30,11 +30,11 @@ self.PRECACHE = [
   'guide/ru/index.html?v=2dc35da1',
   'icon-192.png?v=fab41429',
   'icon-512.png?v=88196aa7',
-  'index.html?v=b4f7d3d1',
+  'index.html?v=5054f25f',
   'js/app.js?v=738fc57e',
   'js/auth-modal.js?v=2ba0f1fc',
   'js/auth.js?v=a4f11a49',
-  'js/calendar.js?v=f005a550',
+  'js/calendar.js?v=32e6bb53',
   'js/codec.js?v=c4091679',
   'js/config.js?v=72dc8f5f',
   'js/db-worker.js?v=eb515890',
@@ -65,4 +65,4 @@ self.REQUIRED_SHELL = [
   'js/vendor/sql-wasm.js',
   'js/vendor/sql-wasm.wasm',
 ];
-self.SHELL_VERSION = 'a0ff3e575566';
+self.SHELL_VERSION = '977770e08ec7';
