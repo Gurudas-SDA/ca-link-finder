@@ -301,15 +301,15 @@
       "id": "ppp_sentences_shard_021",
       "path": "data/shards/ppp_sentences_shard_021.db.br",
       "enc": "br",
-      "sha256": "4e952a86edca62b094f01667c04b6fe34d313214bec3642ceaca9bbf966dc069",
-      "size": 6709833,
-      "raw": 32681984,
+      "sha256": "16bb94ad3190d9279db125c165643e4e76764e546ffbe63842ec362e6ce35443",
+      "size": 6710976,
+      "raw": 32690176,
       "nrFrom": 9679,
       "nrLo": 9679,
       "nrHi": 10347,
-      "sentences": 175087,
+      "sentences": 175164,
       "lectures": 380,
-      "contentSig": "677df7b989e0a05c160b1fb9c42d24db960ae73199f0f633e02e8825b71ed83f"
+      "contentSig": "92b6e9361ede09a2e62c2a7615a23cd99a1fd326d0dd7d3af61ceeea050d46d5"
     },
     {
       "id": "ppp_sentences_shard_022",
