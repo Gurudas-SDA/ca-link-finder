@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-10-05T05:11:57.365651+00:00",
+  "generated": "2026-10-06T05:13:39.122491+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "b86e00f808",
-      "sha256": "20d9dd6100fab8c094cb731775f65de222da3359606e7994a16fc61ffcee57fb",
-      "size": 5096413,
+      "hash": "a46300880f",
+      "sha256": "b3bff29bd2cd0eb2bc00d35fe56b6185d734094f68de46fe683f8e02ef65fc12",
+      "size": 5095295,
       "raw": 48119808
     },
     "extras": {
@@ -452,7 +452,7 @@
     }
   ],
   "totals": {
-    "bytes": 276659580,
+    "bytes": 276658462,
     "files": 18075
   },
   "sentenceShards": [
