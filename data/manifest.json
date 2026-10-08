@@ -1,23 +1,23 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-10-06T05:13:39.122491+00:00",
+  "generated": "2026-10-08T20:07:16.560498+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "a46300880f",
-      "sha256": "b3bff29bd2cd0eb2bc00d35fe56b6185d734094f68de46fe683f8e02ef65fc12",
-      "size": 5095295,
-      "raw": 48119808
+      "hash": "33544030bf",
+      "sha256": "473d74f18a3a44c1dbaf730f2f9e389c000d29ce6eb634ff9bf52fd973195e0c",
+      "size": 5080045,
+      "raw": 47943680
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
       "enc": "br",
-      "hash": "7866c5cc9c",
-      "sha256": "e6bb206d6f8ac1093074fb0f694e35ca7d0d724395e26c27a5819ec08546e5c1",
-      "size": 6872700,
-      "raw": 39744132
+      "hash": "18cc4b3a4e",
+      "sha256": "69eaafa23e23f77ce8b6df4f4fd4af70e3c876f5d3739e9cbc52670e1717ae3e",
+      "size": 6828725,
+      "raw": 39492951
     }
   },
   "packs": [
@@ -452,7 +452,7 @@
     }
   ],
   "totals": {
-    "bytes": 276658462,
+    "bytes": 276599237,
     "files": 18075
   },
   "sentenceShards": [
@@ -586,17 +586,17 @@
       "id": "ppp_sentences_shard_014",
       "path": "data/shards/ppp_sentences_shard_014.db.br",
       "enc": "br",
-      "sha256": "06e85764b6fd474d042dcaf21c59bdf1f7167ab40983edc91ccb717016adb323",
-      "size": 5329205,
+      "sha256": "d3f4ff9fc35d3ebe4de6e1a9d9adc24bbf0e9d220bfc1b79e7867ef127ba2605",
+      "size": 5131758,
       "nrLo": 6367,
-      "nrHi": 6727
+      "nrHi": 6726
     },
     {
       "id": "ppp_sentences_shard_015",
       "path": "data/shards/ppp_sentences_shard_015.db.br",
       "enc": "br",
-      "sha256": "7b8449271eef56d5fbf5fb5d6295570c4f0d1851042c3cf773d9b792a54cd870",
-      "size": 5948419,
+      "sha256": "9614505fa2677c572b01e561220f660877bd685d535f7a11a8fb3843f4331835",
+      "size": 5396764,
       "nrLo": 6728,
       "nrHi": 7157
     },
@@ -665,10 +665,10 @@
     }
   ],
   "catalog": {
-    "lectures": 8786,
+    "lectures": 8741,
     "sources": {
       "@AnandaGopal108": 5,
-      "@ChaitanyaAcademy": 2545,
+      "@ChaitanyaAcademy": 2550,
       "@DasMadhavananda": 1,
       "@Freedomspiral1111": 1,
       "@Freedomspiral1112": 1,
@@ -698,7 +698,7 @@
       "mixcloud.com/prem_katha": 22,
       "soundcloud.com/ananda-gopal-das": 1,
       "soundcloud.com/anupama-lowe": 12,
-      "soundcloud.com/ca108": 1141
+      "soundcloud.com/ca108": 1091
     }
   }
 }
