@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-10-10T05:13:34.963632+00:00",
+  "generated": "2026-10-11T05:20:19.816063+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "69695f0a15",
-      "sha256": "4017ec8ad0ccb43fa63f51184c57b14fadaa31f7a811cc854a35d1ab485bb39b",
-      "size": 5080319,
-      "raw": 47943680
+      "hash": "0c4f2b6dde",
+      "sha256": "956864053c388def47243f65c1dae33a8ae420603b1a34b73f146bd68abad3c8",
+      "size": 5081084,
+      "raw": 47947776
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -452,7 +452,7 @@
     }
   ],
   "totals": {
-    "bytes": 276599511,
+    "bytes": 276600276,
     "files": 18075
   },
   "sentenceShards": [
@@ -665,10 +665,10 @@
     }
   ],
   "catalog": {
-    "lectures": 8741,
+    "lectures": 8744,
     "sources": {
       "@AnandaGopal108": 5,
-      "@ChaitanyaAcademy": 2550,
+      "@ChaitanyaAcademy": 2553,
       "@DasMadhavananda": 1,
       "@Freedomspiral1111": 1,
       "@Freedomspiral1112": 1,
