@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-10-22T05:39:35.645676+00:00",
+  "generated": "2026-10-23T05:19:47.112779+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "d9e8d5325f",
-      "sha256": "19caae01b2a298498d3943d064851795091e59d8bb469af861b8fb16a66b7a0a",
-      "size": 5082262,
-      "raw": 47960064
+      "hash": "be5a620d8e",
+      "sha256": "b4cd51e1d548dcd7c3eda2832e5427809b5315c2acd46b76dba31945b2d75361",
+      "size": 5081850,
+      "raw": 47968256
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
       "enc": "br",
-      "hash": "9e96333951",
-      "sha256": "445909fca4f89ea110a5b31cb011c81df79e6f1ee5418beab48a5f2d1f6e9ca2",
-      "size": 6825514,
+      "hash": "18cc4b3a4e",
+      "sha256": "69eaafa23e23f77ce8b6df4f4fd4af70e3c876f5d3739e9cbc52670e1717ae3e",
+      "size": 6828725,
       "raw": 39492951
     }
   },
@@ -452,7 +452,7 @@
     }
   ],
   "totals": {
-    "bytes": 276690504,
+    "bytes": 276693303,
     "files": 18081
   },
   "sentenceShards": [
@@ -665,10 +665,10 @@
     }
   ],
   "catalog": {
-    "lectures": 8751,
+    "lectures": 8757,
     "sources": {
       "@AnandaGopal108": 5,
-      "@ChaitanyaAcademy": 2558,
+      "@ChaitanyaAcademy": 2564,
       "@DasMadhavananda": 1,
       "@Freedomspiral1111": 1,
       "@Freedomspiral1112": 1,
