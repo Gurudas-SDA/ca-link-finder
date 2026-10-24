@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-10-23T05:19:47.112779+00:00",
+  "generated": "2026-10-24T05:29:03.537993+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "be5a620d8e",
-      "sha256": "b4cd51e1d548dcd7c3eda2832e5427809b5315c2acd46b76dba31945b2d75361",
-      "size": 5081850,
+      "hash": "b3d9fb20dd",
+      "sha256": "e6654656cf441c4653c7aa9230ff7ca6c6ae3e75caad9e1cbcf1fa99effbb203",
+      "size": 5081007,
       "raw": 47968256
     },
     "extras": {
@@ -71,9 +71,9 @@
       "lang": "en",
       "path": "packs/prem-en-0004.pack",
       "enc": "br",
-      "hash": "75544c2fbd",
-      "sha256": "01f1ff6c473c5d6a44f3c30509c10096fbd106379392fe89ec5abeaea7839a14",
-      "size": 9322103,
+      "hash": "917f50e05b",
+      "sha256": "ca265f6a76b8fab868e569e1059b16a81f1f6f01dd0e233d39f0fac8e42c5ccd",
+      "size": 9322070,
       "count": 745
     },
     {
@@ -137,9 +137,9 @@
       "lang": "lv",
       "path": "packs/prem-lv-0004.pack",
       "enc": "br",
-      "hash": "c4d9d31dfe",
-      "sha256": "dceb95c99632ccd9a52885783d5b3c0c4a61449b2a3ec8c81b1813360f7249af",
-      "size": 13880326,
+      "hash": "f795c456a2",
+      "sha256": "a8163e09a7ad8ed24c61342e90e2e618bbfb9837be4907193a745d5b64be45da",
+      "size": 13880306,
       "count": 910
     },
     {
@@ -203,9 +203,9 @@
       "lang": "ru",
       "path": "packs/prem-ru-0004.pack",
       "enc": "br",
-      "hash": "0d36671909",
-      "sha256": "59295b480a71963466e9d3e980c2634f0db36ecd8365966b0fddbd2cc8dac912",
-      "size": 15604520,
+      "hash": "6716483d08",
+      "sha256": "c515ea59a66d20d34a50688b7cbad8e848ffff7e9183d0cb1df78743743be7a3",
+      "size": 15604587,
       "count": 912
     },
     {
@@ -452,7 +452,7 @@
     }
   ],
   "totals": {
-    "bytes": 276693303,
+    "bytes": 276692474,
     "files": 18081
   },
   "sentenceShards": [
@@ -631,8 +631,8 @@
       "id": "ppp_sentences_shard_019",
       "path": "data/shards/ppp_sentences_shard_019.db.br",
       "enc": "br",
-      "sha256": "672057fc0957b584d4bc9de74b76892fbfc61a2e726da68d6ef27e285a50cf1c",
-      "size": 5541193,
+      "sha256": "cb3a02f552f090b4879cd8a7fb06ad1ac4edc3c8c2c878e0037b487aba7d2c49",
+      "size": 5545127,
       "nrLo": 8601,
       "nrHi": 9062
     },
@@ -640,8 +640,8 @@
       "id": "ppp_sentences_shard_020",
       "path": "data/shards/ppp_sentences_shard_020.db.br",
       "enc": "br",
-      "sha256": "6e23de6725494db2dcfab58ebb369b4499d2b73b2ea3d917b297e7f906a9cafe",
-      "size": 6121558,
+      "sha256": "71df97928a299980dd6c3016b6ef867fd4799f1977127820829e3315c7f33b55",
+      "size": 6121083,
       "nrLo": 9065,
       "nrHi": 9678
     },
@@ -649,8 +649,8 @@
       "id": "ppp_sentences_shard_021",
       "path": "data/shards/ppp_sentences_shard_021.db.br",
       "enc": "br",
-      "sha256": "d6ee390e309289d0f722858f331bf9eef5b420682beb35bf9deed502cee6653c",
-      "size": 6720357,
+      "sha256": "a86d35d3d7bf3cf6d6ae22cad8461d6fd90d0d83be12167c8543ea2135d3fe76",
+      "size": 6716975,
       "nrLo": 9679,
       "nrHi": 10347
     },

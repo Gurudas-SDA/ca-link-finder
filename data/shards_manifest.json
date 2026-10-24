@@ -273,43 +273,43 @@
       "id": "ppp_sentences_shard_019",
       "path": "data/shards/ppp_sentences_shard_019.db.br",
       "enc": "br",
-      "sha256": "672057fc0957b584d4bc9de74b76892fbfc61a2e726da68d6ef27e285a50cf1c",
-      "size": 5541193,
+      "sha256": "cb3a02f552f090b4879cd8a7fb06ad1ac4edc3c8c2c878e0037b487aba7d2c49",
+      "size": 5545127,
       "raw": 30253056,
       "nrFrom": 8601,
       "nrLo": 8601,
       "nrHi": 9062,
-      "sentences": 166666,
+      "sentences": 166664,
       "lectures": 390,
-      "contentSig": "86df3121928bf7e10629a680e8e3a882efdb54645fcd410e243a133efa61209c"
+      "contentSig": "d74433c2a2a115611e09b4eb0bdb6a892fde35beba9606ffeebe246d6c79171d"
     },
     {
       "id": "ppp_sentences_shard_020",
       "path": "data/shards/ppp_sentences_shard_020.db.br",
       "enc": "br",
-      "sha256": "6e23de6725494db2dcfab58ebb369b4499d2b73b2ea3d917b297e7f906a9cafe",
-      "size": 6121558,
+      "sha256": "71df97928a299980dd6c3016b6ef867fd4799f1977127820829e3315c7f33b55",
+      "size": 6121083,
       "raw": 31170560,
       "nrFrom": 9065,
       "nrLo": 9065,
       "nrHi": 9678,
       "sentences": 169708,
       "lectures": 527,
-      "contentSig": "8fcf24df0722892312d34c3769a1bb7b8d7c163f69a1bf2ba225259c5b4beaaa"
+      "contentSig": "8bb5892f82cb43395889613304c3854df7146c8f2e9f44e13fe44afd8588cd14"
     },
     {
       "id": "ppp_sentences_shard_021",
       "path": "data/shards/ppp_sentences_shard_021.db.br",
       "enc": "br",
-      "sha256": "d6ee390e309289d0f722858f331bf9eef5b420682beb35bf9deed502cee6653c",
-      "size": 6720357,
+      "sha256": "a86d35d3d7bf3cf6d6ae22cad8461d6fd90d0d83be12167c8543ea2135d3fe76",
+      "size": 6716975,
       "raw": 32690176,
       "nrFrom": 9679,
       "nrLo": 9679,
       "nrHi": 10347,
       "sentences": 175164,
       "lectures": 380,
-      "contentSig": "d7dfa120f8dc37a3a6c9b6b8a2a9da7b8d41f7c59fff49739f354e9a48836f21"
+      "contentSig": "bb0ff0eda6a7f50844ca3dce9cf058e722c4c010cdbc87288953fac09baacf65"
     },
     {
       "id": "ppp_sentences_shard_022",
