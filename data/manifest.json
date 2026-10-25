@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-10-25T06:18:42.217686+00:00",
+  "generated": "2026-10-25T23:04:10.206962+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "34abf41404",
-      "sha256": "7b4b2f19ab725dbf73a87cddbb2ad60506d791127af8a990504aa3aa756b3db1",
-      "size": 5080058,
-      "raw": 47968256
+      "hash": "b9b1318f63",
+      "sha256": "910f16642a846f211d7fbd4f47a6ee31e220d5ef9e887b62d562b4f8d86cb435",
+      "size": 5086907,
+      "raw": 48009216
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -27,9 +27,9 @@
       "lang": "en",
       "path": "packs/prem-en-0000.pack",
       "enc": "br",
-      "hash": "dcb0efde1d",
-      "sha256": "245fc48972692a7807231ac3df81da7f7547f09ec11174d0d34be6dab435ec00",
-      "size": 14849443,
+      "hash": "870ae50050",
+      "sha256": "c73ec516ee780400609e68b3e82e9c3420d51d8f8902f79904205d163024ce1a",
+      "size": 14848435,
       "count": 991
     },
     {
@@ -38,9 +38,9 @@
       "lang": "en",
       "path": "packs/prem-en-0001.pack",
       "enc": "br",
-      "hash": "2daafd1f6d",
-      "sha256": "db7de15392546c63259b90cfaff86cdef4907aa478e88d61cd229751bb59a44c",
-      "size": 8648701,
+      "hash": "16d11576c7",
+      "sha256": "a8ba96c8cbcf3e5a2f1db31ea9affd2ff0d013037ddd5c59a216fa1bfb916025",
+      "size": 8647833,
       "count": 601
     },
     {
@@ -49,9 +49,9 @@
       "lang": "en",
       "path": "packs/prem-en-0002.pack",
       "enc": "br",
-      "hash": "9abb68566a",
-      "sha256": "7a07833ee6489b111702de27ee0a57df90c5c2a06f019b0a7810c5069bc61189",
-      "size": 8963106,
+      "hash": "2320797a3d",
+      "sha256": "58ea9e8472b8c02db7369cb322feabb5ae202c5c202c6eb7535f8775c764d20c",
+      "size": 8962446,
       "count": 575
     },
     {
@@ -60,9 +60,9 @@
       "lang": "en",
       "path": "packs/prem-en-0003.pack",
       "enc": "br",
-      "hash": "3f8d942bb6",
-      "sha256": "6424048a81d2f6c7c97659650f11cf75cbb3dd28a1d7324a35ca94fe566f3305",
-      "size": 7636826,
+      "hash": "14bf4100e8",
+      "sha256": "016bb8b53016d0d5717a4c3bf690eb9866ee4a6d418afcf0db22295acb298b4f",
+      "size": 7636532,
       "count": 395
     },
     {
@@ -71,9 +71,9 @@
       "lang": "en",
       "path": "packs/prem-en-0004.pack",
       "enc": "br",
-      "hash": "917f50e05b",
-      "sha256": "ca265f6a76b8fab868e569e1059b16a81f1f6f01dd0e233d39f0fac8e42c5ccd",
-      "size": 9322070,
+      "hash": "c0b604d37b",
+      "sha256": "c4d8aa16de8fd207dbfde83312bbce499d1eaa5bdd596655ad382103603b0516",
+      "size": 9321321,
       "count": 745
     },
     {
@@ -82,10 +82,10 @@
       "lang": "en",
       "path": "packs/prem-en-0005.pack",
       "enc": "br",
-      "hash": "3a37a6587f",
-      "sha256": "2b9d90761de30d1a0963d1f7431d75fa89d8bfc9ebb9b72ca4d4bcbf2b448456",
-      "size": 3221090,
-      "count": 215
+      "hash": "c330668df4",
+      "sha256": "5f222d5717b885cbe901133a7aae86fb1ac494ad2eda650a6c00d8612823e31a",
+      "size": 3280421,
+      "count": 227
     },
     {
       "id": "prem-lv-0000",
@@ -93,9 +93,9 @@
       "lang": "lv",
       "path": "packs/prem-lv-0000.pack",
       "enc": "br",
-      "hash": "3a3d26174f",
-      "sha256": "a8968808e70d487ef9244e64734e134c352cb8a085b92f0adf13387f65e570f8",
-      "size": 16550524,
+      "hash": "02c3b42de8",
+      "sha256": "238e80436a9283e22251a859a2787c1aab8334d1a754a6b47262c6bdacfa835d",
+      "size": 16549484,
       "count": 989
     },
     {
@@ -104,9 +104,9 @@
       "lang": "lv",
       "path": "packs/prem-lv-0001.pack",
       "enc": "br",
-      "hash": "484e71f8fa",
-      "sha256": "3d11020fc8e2c0e68d51020ffd3767cc1655b9850ff06ccc5600bada11ce44c2",
-      "size": 10313269,
+      "hash": "1d07ecf454",
+      "sha256": "66aece8ab7da81070ea196babc744156af2e28afd8bb9965c8106108d307142e",
+      "size": 10312407,
       "count": 649
     },
     {
@@ -115,9 +115,9 @@
       "lang": "lv",
       "path": "packs/prem-lv-0002.pack",
       "enc": "br",
-      "hash": "d606767108",
-      "sha256": "0ae0451ce69ab1f50e87af854803840e540de193fc70847915ab92008dd06a9e",
-      "size": 13637418,
+      "hash": "a6859664b5",
+      "sha256": "5da0b2ce779c5add42d9a07539e91f8750f916c8f92d82c2c985a476ab158bd2",
+      "size": 13636882,
       "count": 793
     },
     {
@@ -126,9 +126,9 @@
       "lang": "lv",
       "path": "packs/prem-lv-0003.pack",
       "enc": "br",
-      "hash": "e32090544a",
-      "sha256": "22650199451d19e8c2ab3e072de9f93cc845bba3e03d0edf2f677ab476405b47",
-      "size": 8850006,
+      "hash": "245c4bf8a9",
+      "sha256": "cc1fff44b969614635aa8712e62e250e529fcae6e28102f73acdb332401f8075",
+      "size": 8849819,
       "count": 417
     },
     {
@@ -137,9 +137,9 @@
       "lang": "lv",
       "path": "packs/prem-lv-0004.pack",
       "enc": "br",
-      "hash": "f795c456a2",
-      "sha256": "a8163e09a7ad8ed24c61342e90e2e618bbfb9837be4907193a745d5b64be45da",
-      "size": 13880306,
+      "hash": "4652ef2bb1",
+      "sha256": "ebc25bd5655d5f4682c1413f97ed85834f167343db72eabde5601accd555a32a",
+      "size": 13879548,
       "count": 910
     },
     {
@@ -148,10 +148,10 @@
       "lang": "lv",
       "path": "packs/prem-lv-0005.pack",
       "enc": "br",
-      "hash": "07fe349101",
-      "sha256": "d02f75c557a4118b50ef8330cbc8f1b18233b0e0d4fa9398e564340247d3faa1",
-      "size": 3630987,
-      "count": 219
+      "hash": "8a225b3e6d",
+      "sha256": "5477a94ad29696716de7fea83b39d4f158514887e93137858bb8a3248e25ccb8",
+      "size": 3698955,
+      "count": 231
     },
     {
       "id": "prem-ru-0000",
@@ -159,9 +159,9 @@
       "lang": "ru",
       "path": "packs/prem-ru-0000.pack",
       "enc": "br",
-      "hash": "c64ab5efb9",
-      "sha256": "0580247cd3429d5b9b6c50fe93d069745d4e0d88412822c82e15f52adc445c16",
-      "size": 18661922,
+      "hash": "cd2c8173ed",
+      "sha256": "9e176df66ac277ba972b7f5973b49171a900c6e34c8f6b98d364ba36876420a7",
+      "size": 18660751,
       "count": 989
     },
     {
@@ -170,9 +170,9 @@
       "lang": "ru",
       "path": "packs/prem-ru-0001.pack",
       "enc": "br",
-      "hash": "11641bfbe0",
-      "sha256": "9ece6114620ebd825fe98d08a01e0d06edeaf657c2652331a2c92b434754d055",
-      "size": 11613582,
+      "hash": "4a4c0e1a31",
+      "sha256": "2c8ae5dc246a17b795776cba65959fee01f97657ba5fa6560136ee26c6ab6fac",
+      "size": 11612738,
       "count": 648
     },
     {
@@ -181,9 +181,9 @@
       "lang": "ru",
       "path": "packs/prem-ru-0002.pack",
       "enc": "br",
-      "hash": "fe3f046419",
-      "sha256": "b288b73b1dfeba678277fcaa318bdb023e8ee235ef29b1d3fac6665ef721f544",
-      "size": 15300909,
+      "hash": "fc9247815d",
+      "sha256": "b501643b0c4715b619af48a4c959dd6fbaf00f1b73419dc413ac3a07583567d6",
+      "size": 15299878,
       "count": 793
     },
     {
@@ -192,9 +192,9 @@
       "lang": "ru",
       "path": "packs/prem-ru-0003.pack",
       "enc": "br",
-      "hash": "bd59241ee4",
-      "sha256": "f75f89d46066cd46125c4133a3da4dc4314ebc8c0e6447d199ae0af6ba07cb3b",
-      "size": 9955814,
+      "hash": "4825322f68",
+      "sha256": "576d76849f8a5834a9d9e98687092d24b1731db0736c6d14d20f706c69987e50",
+      "size": 9955534,
       "count": 417
     },
     {
@@ -203,9 +203,9 @@
       "lang": "ru",
       "path": "packs/prem-ru-0004.pack",
       "enc": "br",
-      "hash": "6716483d08",
-      "sha256": "c515ea59a66d20d34a50688b7cbad8e848ffff7e9183d0cb1df78743743be7a3",
-      "size": 15604587,
+      "hash": "4e5d1e4406",
+      "sha256": "52c254e2ac0b9b0ecd932e37ead404783b7ce633887f4cb82cd0af9c5a3f2441",
+      "size": 15603549,
       "count": 912
     },
     {
@@ -214,10 +214,10 @@
       "lang": "ru",
       "path": "packs/prem-ru-0005.pack",
       "enc": "br",
-      "hash": "aec4165f63",
-      "sha256": "61b684a87527ac2bbae7cdd367da72718f95a0b955995a25e273f3ae4f9c7732",
-      "size": 4087389,
-      "count": 219
+      "hash": "6991ddbce2",
+      "sha256": "63777358f53a1644fa4082fed4e622bf76b3bb56f8b7466e140d406caccdfb90",
+      "size": 4163748,
+      "count": 231
     },
     {
       "id": "raw-en-0000",
@@ -452,16 +452,16 @@
     }
   ],
   "totals": {
-    "bytes": 276691525,
-    "files": 18081
+    "bytes": 276890706,
+    "files": 18117
   },
   "sentenceShards": [
     {
       "id": "ppp_sentences_shard_000",
       "path": "data/shards/ppp_sentences_shard_000.db.br",
       "enc": "br",
-      "sha256": "667e633dba0a4f58f5209cfa13b1a2a6942797e404333871ee8fb739511e802e",
-      "size": 4991728,
+      "sha256": "76b9fc6ecc9beaa05eaf3d0b84627cf168fedf9459c6386e7fea8e74a1d666cb",
+      "size": 4987071,
       "nrLo": 1,
       "nrHi": 398
     },
@@ -469,8 +469,8 @@
       "id": "ppp_sentences_shard_001",
       "path": "data/shards/ppp_sentences_shard_001.db.br",
       "enc": "br",
-      "sha256": "ca88b686a2c424559cb46b3764b88520022889b6059223cb19e18a611c6d5419",
-      "size": 5844351,
+      "sha256": "b25dffdd3a64a162f0e7ae77971efc72ba1c2eb1da1501739edb4983a16ce940",
+      "size": 5842930,
       "nrLo": 399,
       "nrHi": 739
     },
@@ -478,8 +478,8 @@
       "id": "ppp_sentences_shard_002",
       "path": "data/shards/ppp_sentences_shard_002.db.br",
       "enc": "br",
-      "sha256": "5ca5c480f69eb79e5455dc268448753110fa1d5f8692cd8532bf7703e1c36d88",
-      "size": 6063820,
+      "sha256": "1dd47b1e935166ce5d1dddef52691aaf83511f85a3032ae9507cbd4b95e73885",
+      "size": 6066392,
       "nrLo": 740,
       "nrHi": 1099
     },
@@ -487,8 +487,8 @@
       "id": "ppp_sentences_shard_003",
       "path": "data/shards/ppp_sentences_shard_003.db.br",
       "enc": "br",
-      "sha256": "4be85aa7f71032dd56320cd4ab8e1a0c96e566e086ea2a0e80ca8455913a3c51",
-      "size": 5572251,
+      "sha256": "18ad56de528224a4ccd8903201f17831dcca14ad5bff2cb06ab948b47c3d22a4",
+      "size": 5575003,
       "nrLo": 1100,
       "nrHi": 1585
     },
@@ -496,8 +496,8 @@
       "id": "ppp_sentences_shard_004",
       "path": "data/shards/ppp_sentences_shard_004.db.br",
       "enc": "br",
-      "sha256": "b2536308722f54951c19e173d225d214f9159105a93a96d23d12c6d26e2f325e",
-      "size": 4862779,
+      "sha256": "fc7d0db9f5a0a2c30e6245d3fc05f1895dddf8eaef81fae5cb2273bd40ae0b91",
+      "size": 4864534,
       "nrLo": 1586,
       "nrHi": 2193
     },
@@ -505,8 +505,8 @@
       "id": "ppp_sentences_shard_005",
       "path": "data/shards/ppp_sentences_shard_005.db.br",
       "enc": "br",
-      "sha256": "9c2cb60caa4d777a2e74f5f007cfbdf76e80db0e9112169fd9d337457e877b1b",
-      "size": 5144800,
+      "sha256": "57d5f8471f8541f0dcaed64a6127a27b2fe8a074f38c6e40e8adea6e56571f99",
+      "size": 5165318,
       "nrLo": 2195,
       "nrHi": 2691
     },
@@ -514,8 +514,8 @@
       "id": "ppp_sentences_shard_006",
       "path": "data/shards/ppp_sentences_shard_006.db.br",
       "enc": "br",
-      "sha256": "5dfcd9a79ef57654bcd8860e524f929b22ab48a13f5c79faf3628a46e0d7c808",
-      "size": 4958469,
+      "sha256": "fdcba3a5270a6702109c37e1fddf79b186c21b5c2f8c2c0a6bac6a6dfb8faf2e",
+      "size": 4958238,
       "nrLo": 2693,
       "nrHi": 3251
     },
@@ -523,8 +523,8 @@
       "id": "ppp_sentences_shard_007",
       "path": "data/shards/ppp_sentences_shard_007.db.br",
       "enc": "br",
-      "sha256": "b9787f4381c87ec28b8266f50267004c4a7277a5b91eff1b9a92dd812ca3063d",
-      "size": 5112193,
+      "sha256": "9aad455d83265e8d2569a0708474336127b7468f9b08c4819d908ae623d2e3b6",
+      "size": 5107631,
       "nrLo": 3254,
       "nrHi": 3712
     },
@@ -532,8 +532,8 @@
       "id": "ppp_sentences_shard_008",
       "path": "data/shards/ppp_sentences_shard_008.db.br",
       "enc": "br",
-      "sha256": "786b11585aadae5bd8721c001ce904df7789a926b84a4679debbc3a3fce03ad5",
-      "size": 6069321,
+      "sha256": "2b9e095f3244cd3dc97ffb58f90406d39493ad18ab1b3937f12ced5b60269582",
+      "size": 6064869,
       "nrLo": 3713,
       "nrHi": 4249
     },
@@ -541,8 +541,8 @@
       "id": "ppp_sentences_shard_009",
       "path": "data/shards/ppp_sentences_shard_009.db.br",
       "enc": "br",
-      "sha256": "50fb3e367d3bfd2fc8f962ccc4bc1bdc53fa0e314dec43f0ee705ec32bc45121",
-      "size": 4998328,
+      "sha256": "d55bdc1ea79f9adc27a1d3eab130bb769ade4ac43d85731455e0e3b827d1148c",
+      "size": 4997375,
       "nrLo": 4250,
       "nrHi": 4777
     },
@@ -550,8 +550,8 @@
       "id": "ppp_sentences_shard_010",
       "path": "data/shards/ppp_sentences_shard_010.db.br",
       "enc": "br",
-      "sha256": "363fb9aecde996a997826e22aa7582d9148a48714517c1d69cedec7c07c9c81f",
-      "size": 4151549,
+      "sha256": "7b642b926bb9aaa44d03c81b5ff4a21754bbf4eaa50000fbc54f45d4bb2f45f6",
+      "size": 4148248,
       "nrLo": 4779,
       "nrHi": 5273
     },
@@ -559,8 +559,8 @@
       "id": "ppp_sentences_shard_011",
       "path": "data/shards/ppp_sentences_shard_011.db.br",
       "enc": "br",
-      "sha256": "433816644ad9460b89caff3178daf790a92d082ac8e706cf3933a64a2c39282b",
-      "size": 4403494,
+      "sha256": "3eb6dcfa92c380cc9a768c0bf5cb6d6fe435c1a3331519fecd168d7060b6e429",
+      "size": 4403993,
       "nrLo": 5275,
       "nrHi": 5764
     },
@@ -568,8 +568,8 @@
       "id": "ppp_sentences_shard_012",
       "path": "data/shards/ppp_sentences_shard_012.db.br",
       "enc": "br",
-      "sha256": "c8b6b8450d87b20ad6470d45f2ce96cac3ce6f1224a320226979bb26db59b7ee",
-      "size": 3868699,
+      "sha256": "5db6ebebd1a0945c6ba0c0f77de21d6b8107a848a3fbea5f233ebf6bf4a1ae39",
+      "size": 3866008,
       "nrLo": 5772,
       "nrHi": 6069
     },
@@ -577,8 +577,8 @@
       "id": "ppp_sentences_shard_013",
       "path": "data/shards/ppp_sentences_shard_013.db.br",
       "enc": "br",
-      "sha256": "b9600e01c99cb8bb6114f2f317fe6bf1b3376be0bbded397703b9290417e9ed4",
-      "size": 4366128,
+      "sha256": "bfff830adbc1ca0562fedc2794a4a782e75e8658c17da2e9f5c82238ceb0c1d8",
+      "size": 4361765,
       "nrLo": 6075,
       "nrHi": 6366
     },
@@ -586,8 +586,8 @@
       "id": "ppp_sentences_shard_014",
       "path": "data/shards/ppp_sentences_shard_014.db.br",
       "enc": "br",
-      "sha256": "d3f4ff9fc35d3ebe4de6e1a9d9adc24bbf0e9d220bfc1b79e7867ef127ba2605",
-      "size": 5131758,
+      "sha256": "36b3e04601a10bbcb40b0bd3ae68fd8a976839864fcaa0d75bd1c760f9f7faf7",
+      "size": 5135841,
       "nrLo": 6367,
       "nrHi": 6726
     },
@@ -595,8 +595,8 @@
       "id": "ppp_sentences_shard_015",
       "path": "data/shards/ppp_sentences_shard_015.db.br",
       "enc": "br",
-      "sha256": "9614505fa2677c572b01e561220f660877bd685d535f7a11a8fb3843f4331835",
-      "size": 5396764,
+      "sha256": "7c7304d0947a5854b743dca0aea29f4c2d4d3ddeee58e32f042aaaa5dc061443",
+      "size": 5388681,
       "nrLo": 6728,
       "nrHi": 7157
     },
@@ -604,8 +604,8 @@
       "id": "ppp_sentences_shard_016",
       "path": "data/shards/ppp_sentences_shard_016.db.br",
       "enc": "br",
-      "sha256": "2d997858f4b1433a75f49caeab955f390e1b93bbcc64ba4bd17d810d39093312",
-      "size": 5656058,
+      "sha256": "83b2374f42f6c923328eec5141742ecd2432c7263ec161cad852d1e41642f8aa",
+      "size": 5646134,
       "nrLo": 7158,
       "nrHi": 7538
     },
@@ -613,8 +613,8 @@
       "id": "ppp_sentences_shard_017",
       "path": "data/shards/ppp_sentences_shard_017.db.br",
       "enc": "br",
-      "sha256": "f7ccde569aeed0e0c4faa45eb69cb8cd098bfcc5319520d25f65f01a447c3335",
-      "size": 6096161,
+      "sha256": "4587bce931641ab5b8c3ef762ed0d88da30e0486102fbcef559b80b3f836e863",
+      "size": 6091443,
       "nrLo": 7539,
       "nrHi": 7898
     },
@@ -622,8 +622,8 @@
       "id": "ppp_sentences_shard_018",
       "path": "data/shards/ppp_sentences_shard_018.db.br",
       "enc": "br",
-      "sha256": "7279a4fc0e7661afbe5d7723e16cffe6d4829ff350384c6ab922fd20eebd2b8a",
-      "size": 6171252,
+      "sha256": "4069335e8191b0c49f1f51cc3ae50a7a915e2f3aaf10da60f3e84ae94e722487",
+      "size": 6171771,
       "nrLo": 7899,
       "nrHi": 8600
     },
@@ -640,8 +640,8 @@
       "id": "ppp_sentences_shard_020",
       "path": "data/shards/ppp_sentences_shard_020.db.br",
       "enc": "br",
-      "sha256": "71df97928a299980dd6c3016b6ef867fd4799f1977127820829e3315c7f33b55",
-      "size": 6121083,
+      "sha256": "3fbf9f7993a4bfde3087b00a9daf1c187d66732441ae91c847c335d1a4da0dbb",
+      "size": 6126277,
       "nrLo": 9065,
       "nrHi": 9678
     },
@@ -649,8 +649,8 @@
       "id": "ppp_sentences_shard_021",
       "path": "data/shards/ppp_sentences_shard_021.db.br",
       "enc": "br",
-      "sha256": "a86d35d3d7bf3cf6d6ae22cad8461d6fd90d0d83be12167c8543ea2135d3fe76",
-      "size": 6716975,
+      "sha256": "94f93f6f8b7b91ec382c7f1045f9b02b4e90f831c7af4ac28edd0fbba9bf8ee1",
+      "size": 6719939,
       "nrLo": 9679,
       "nrHi": 10347
     },
@@ -658,14 +658,14 @@
       "id": "ppp_sentences_shard_022",
       "path": "data/shards/ppp_sentences_shard_022.db.br",
       "enc": "br",
-      "sha256": "87fcc633c87c89a5ac1115b691de2d1e2ffe9e8d67e3553f29134c3659d603a0",
-      "size": 3965972,
+      "sha256": "de99f5ddf17468a9409c3e87463a46aa9f80cd9a837e2aab047747821501c31d",
+      "size": 4030365,
       "nrLo": 10348,
-      "nrHi": 10584
+      "nrHi": 10602
     }
   ],
   "catalog": {
-    "lectures": 8757,
+    "lectures": 8769,
     "sources": {
       "@AnandaGopal108": 5,
       "@ChaitanyaAcademy": 2564,
@@ -690,7 +690,7 @@
       "@sripremprayojanprabhu5690": 65,
       "@vedukeliult4107": 2,
       "@vrndavanavilasinidasi3937": 252,
-      "Guru_das": 448,
+      "Guru_das": 460,
       "Private_mp3": 26,
       "Private_mp3_Bihari": 1666,
       "Telegram": 910,
