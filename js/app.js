@@ -1656,12 +1656,19 @@ PPP.app = (function () {
         // store already uses.
         var shardsStatePromise = (PPP.offlineStore && PPP.offlineStore.getState)
             ? _raceTimeout(PPP.offlineStore.getState('shards'), 4000, false) : Promise.resolve(false);
+        // Same timeout-hardening as shardsStatePromise above: the local
+        // manifest only feeds two purely informational rows (data version,
+        // installed transcript counts), so a wedged read degrades to null
+        // (both rows silently skipped) instead of blanking the whole panel.
+        var localManifestPromise = (PPP.offlineStore && PPP.offlineStore.getState)
+            ? _raceTimeout(PPP.offlineStore.getState('localManifest'), 4000, null) : Promise.resolve(null);
         Promise.all([
             PPP.downloader.fetchManifest(),
             PPP.downloader.getInstalledLangs(),
-            shardsStatePromise
+            shardsStatePromise,
+            localManifestPromise
         ]).then(function (res) {
-            var manifest = res[0], installed = res[1], shardsInstalled = !!res[2];
+            var manifest = res[0], installed = res[1], shardsInstalled = !!res[2], local = res[3];
             if (!document.body.contains(holder)) return;
             _cacheBaseMB(manifest);
             holder.innerHTML = '';
@@ -1671,6 +1678,41 @@ PPP.app = (function () {
             var names = ['en'].concat(installed).map(_langLabel).join(', ');
             line.textContent = i18n.t('offlineLangsInstalled').replace('{langs}', names);
             holder.appendChild(line);
+
+            // Data version + installed transcript counts — read straight off
+            // the LOCAL manifest (what is actually on this device), not the
+            // remote one, and only when a field is actually present so a
+            // damaged/partial localManifest quietly loses these two rows
+            // instead of showing "undefined".
+            if (local && local.generated) {
+                var dateLine = document.createElement('div');
+                dateLine.id = 'offlineDataVersion';
+                dateLine.className = 'offline-lang-installed';
+                dateLine.textContent = i18n.t('offlineDataVersion')
+                    .replace('{date}', String(local.generated).slice(0, 10));
+                holder.appendChild(dateLine);
+            }
+            if (local && Array.isArray(local.packs)) {
+                var countLangs = ['en'].concat(installed);
+                var premParts = countLangs.map(function (lg) {
+                    var sum = 0;
+                    local.packs.forEach(function (p) {
+                        if (p && p.kind === 'prem' && p.lang === lg) sum += (p.count || 0);
+                    });
+                    return lg.toUpperCase() + ' ' + sum;
+                });
+                var rawTotal = 0;
+                local.packs.forEach(function (p) {
+                    if (p && p.kind === 'raw') rawTotal += (p.count || 0);
+                });
+                var countLine = document.createElement('div');
+                countLine.id = 'offlineInstalledCounts';
+                countLine.className = 'offline-lang-installed';
+                countLine.textContent = i18n.t('offlineInstalledCounts')
+                    .replace('{prem}', premParts.join(', '))
+                    .replace('{raw}', String(rawTotal));
+                holder.appendChild(countLine);
+            }
 
             var available = _optInLangsFromManifest(manifest).filter(function (l) {
                 return installed.indexOf(l) === -1;
@@ -4475,9 +4517,17 @@ PPP.app = (function () {
         setSearchMode('metadata');
 
         if (usingSqlite) {
+            // Rājan 2026-10-27: "transkripta neesamībai nav nozīmes -- jārāda VISI
+            // faili". Earlier this view kept ONLY rows with an original
+            // transcript, so songs (Lang. 'Singing', no Script links) and any
+            // file still waiting for its transcript vanished from the by-date
+            // list (26.10: 10 files, the app showed 6). Every numbered Base row
+            // is listed now; the transcript clauses stay so no row that used to
+            // be shown (a transcript without Nr.) disappears.
             db.queryMetaAsync(
                 "SELECT * FROM lectures " +
-                "WHERE (script_en NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Дубикат', 'Not relevant', 'Neattiecas', 'Не относится')) " +
+                "WHERE (nr IS NOT NULL AND nr != '') " +
+                "   OR (script_en NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Дубикат', 'Not relevant', 'Neattiecas', 'Не относится')) " +
                 "   OR (script_lv NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Дубикат', 'Not relevant', 'Neattiecas', 'Не относится')) " +
                 "   OR (script_ru NOT IN ('', 'N/A', '0', 'Duplicate', 'Dublikāts', 'Дубликат', 'Дубикат', 'Not relevant', 'Neattiecas', 'Не относится')) " +
                 "ORDER BY CASE WHEN date = 'unknown' THEN 1 ELSE 0 END, date DESC, original_file_name DESC"
@@ -4507,7 +4557,10 @@ PPP.app = (function () {
             var lv = (r['Script_LV'] || '').toString().trim();
             var ru = (r['Script_RU'] || '').toString().trim();
             function hasVal(v) { return v !== '' && v !== 'N/A' && v !== '0' && v !== 'Duplicate' && v !== 'Dublikāts' && v !== 'Дубликат' && v !== 'Дубикат' && v !== 'Not relevant' && v !== 'Neattiecas' && v !== 'Не относится'; }
-            return hasVal(en) || hasVal(lv) || hasVal(ru);
+            // Same rule as the SQLite branch (Rājan 2026-10-27): every numbered
+            // row, with or without a transcript.
+            var nr = (r['Nr.'] || '').toString().trim();
+            return nr !== '' || hasVal(en) || hasVal(lv) || hasVal(ru);
         });
         withScripts.sort(function (a, b) {
             var dateA = (a['Date'] || '').toString().trim();
@@ -7100,6 +7153,17 @@ PPP.app = (function () {
         // test can confirm it engages while a search is in flight and always
         // releases afterwards (even on error).
         _isSentenceSearchBusyForTest: function () { return _sentenceSearchBusy; },
+        // Internal (test only) — force the "installed" branch of
+        // renderOfflineInfoPanel() (offlineReadyText + the installed-state
+        // rows: languages, data version, transcript counts) without running
+        // a real multi-minute background install first. Mirrors what
+        // maybeShowOfflineWorkButton(true) / openFromIdb set after a genuine
+        // install — tests still supply their own PPP.offlineStore.getState
+        // stub for the actual localManifest content.
+        _setOfflineInstalledForTest: function (v) {
+            _offlineInstalled = !!v;
+            _offlinePartial = false;
+        },
         copyShareLink: copyShareLink,
         buildShareUrl: buildShareUrl,
         toggleTheme: toggleTheme,

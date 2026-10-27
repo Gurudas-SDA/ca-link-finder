@@ -27,7 +27,7 @@ PPP.calendar = (function () {
 
     // ?v= is rewritten by scripts/cache_bust.py (JS_REFS) so the service
     // worker precache key matches this exact request URL.
-    var DATA_URL = 'data-static/ppp_calendar.json?v=5f348175';
+    var DATA_URL = 'data-static/ppp_calendar.json?v=1d8cc3b4';
 
     var WEEKS = 4;
     var _data = null;
