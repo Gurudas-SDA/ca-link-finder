@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-10-29T20:21:40.815049+00:00",
+  "generated": "2026-10-29T20:58:14.727475+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "98071b247a",
-      "sha256": "683dc67ed87a0fcb05b19d7675a4da37bf50dc849652975f3d1a1a75135fba8f",
-      "size": 5110215,
-      "raw": 48144384
+      "hash": "13932f7322",
+      "sha256": "e9e046a9141df0dbfce281447f22169d94b28ed81b79e8a07e22bce4237fbc05",
+      "size": 5113321,
+      "raw": 48148480
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -82,10 +82,10 @@
       "lang": "en",
       "path": "packs/prem-en-0005.pack",
       "enc": "br",
-      "hash": "180966b89d",
-      "sha256": "24329cb4891bcf71127142b06268411efecb3ac659d6eca857e0ef44f026c4aa",
-      "size": 3544767,
-      "count": 279
+      "hash": "a9cd396301",
+      "sha256": "83eddb3cfc36d5b38f5da423c76c01abab1fa025a4ab62eeeb83595ea81bdd31",
+      "size": 3569501,
+      "count": 280
     },
     {
       "id": "prem-lv-0000",
@@ -148,10 +148,10 @@
       "lang": "lv",
       "path": "packs/prem-lv-0005.pack",
       "enc": "br",
-      "hash": "fc23f524bf",
-      "sha256": "e703d77df411686316b9f86513448dc732f8f0f9d168030209d490edca314a36",
-      "size": 4002424,
-      "count": 283
+      "hash": "ea17e8d153",
+      "sha256": "393c5ea366054d88e190ca6a1d4684b158aea69bbf3e85d551b772157f9e0ba3",
+      "size": 4029626,
+      "count": 284
     },
     {
       "id": "prem-ru-0000",
@@ -214,10 +214,10 @@
       "lang": "ru",
       "path": "packs/prem-ru-0005.pack",
       "enc": "br",
-      "hash": "c5f5eb0026",
-      "sha256": "4d38eb4251ee41d8538e3e6e7b4e0d4cbacbe43e5af0fa3720573f672ac361d0",
-      "size": 4501759,
-      "count": 283
+      "hash": "d14984cf46",
+      "sha256": "6a9810737aa3179471570fbc4749a9a7c2d415db26f04b3663e442829b6d98e9",
+      "size": 4532132,
+      "count": 284
     },
     {
       "id": "raw-en-0000",
@@ -452,8 +452,8 @@
     }
   ],
   "totals": {
-    "bytes": 277816629,
-    "files": 18273
+    "bytes": 277902044,
+    "files": 18276
   },
   "sentenceShards": [
     {
@@ -658,8 +658,8 @@
       "id": "ppp_sentences_shard_022",
       "path": "data/shards/ppp_sentences_shard_022.db.br",
       "enc": "br",
-      "sha256": "e334c050f4d67b8beea0a665ecbb401023e55a2ad2eb48bdb2651072f8096613",
-      "size": 4322841,
+      "sha256": "0fd302e07649786ca4c6a8d6a97ab294088fc943a1f2d5723a9e29cc79878b50",
+      "size": 4353058,
       "nrLo": 10348,
       "nrHi": 10699
     }
