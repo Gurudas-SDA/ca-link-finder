@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-10-30T11:32:59.496876+00:00",
+  "generated": "2026-10-30T12:14:04.882012+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "42b5e87933",
-      "sha256": "8d92a7fd7d770ab2ecf4cf802021ad887855c1f773884233a4a162748e140459",
-      "size": 5115538,
+      "hash": "756eb140da",
+      "sha256": "0b2718b3662d59324a76a249dc672aec8cc8bde052f76b3fc188c0606f3929ad",
+      "size": 5113290,
       "raw": 48168960
     },
     "extras": {
@@ -82,10 +82,10 @@
       "lang": "en",
       "path": "packs/prem-en-0005.pack",
       "enc": "br",
-      "hash": "cf65ab4222",
-      "sha256": "d16b9c5fe955f1a1dfbf43b19de39790c752026825e04d848c871576829d5c01",
-      "size": 3575920,
-      "count": 282
+      "hash": "854663ea59",
+      "sha256": "23ae515bd218c02d34370ee250e25336ac89eff0dfb816233d603c983702a7a9",
+      "size": 3581833,
+      "count": 283
     },
     {
       "id": "prem-lv-0000",
@@ -148,10 +148,10 @@
       "lang": "lv",
       "path": "packs/prem-lv-0005.pack",
       "enc": "br",
-      "hash": "633c3ca7d0",
-      "sha256": "1b2b183f490c5a8b25b67c3b6d5d4e9edda1e0a9350f49c0f250ee73eb13c551",
-      "size": 4037210,
-      "count": 286
+      "hash": "b69f30f94e",
+      "sha256": "292e60ecc21856f89eb9e6e0df8ffb0eae0895b24d5922fbc84398d927e0e18d",
+      "size": 4044091,
+      "count": 287
     },
     {
       "id": "prem-ru-0000",
@@ -214,10 +214,10 @@
       "lang": "ru",
       "path": "packs/prem-ru-0005.pack",
       "enc": "br",
-      "hash": "225f82f401",
-      "sha256": "a9a4ed39506f3032ebc6bc21256dd3231fd7960cb79a95a053d0214c22745961",
-      "size": 4540649,
-      "count": 286
+      "hash": "9e726bf16d",
+      "sha256": "3214dd4fb9a019d719ab1282e0093c717f365786bdbda8e2650ad81963765efa",
+      "size": 4548460,
+      "count": 287
     },
     {
       "id": "raw-en-0000",
@@ -452,8 +452,8 @@
     }
   ],
   "totals": {
-    "bytes": 277926781,
-    "files": 18282
+    "bytes": 277945138,
+    "files": 18285
   },
   "sentenceShards": [
     {
@@ -658,8 +658,8 @@
       "id": "ppp_sentences_shard_022",
       "path": "data/shards/ppp_sentences_shard_022.db.br",
       "enc": "br",
-      "sha256": "44a5dfbb7c9abcf915cb4cd6276b2e77d69c6e445a7cc7e58d09651a89d187f8",
-      "size": 4356145,
+      "sha256": "87d9247af4a8e64855973755b0289b112f64df68da5672c1bab3e237bb573c49",
+      "size": 4362016,
       "nrLo": 10348,
       "nrHi": 10702
     }

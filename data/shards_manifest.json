@@ -315,15 +315,15 @@
       "id": "ppp_sentences_shard_022",
       "path": "data/shards/ppp_sentences_shard_022.db.br",
       "enc": "br",
-      "sha256": "44a5dfbb7c9abcf915cb4cd6276b2e77d69c6e445a7cc7e58d09651a89d187f8",
-      "size": 4356145,
-      "raw": 20742144,
+      "sha256": "87d9247af4a8e64855973755b0289b112f64df68da5672c1bab3e237bb573c49",
+      "size": 4362016,
+      "raw": 20779008,
       "nrFrom": 10348,
       "nrLo": 10348,
       "nrHi": 10702,
-      "sentences": 124541,
-      "lectures": 256,
-      "contentSig": "5609312b43860f303aae26a45fe50aafae8fa6b0438d66fd310df8aa5257f286"
+      "sentences": 124737,
+      "lectures": 257,
+      "contentSig": "9744a31297b80c34d5cf2dabe1cfab727409b170bc8c7d3eda9bf294ca7133a9"
     }
   ]
 }
