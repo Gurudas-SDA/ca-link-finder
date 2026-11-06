@@ -7,15 +7,15 @@
       "id": "ppp_sentences_shard_000",
       "path": "data/shards/ppp_sentences_shard_000.db.br",
       "enc": "br",
-      "sha256": "e56826a4a4dac9abc3fbb192e06e8e5f3378ce812697f7fbe14fc4e778f6bf46",
-      "size": 4926404,
-      "raw": 22798336,
+      "sha256": "1766d60c4c26118dc1d961bd2a58b7f57b1cfa01abb233a44376339348ef88b1",
+      "size": 4923922,
+      "raw": 22822912,
       "nrFrom": 1,
       "nrLo": 1,
       "nrHi": 398,
-      "sentences": 132819,
+      "sentences": 132841,
       "lectures": 263,
-      "contentSig": "8a35b9e5cc6a1bd47cf6461cac465d64c26fc337b6eca45dc37f745b63d931f4"
+      "contentSig": "435da5f721249129ceb7c2542d9bf80784d7e880ff29195adb039d41393ce245"
     },
     {
       "id": "ppp_sentences_shard_001",
@@ -35,15 +35,15 @@
       "id": "ppp_sentences_shard_002",
       "path": "data/shards/ppp_sentences_shard_002.db.br",
       "enc": "br",
-      "sha256": "4d2352c293ba21a3a6e889b59aa403d19f5adc540c74fbcf8a3e69ef1c5b893a",
-      "size": 5952945,
-      "raw": 28868608,
+      "sha256": "e3247bb6c33479660e505931d7525a64d14b2689b98c2a6b4c18bcd4745f16d8",
+      "size": 5943126,
+      "raw": 28962816,
       "nrFrom": 740,
       "nrLo": 740,
       "nrHi": 1099,
-      "sentences": 170832,
+      "sentences": 171177,
       "lectures": 278,
-      "contentSig": "ae5057815f7dabdd09556bc3c19914b65b649cca441c58b2998682b74bc31d16"
+      "contentSig": "267954d7b54958a63c0e0f345d62674c032a682a4118344e3bbbe474e9518b6b"
     },
     {
       "id": "ppp_sentences_shard_003",
@@ -63,15 +63,15 @@
       "id": "ppp_sentences_shard_004",
       "path": "data/shards/ppp_sentences_shard_004.db.br",
       "enc": "br",
-      "sha256": "0e959add033bd6d7709039c32013ec0ceb2faf69f28b34a6495e5b61c26735ca",
-      "size": 4856502,
-      "raw": 23437312,
+      "sha256": "0dd49843730d126354a2a39890ef6f09259a599f048c5e1e554568b4bafb5bd2",
+      "size": 4900025,
+      "raw": 23851008,
       "nrFrom": 1586,
       "nrLo": 1586,
       "nrHi": 2193,
-      "sentences": 135905,
+      "sentences": 138455,
       "lectures": 370,
-      "contentSig": "32675a3d461a157c197bb6983582104730c0b6362cbba8f44e9f08a97f324e68"
+      "contentSig": "78ff87e86525fbf2561b1569f1e1592f65a63c66d96f3adf7bc21946704d75d4"
     },
     {
       "id": "ppp_sentences_shard_005",
