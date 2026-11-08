@@ -273,15 +273,15 @@
       "id": "ppp_sentences_shard_019",
       "path": "data/shards/ppp_sentences_shard_019.db.br",
       "enc": "br",
-      "sha256": "e38ad20eb9d56d0637ed9f22e8703034c7a7fc09f999e5ea8b5b117602f6ddc6",
-      "size": 4699964,
-      "raw": 24154112,
+      "sha256": "ca6d2fbb55320d31e83fd1acc4395d4b485db83698a9f147367b8ff0347cf7c7",
+      "size": 4698959,
+      "raw": 24236032,
       "nrFrom": 8601,
       "nrLo": 8601,
       "nrHi": 9062,
-      "sentences": 132284,
+      "sentences": 132682,
       "lectures": 352,
-      "contentSig": "6e44bd45ae7e451446ca5155f8a22e6e68ba87dc41a156ef4727e47c3a6bc504"
+      "contentSig": "9a378829c83c10da306713115c8d9c434e00a7d95c904000690226ff7e34e5d4"
     },
     {
       "id": "ppp_sentences_shard_020",
@@ -301,29 +301,29 @@
       "id": "ppp_sentences_shard_021",
       "path": "data/shards/ppp_sentences_shard_021.db.br",
       "enc": "br",
-      "sha256": "a572e0e0b242b1a607ccf0e6c28ca3c79b46d1c489adb3b58848097e7937af12",
-      "size": 6690015,
-      "raw": 32604160,
+      "sha256": "019663c8c4e2cbf9200aa5d4ebca95c858f0061c9695c05b4375de5b8b450a7e",
+      "size": 6718496,
+      "raw": 32612352,
       "nrFrom": 9679,
       "nrLo": 9679,
       "nrHi": 10347,
-      "sentences": 174861,
+      "sentences": 174939,
       "lectures": 375,
-      "contentSig": "75dba541ce92484ddf0dd2d3259ea530ee2302dc91969368960befe6d7275eec"
+      "contentSig": "9a7aca539dab7c474ae8eae46ea0aca7b1cb3835b5d98e1a44a46593ab2dd926"
     },
     {
       "id": "ppp_sentences_shard_022",
       "path": "data/shards/ppp_sentences_shard_022.db.br",
       "enc": "br",
-      "sha256": "283d1d166d3eb052ab5154d175f91224042277ee6cb9df7ecb1e13ac2ceced74",
-      "size": 6088742,
-      "raw": 29732864,
+      "sha256": "1c65c70750eb198af1bd05b0fdc79a83065b9d9f4a24e3b7ae25bdafb415f6bc",
+      "size": 6121557,
+      "raw": 29868032,
       "nrFrom": 10348,
       "nrLo": 10348,
-      "nrHi": 10811,
-      "sentences": 173454,
-      "lectures": 378,
-      "contentSig": "8c01517038d74e3d32f98b90b875c6b94c2ffbe3dfb719e997532ca7cc12903c"
+      "nrHi": 10813,
+      "sentences": 174241,
+      "lectures": 381,
+      "contentSig": "72b10fca453dfc77a8cc628f7bf7690d8e023d2e073bb110db36856c08772e86"
     }
   ]
 }
