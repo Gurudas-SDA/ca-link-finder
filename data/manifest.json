@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-11-10T09:47:29.851478+00:00",
+  "generated": "2026-11-10T11:24:32.934345+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "2c59d9986e",
-      "sha256": "7e1bb6f3cb66601505d92dc38c4173d2c310b3396fbd8777fdfd2fb322caad2e",
-      "size": 4965970,
-      "raw": 47562752
+      "hash": "9db9024fde",
+      "sha256": "17786e0a9fa73f0b8b92fc676569b93e0482ddcd215fd040887ec5359f2c0c99",
+      "size": 4980480,
+      "raw": 47755264
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -49,10 +49,10 @@
       "lang": "en",
       "path": "packs/prem-en-0002.pack",
       "enc": "br",
-      "hash": "8c498b76b4",
-      "sha256": "2bd0c47478974bfcb0b453112d0fbee88a0ab97c881beec1a430798dc9fe4b20",
-      "size": 9409209,
-      "count": 610
+      "hash": "c0c8f2d082",
+      "sha256": "161f6cf1bf5d5ab66851857cb54c9774a43e4566e278045f2f3f28cbec1591c6",
+      "size": 9504256,
+      "count": 615
     },
     {
       "id": "prem-en-0003",
@@ -115,10 +115,10 @@
       "lang": "lv",
       "path": "packs/prem-lv-0002.pack",
       "enc": "br",
-      "hash": "1d674c39d7",
-      "sha256": "6478e4627d701b8b68444cb2fe9a89e31ba09eef86bf4c3662c07e20470c875b",
-      "size": 14133082,
-      "count": 828
+      "hash": "3054bb9725",
+      "sha256": "2e321cac63618e2fea0b3fbb3030028f72f3c0f728222c7c100dc0061c877a5b",
+      "size": 14239441,
+      "count": 833
     },
     {
       "id": "prem-lv-0003",
@@ -181,10 +181,10 @@
       "lang": "ru",
       "path": "packs/prem-ru-0002.pack",
       "enc": "br",
-      "hash": "c91909a700",
-      "sha256": "cb493885251585c5b4bdbcd9a913d82cf732698021392e373e9c284cc1ae8440",
-      "size": 15997991,
-      "count": 828
+      "hash": "26398fa40f",
+      "sha256": "46478008a5c84b51b6148f665dc4b74992d566f47001c54e25d7b58475c195ce",
+      "size": 16118714,
+      "count": 833
     },
     {
       "id": "prem-ru-0003",
@@ -452,8 +452,8 @@
     }
   ],
   "totals": {
-    "bytes": 292784127,
-    "files": 19344
+    "bytes": 293120766,
+    "files": 19359
   },
   "sentenceShards": [
     {
@@ -532,8 +532,8 @@
       "id": "ppp_sentences_shard_008",
       "path": "data/shards/ppp_sentences_shard_008.db.br",
       "enc": "br",
-      "sha256": "e6d311302a93e45d8039fb7e7c12eac607f0004b5c467e92cfb86bdab0225d20",
-      "size": 6094233,
+      "sha256": "9d4f3ee2bc681d74a92e26246530a5156bbaea125ffa418ac8018140107579a3",
+      "size": 6099992,
       "nrLo": 3713,
       "nrHi": 4249
     },
@@ -541,8 +541,8 @@
       "id": "ppp_sentences_shard_009",
       "path": "data/shards/ppp_sentences_shard_009.db.br",
       "enc": "br",
-      "sha256": "5bbae22c948622fef920f4d6660588bce19f46d5cc87ba637b4b5c6434167f98",
-      "size": 4994832,
+      "sha256": "96bfc95f57422a5e6846b6f6271162e1bd120bbbe03385f320aca979ad260115",
+      "size": 4993447,
       "nrLo": 4250,
       "nrHi": 4777
     },
