@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-11-15T11:19:27.552358+00:00",
+  "generated": "2026-11-15T23:25:33.883460+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "0455cfc22d",
-      "sha256": "e875fddad9b2e18dfb280dfc61c0d3cee63e44474c72ffdd00c1450db71d354e",
-      "size": 5042955,
-      "raw": 48439296
+      "hash": "60587cf5dd",
+      "sha256": "40b2beed0844af5e9161b72b011d9f47854f944f6d3135df89424ca682cdd18a",
+      "size": 5042861,
+      "raw": 48443392
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -218,242 +218,11 @@
       "sha256": "cf9f2457061b79998d460a4ae3cf53882c637671c57394d16b2d26372b32bd83",
       "size": 7230907,
       "count": 459
-    },
-    {
-      "id": "raw-en-0000",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0000.pack",
-      "enc": "br",
-      "hash": "f82b295728",
-      "sha256": "856809ba54fffd9fdb7d0db47fa59b1790deba42fad12c31a3a9aed46aa4cc45",
-      "size": 3489730,
-      "count": 308
-    },
-    {
-      "id": "raw-en-0001",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0001.pack",
-      "enc": "br",
-      "hash": "89fe950f4c",
-      "sha256": "f056244c5da62c6408c2bfd1d1c7ea02995abf1b6ca310c2433e738c2647aa06",
-      "size": 5321744,
-      "count": 456
-    },
-    {
-      "id": "raw-en-0002",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0002.pack",
-      "enc": "br",
-      "hash": "5a8a4af110",
-      "sha256": "e9dbcf700ada9dc09b6e9a70effc228c0f188cfd220df55f827dc4d9f1b22e99",
-      "size": 3003245,
-      "count": 241
-    },
-    {
-      "id": "raw-en-0003",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0003.pack",
-      "enc": "br",
-      "hash": "b1e5477a11",
-      "sha256": "f8095c3861a83b78a0f57b042817e19b8ac92e7e059c3b4606aeb58bb8cbd8f9",
-      "size": 3012535,
-      "count": 379
-    },
-    {
-      "id": "raw-en-0004",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0004.pack",
-      "enc": "br",
-      "hash": "baf75597ec",
-      "sha256": "0c48ae660a80e4a062ccbea56861c913d10124a4aa96ec08e8903626a593b755",
-      "size": 2794320,
-      "count": 246
-    },
-    {
-      "id": "raw-en-0005",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0005.pack",
-      "enc": "br",
-      "hash": "5764e30349",
-      "sha256": "57b1bafe5ee3f4b63f5ec547b74c58d519c1e7b63f24167c00c82c7ddd60ce71",
-      "size": 3010038,
-      "count": 332
-    },
-    {
-      "id": "raw-en-0006",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0006.pack",
-      "enc": "br",
-      "hash": "ff0ff8f73f",
-      "sha256": "13a1414988f457432a6b057c8af2bc1f380d89f60f9e2c7acd4da6155f99bf58",
-      "size": 3456527,
-      "count": 285
-    },
-    {
-      "id": "raw-en-0007",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0007.pack",
-      "enc": "br",
-      "hash": "771651a468",
-      "sha256": "427b311b085da3de522882327cd809268f7054f727aeb7ba8dd2c845c2c56e96",
-      "size": 2562887,
-      "count": 253
-    },
-    {
-      "id": "raw-en-0008",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0008.pack",
-      "enc": "br",
-      "hash": "644a385c04",
-      "sha256": "d06cbbb41a00e25de183a0350cc4f12d296b5365979832ab0d02b312661e5c21",
-      "size": 3513530,
-      "count": 398
-    },
-    {
-      "id": "raw-en-0009",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0009.pack",
-      "enc": "br",
-      "hash": "2908a1730a",
-      "sha256": "08a7e8d29b4dfd3205bacc49bc5ead8650ba8772306cd62423ec3f26e3a04613",
-      "size": 3769937,
-      "count": 394
-    },
-    {
-      "id": "raw-en-0010",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0010.pack",
-      "enc": "br",
-      "hash": "9ee21a382c",
-      "sha256": "0f3380b77927dcef14b13a7821e9ea36443c4c9e4339c0f828b35acab7c8adcd",
-      "size": 3110934,
-      "count": 227
-    },
-    {
-      "id": "raw-en-0011",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0011.pack",
-      "enc": "br",
-      "hash": "f7e1cab930",
-      "sha256": "8931e5accb20f76482a558f787b7fc10acf23a75961eb5f56c8a3c28d93a5859",
-      "size": 5390375,
-      "count": 346
-    },
-    {
-      "id": "raw-en-0012",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0012.pack",
-      "enc": "br",
-      "hash": "83a5cf273c",
-      "sha256": "453f3ad45784a81d7495feadc3436ddffb954f59ef1c611ac7cf024e2f4cc5f9",
-      "size": 6396926,
-      "count": 443
-    },
-    {
-      "id": "raw-en-0013",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0013.pack",
-      "enc": "br",
-      "hash": "6b57a67395",
-      "sha256": "8827b5d19b46ac6d42900ce259975a2255ffbefc3427a1c75a2d1d7340ee0f6a",
-      "size": 4388859,
-      "count": 428
-    },
-    {
-      "id": "raw-en-0014",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0014.pack",
-      "enc": "br",
-      "hash": "4640bf5d8d",
-      "sha256": "3b1fb890662449277249a4ac3f9628f999378876798778bb82a06e458e867a66",
-      "size": 4339093,
-      "count": 370
-    },
-    {
-      "id": "raw-en-0015",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0015.pack",
-      "enc": "br",
-      "hash": "1ce21c664f",
-      "sha256": "1ded6aff0276e52269916df06da7d066cd3a4b0d3ccde1c5ba9168dc2f615e46",
-      "size": 3344939,
-      "count": 328
-    },
-    {
-      "id": "raw-en-0016",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0016.pack",
-      "enc": "br",
-      "hash": "c94bdab7be",
-      "sha256": "3dd418794b4f24064674bdefd1c4792b4027ea81798ccc109cf61ca792cd5211",
-      "size": 1718174,
-      "count": 299
-    },
-    {
-      "id": "raw-en-0017",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0017.pack",
-      "enc": "br",
-      "hash": "5a4146ff15",
-      "sha256": "5afc9d5a865d7a6a878eccde4f72954a0723e30f7a1bfc46ee3e7af5fc7fbc65",
-      "size": 3437090,
-      "count": 386
-    },
-    {
-      "id": "raw-en-0018",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0018.pack",
-      "enc": "br",
-      "hash": "31faf0c6c1",
-      "sha256": "1ee96755b1b9bf0ec9a533f45f882fe7b4074ddff79c56e70b0bf3cfa26785cf",
-      "size": 2214957,
-      "count": 340
-    },
-    {
-      "id": "raw-en-0019",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0019.pack",
-      "enc": "br",
-      "hash": "642bfd60a4",
-      "sha256": "024abc27106e7b4554e8e2a2169cf12668bc2eef4d724be97da0cca1be4c392c",
-      "size": 1359847,
-      "count": 89
-    },
-    {
-      "id": "raw-en-0020",
-      "kind": "raw",
-      "lang": "en",
-      "path": "packs/raw-en-0020.pack",
-      "enc": "br",
-      "hash": "f01c10ad9a",
-      "sha256": "b749c69f6a227fde15125a334b16cbc2198a998dafcf70ef15948c09744a4422",
-      "size": 419106,
-      "count": 56
     }
   ],
   "totals": {
-    "bytes": 295754410,
-    "files": 19475
+    "bytes": 225699523,
+    "files": 12871
   },
   "sentenceShards": [
     {
