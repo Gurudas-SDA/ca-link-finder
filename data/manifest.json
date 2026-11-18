@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-11-17T23:12:16.691334+00:00",
+  "generated": "2026-11-18T11:12:43.995310+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "6928f7d6f2",
-      "sha256": "c4ee801c9023499d6825356d2a744d9c55ee71ef2b2d5b202987a18706e437c5",
-      "size": 5044344,
+      "hash": "cf8f084376",
+      "sha256": "408df158d37cab8898aabade3fe23df7501e23322f1c191605a0ab5a2db59906",
+      "size": 5044330,
       "raw": 48459776
     },
     "extras": {
@@ -221,7 +221,7 @@
     }
   ],
   "totals": {
-    "bytes": 225832605,
+    "bytes": 225832591,
     "files": 12877
   },
   "sentenceShards": [
@@ -443,7 +443,7 @@
     }
   ],
   "catalog": {
-    "lectures": 7667,
+    "lectures": 7668,
     "sources": {
       "@AnandaGopal108": 5,
       "@ChaitanyaAcademy": 2264,
@@ -469,7 +469,7 @@
       "@vedukeliult4107": 2,
       "@vrndavanavilasinidasi3937": 237,
       "Guru das": 1,
-      "Guru_das": 617,
+      "Guru_das": 618,
       "Private_mp3": 21,
       "Private_mp3_Bihari": 1445,
       "Telegram": 849,
