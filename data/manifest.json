@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-11-19T11:13:30.017419+00:00",
+  "generated": "2026-11-19T19:19:45.354812+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "c3a29193de",
-      "sha256": "3e4bcf38fca258439a3249a9ba050228b904bf7408ee0d78fd0638c998f7a59a",
-      "size": 5044984,
-      "raw": 48459776
+      "hash": "6a71c6b475",
+      "sha256": "1727ee42e491aa37a4bc867ee6bd2230fa1d22c5b78362413ac357dc2176a82c",
+      "size": 5045156,
+      "raw": 48463872
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -82,10 +82,10 @@
       "lang": "en",
       "path": "packs/prem-en-0005.pack",
       "enc": "br",
-      "hash": "194bb8e900",
-      "sha256": "c31d1dd537f65363c2526b976b3191073e25d2ac3877e8355ef98ac4fd0dd27f",
-      "size": 5741634,
-      "count": 459
+      "hash": "4bcf8983e3",
+      "sha256": "6bb620866c6889a25953aa5a54538515d9021a3eb6343105c549466c0854675c",
+      "size": 5797093,
+      "count": 463
     },
     {
       "id": "prem-lv-0000",
@@ -148,10 +148,10 @@
       "lang": "lv",
       "path": "packs/prem-lv-0005.pack",
       "enc": "br",
-      "hash": "dce4475d9d",
-      "sha256": "e1b6990e53af783ff49a8072704cfe805168ef1159ca5efe8dd5a61fd2e3e4c8",
-      "size": 6359229,
-      "count": 461
+      "hash": "1967141604",
+      "sha256": "30bc85ff9d0fa47e4244eb62836ba53468083ca84000f64bd2047d023492911a",
+      "size": 6420572,
+      "count": 465
     },
     {
       "id": "prem-ru-0000",
@@ -214,15 +214,15 @@
       "lang": "ru",
       "path": "packs/prem-ru-0005.pack",
       "enc": "br",
-      "hash": "804c624eff",
-      "sha256": "1077ce9e6df20050f1c19e781f1815ae593f107d5015e0c98650bffc9d4f8079",
-      "size": 7280079,
-      "count": 461
+      "hash": "e58dfa756a",
+      "sha256": "efa49ff91b7d128dfd8faaee046565ba8a3f4373b1a7db3e5d06d27f83273ed2",
+      "size": 7350511,
+      "count": 465
     }
   ],
   "totals": {
-    "bytes": 225833245,
-    "files": 12877
+    "bytes": 226020651,
+    "files": 12889
   },
   "sentenceShards": [
     {
@@ -443,7 +443,7 @@
     }
   ],
   "catalog": {
-    "lectures": 7670,
+    "lectures": 7674,
     "sources": {
       "@AnandaGopal108": 5,
       "@ChaitanyaAcademy": 2264,
@@ -469,7 +469,7 @@
       "@vedukeliult4107": 2,
       "@vrndavanavilasinidasi3937": 237,
       "Guru das": 1,
-      "Guru_das": 620,
+      "Guru_das": 624,
       "Private_mp3": 21,
       "Private_mp3_Bihari": 1445,
       "Telegram": 849,
