@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-11-23T23:16:58.695650+00:00",
+  "generated": "2026-11-24T11:13:11.573201+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "86942ee4cd",
-      "sha256": "e858d533a8384caf2da63f9d1dbf0e24f1cf4bf4e5df49261dfac008b74e7bd7",
-      "size": 5057537,
-      "raw": 48594944
+      "hash": "3d5b51fbdc",
+      "sha256": "db8f9c55a12f4fc6ece4b479ac7a3ebb3ffcd7bdb8348def8e953dfaf5dcf9f0",
+      "size": 5059056,
+      "raw": 48611328
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -221,7 +221,7 @@
     }
   ],
   "totals": {
-    "bytes": 226732857,
+    "bytes": 226734376,
     "files": 12937
   },
   "sentenceShards": [
