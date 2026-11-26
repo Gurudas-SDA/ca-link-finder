@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generated": "2026-11-26T11:19:59.100972+00:00",
+  "generated": "2026-11-26T11:40:03.015549+00:00",
   "encoding": "br",
   "core": {
     "meta": {
       "path": "data/ppp_meta.db.br",
       "enc": "br",
-      "hash": "a417a6d854",
-      "sha256": "91f6f979bacc522feda8482e0d5bf994ee06f45842faf3de53a4133b11885e4a",
-      "size": 5059211,
-      "raw": 48623616
+      "hash": "54aab239d1",
+      "sha256": "fcec5e7b1c3a95c05c74c88f4d5bb1afc73b73a936e99ec775870983a7546c8d",
+      "size": 5057800,
+      "raw": 48635904
     },
     "extras": {
       "path": "data/ppp_lecture_extras.json.br",
@@ -82,10 +82,10 @@
       "lang": "en",
       "path": "packs/prem-en-0005.pack",
       "enc": "br",
-      "hash": "f71b99d8d7",
-      "sha256": "fef6ccb67ee6baf4269afaeadf25fc9782ce6293fc2817fa574d5ffe3c9cf7eb",
-      "size": 6039970,
-      "count": 482
+      "hash": "6be362a8fc",
+      "sha256": "04cdec6b15760035b6d10e374c175ecb7571b23ad0442c2f9937e45468e7df5f",
+      "size": 6062467,
+      "count": 483
     },
     {
       "id": "prem-lv-0000",
@@ -148,10 +148,10 @@
       "lang": "lv",
       "path": "packs/prem-lv-0005.pack",
       "enc": "br",
-      "hash": "ce189bfe6e",
-      "sha256": "2bf6219ef57c86e622f211c23af440c4355755ca570b63c58f332dc70cb74bb4",
-      "size": 6688058,
-      "count": 484
+      "hash": "c012a84d98",
+      "sha256": "a2dbc7379a3a4a3472227e6958093a27f7909c007b848eed3856dbcfe7bd4477",
+      "size": 6712004,
+      "count": 485
     },
     {
       "id": "prem-ru-0000",
@@ -214,15 +214,15 @@
       "lang": "ru",
       "path": "packs/prem-ru-0005.pack",
       "enc": "br",
-      "hash": "b0cb09f98a",
-      "sha256": "e16e28073e0dc0f0545aec2e12e5eae76fc2d9476d5b06bba30274200a3cbc4b",
-      "size": 7658185,
-      "count": 484
+      "hash": "b53a97dab4",
+      "sha256": "986984d814d93491a87277238c5ef4b8b371b010c4ee44ccfcdc4a816af8e6d1",
+      "size": 7685265,
+      "count": 485
     }
   ],
   "totals": {
-    "bytes": 226852743,
-    "files": 12946
+    "bytes": 226924855,
+    "files": 12949
   },
   "sentenceShards": [
     {
